@@ -1,0 +1,6 @@
+.deps
+.first-build-message
+Makefile.config
+fips
+*.o
+*~
