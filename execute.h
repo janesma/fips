@@ -19,64 +19,12 @@
  * THE SOFTWARE.
  */
 
-#include <stdio.h>
-#include <stdlib.h>
-#include <limits.h>
-#include <getopt.h>
+#ifndef EXECUTE_H
+#define EXECUTE_H
 
-#include "execute.h"
-
-static void
-usage (void)
-{
-	printf("Usage: fips [OPTIONS...] <program> [program args...]\n"
-	       "\n"
-	       "Execute <program> and report GPU performance counters\n"
-	       "\n"
-	       "Options:\n"
-	       "	-h, --help	show this help message\n"
-	       "\n");
-}
-
+/* Execute the program with arguments as specified.
+ */
 int
-main (int argc, char *argv[])
-{
-	int opt, ret;
+execute (int argc, char * const argv[]);
 
-	const char *short_options = "h";
-	const struct option long_options[] = {
-		{"help", no_argument, 0, 'h'},
-		{0, 0, 0, 0}
-	};
-
-	while (1)
-	{
-		opt = getopt_long(argc, argv, short_options, long_options, NULL);
-		if (opt == -1)
-			break;
-
-		switch (opt) {
-		case 'h':
-			usage ();
-			return 0;
-		case '?':
-			break;
-		default:
-			fprintf(stderr, "Internal error: "
-				"unexpected getopt value: %d\n", opt);
-			exit (1);
-		}
-	}
-
-	if (optind >= argc) {
-		fprintf (stderr, "Error: No program name provided, "
-			 "see (fips --help)\n");
-		exit (1);
-	}
-
-	ret = execute (argc - optind, &argv[optind]);
-
-	return ret;
-}
-
-
+#endif

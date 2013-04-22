@@ -369,7 +369,7 @@ CC = ${CC}
 CFLAGS = ${CFLAGS}
 
 # Default FLAGS for the linker (can be overridden by user such as "make LDFLAGS=-znow")
-LDFLAGS = ${LDFLAGS}
+LDFLAGS = ${LDFLAGS} -ldl
 
 # Flags to enable warnings when using the C compiler
 WARN_CFLAGS=${WARN_CFLAGS}

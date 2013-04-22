@@ -60,6 +60,7 @@ distclean: clean
 	rm -rf $(DISTCLEAN)
 
 fips_srcs = \
+	execute.c \
 	fips.c
 
 fips_modules = $(fips_srcs:.c=.o)

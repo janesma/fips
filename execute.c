@@ -21,62 +21,60 @@
 
 #include <stdio.h>
 #include <stdlib.h>
-#include <limits.h>
-#include <getopt.h>
 
-#include "execute.h"
+#include <unistd.h>
+#include <sys/types.h>
+#include <sys/wait.h>
 
-static void
-usage (void)
+static int
+fork_exec_and_wait (char * const argv[])
 {
-	printf("Usage: fips [OPTIONS...] <program> [program args...]\n"
-	       "\n"
-	       "Execute <program> and report GPU performance counters\n"
-	       "\n"
-	       "Options:\n"
-	       "	-h, --help	show this help message\n"
-	       "\n");
-}
+	pid_t pid;
+	int i, status;
 
-int
-main (int argc, char *argv[])
-{
-	int opt, ret;
+	pid = fork ();
 
-	const char *short_options = "h";
-	const struct option long_options[] = {
-		{"help", no_argument, 0, 'h'},
-		{0, 0, 0, 0}
-	};
-
-	while (1)
-	{
-		opt = getopt_long(argc, argv, short_options, long_options, NULL);
-		if (opt == -1)
-			break;
-
-		switch (opt) {
-		case 'h':
-			usage ();
-			return 0;
-		case '?':
-			break;
-		default:
-			fprintf(stderr, "Internal error: "
-				"unexpected getopt value: %d\n", opt);
-			exit (1);
+	/* Child */
+	if (pid == 0) {
+		execvp (argv[0], argv);
+		fprintf (stderr, "Failed to execute:");
+		for (i = 0; argv[i]; i++) {
+			fprintf (stderr, " %s", argv[i]);
 		}
-	}
-
-	if (optind >= argc) {
-		fprintf (stderr, "Error: No program name provided, "
-			 "see (fips --help)\n");
+		fprintf (stderr, "\n");
 		exit (1);
 	}
 
-	ret = execute (argc - optind, &argv[optind]);
-
-	return ret;
+	/* Parent */
+	waitpid (pid, &status, 0);
+	if (WIFEXITED (status)) {
+		return (WEXITSTATUS (status));
+	}
+	if (WIFSIGNALED (status)) {
+		fprintf (stderr, "Child terminated by signal %d\n",
+			 WTERMSIG (status));
+	}
+	return 1;
 }
 
+int
+execute (int argc, char * const argv[])
+{
+	char **execvp_args;
+	int i;
 
+	execvp_args = malloc((argc + 1) * sizeof(char *));
+	if (execvp_args == NULL) {
+		fprintf (stderr, "Out of memory,\n");
+		return 1;
+	}
+
+	for (i = 0; i < argc; i++) {
+		execvp_args[i] = argv[i];
+	}
+
+	/* execvp needs final NULL */
+	execvp_args[i] = NULL;
+
+	return fork_exec_and_wait (execvp_args);
+}
