@@ -42,7 +42,6 @@ LDFLAGS=${LDFLAGS:-}
 # Set the defaults for values the user can specify with command-line
 # options.
 PREFIX=/usr/local
-LIBDIR=
 
 usage ()
 {
@@ -82,8 +81,8 @@ specify an installation prefix other than $PREFIX using
 
 Fine tuning of some installation directories is available:
 
+	--bindir=DIR		Install executables to DIR [PREFIX/bin]
 	--libdir=DIR		Install libraries to DIR [PREFIX/lib]
-	--includedir=DIR	Install header files to DIR [PREFIX/include]
 	--mandir=DIR		Install man pages to DIR [PREFIX/share/man]
 	--sysconfdir=DIR	Read-only single-machine data [PREFIX/etc]
 
@@ -102,6 +101,36 @@ configure-script calling conventions, but don't do anything yet:
 EOF
 }
 
+# Given two absolute paths ("from" and "to"), compute a relative path
+# from "from" to "to". For example:
+#
+#	relative_path /foo/bar/baz /foo/qux -> ../../qux
+relative_path ()
+{
+    if [ $# -ne 2 ] ; then
+	echo "Internal error: relative_path requires exactly 2 arguments"
+	exit 1;
+    fi
+
+    from="$1"
+    to="$2"
+
+    # Handle trivial case up-front
+    if [ "$from" = "$to" ] ; then
+	echo ""
+    else
+	shared="$from"
+	relative=""
+
+	while [ "${to#$shared}" = "$to" ] && [ "$shared" != "." ] ; do
+	    shared="$(dirname $shared)"
+	    relative="..${relative:+/${relative}}"
+	done
+
+	echo "${relative:-.}${to#$shared}"
+    fi
+}
+
 # Parse command-line options
 for option; do
     if [ "${option}" = '--help' ] ; then
@@ -109,10 +138,10 @@ for option; do
 	exit 0
     elif [ "${option%%=*}" = '--prefix' ] ; then
 	PREFIX="${option#*=}"
+    elif [ "${option%%=*}" = '--bindir' ] ; then
+	BINDIR="${option#*=}"
     elif [ "${option%%=*}" = '--libdir' ] ; then
 	LIBDIR="${option#*=}"
-    elif [ "${option%%=*}" = '--includedir' ] ; then
-	INCLUDEDIR="${option#*=}"
     elif [ "${option%%=*}" = '--mandir' ] ; then
 	MANDIR="${option#*=}"
     elif [ "${option%%=*}" = '--sysconfdir' ] ; then
@@ -141,17 +170,6 @@ for option; do
 	exit 1
     fi
 done
-
-# We set this value early, (rather than just while printing the
-# Makefile.config file later like most values), because we need to
-# actually investigate this value compared to the ldconfig_paths value
-# below.
-if [ -z "$LIBDIR" ] ; then
-    libdir_expanded="${PREFIX}/lib"
-else
-    # very non-general variable expansion
-    libdir_expanded=`echo "$LIBDIR" | sed "s|\\${prefix}|${PREFIX}|g; s|\\$prefix/|${PREFIX}/|; s|//*|/|g"`
-fi
 
 cat <<EOF
 Welcome to ${PROJECT}, ${PROJECT_BLURB}
@@ -193,8 +211,6 @@ else
     errors=$((errors + 1))
 fi
 
-libdir_in_ldconfig=0
-
 printf "Checking which platform we are on... "
 uname=`uname`
 if [ $uname = "Darwin" ] ; then
@@ -217,29 +233,6 @@ elif [ $uname = "Linux" ] || [ $uname = "GNU" ] ; then
     printf "$uname\n"
     platform="$uname"
     linker_resolves_library_dependencies=1
-
-    printf "Checking for $libdir_expanded in ldconfig... "
-    ldconfig_paths=$(/sbin/ldconfig -N -X -v 2>/dev/null | sed -n -e 's,^\(/.*\):\( (.*)\)\?$,\1,p')
-    # Separate ldconfig_paths only on newline (not on any potential
-    # embedded space characters in any filenames). Note, we use a
-    # literal newline in the source here rather than something like:
-    #
-    #	IFS=$(printf '\n')
-    #
-    # because the shell's command substitution deletes any trailing newlines.
-    IFS="
-"
-    for path in $ldconfig_paths; do
-	if [ "$path" = "$libdir_expanded" ]; then
-	    libdir_in_ldconfig=1
-	fi
-    done
-    IFS=$DEFAULT_IFS
-    if [ "$libdir_in_ldconfig" = '0' ]; then
-	printf "No (will set RPATH)\n"
-    else
-	printf "Yes\n"
-    fi
 else
     printf "Unknown.\n"
     cat <<EOF
@@ -369,26 +362,19 @@ CC = ${CC}
 CFLAGS = ${CFLAGS}
 
 # Default FLAGS for the linker (can be overridden by user such as "make LDFLAGS=-znow")
-LDFLAGS = ${LDFLAGS} -ldl
+LDFLAGS = ${LDFLAGS}
 
 # Flags to enable warnings when using the C compiler
 WARN_CFLAGS=${WARN_CFLAGS}
 
 # The prefix to which ${PROJECT} should be installed
-# Note: If you change this value here, be sure to ensure that the
-# LIBDIR_IN_LDCONFIG value below is still set correctly.
 prefix = ${PREFIX}
 
+# The directory to which executables should be installed
+bindir = ${BINDIR:=\$(prefix)/bin}
+
 # The directory to which libraries should be installed
-# Note: If you change this value here, be sure to ensure that the
-# LIBDIR_IN_LDCONFIG value below is still set correctly.
 libdir = ${LIBDIR:=\$(prefix)/lib}
-
-# Whether libdir is in a path configured into ldconfig
-LIBDIR_IN_LDCONFIG = ${libdir_in_ldconfig}
-
-# The directory to which header files should be installed
-includedir = ${INCLUDEDIR:=\$(prefix)/include}
 
 # The directory to which man pages should be installed
 mandir = ${MANDIR:=\$(prefix)/share/man}
@@ -414,4 +400,12 @@ AS_NEEDED_LDFLAGS = ${as_needed_ldflags}
 # Combined flags for compiling and linking against all of the above
 CONFIGURE_CFLAGS = \$(TALLOC_CFLAGS)
 CONFIGURE_LDFLAGS = \$(TALLOC_LDFLAGS)
+EOF
+
+# construct config.h
+cat > config.h <<EOF
+/* Generated by configure. */
+
+/* Relative path from ${bindir} to ${libdir} */
+#define BINDIR_TO_LIBFIPSDIR "$(relative_path ${BINDIR} ${LIBDIR})/fips"
 EOF

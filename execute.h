@@ -22,9 +22,11 @@
 #ifndef EXECUTE_H
 #define EXECUTE_H
 
-/* Execute the program with arguments as specified.
+/* Execute the program with arguments as specified, but with the
+ * library specified in "library" pre-loaded. The library should be
+ * specified as the compiled filename (such as libfips.so).
  */
 int
-execute (int argc, char * const argv[]);
+execute_with_preload (int argc, char * const argv[], const char *library);
 
 #endif

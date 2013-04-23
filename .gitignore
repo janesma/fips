@@ -1,6 +1,8 @@
 .deps
 .first-build-message
 Makefile.config
+config.h
 fips
+libfips.so
 *.o
 *~

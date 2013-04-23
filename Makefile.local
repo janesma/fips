@@ -5,16 +5,15 @@ include Makefile.release
 # Smash together user's values with our extra values
 FINAL_CFLAGS = -DFIPS_VERSION=$(VERSION) $(CFLAGS) $(WARN_CFLAGS) $(CONFIGURE_CFLAGS) $(extra_cflags)
 FINAL_FIPS_LDFLAGS = $(LDFLAGS) $(AS_NEEDED_LDFLAGS) $(TALLOC_LDFLAGS)
+FINAL_LIBFIPS_LDFLAGS = $(LDFLAGS) -ldl
 FINAL_FIPS_LINKER = CC
 ifneq ($(LINKER_RESOLVES_LIBRARY_DEPENDENCIES),1)
 FINAL_FIPS_LDFLAGS += $(CONFIGURE_LDFLAGS)
 endif
-ifeq ($(LIBDIR_IN_LDCONFIG),0)
-FINAL_FIPS_LDFLAGS += $(RPATH_LDFLAGS)
-endif
 
 .PHONY: all
-all: fips
+all: fips libfips.so
+
 ifeq ($(MAKECMDGOALS),)
 ifeq ($(shell cat .first-build-message 2>/dev/null),)
 	@FIPS_FIRST_BUILD=1 $(MAKE) --no-print-directory all
@@ -59,6 +58,8 @@ clean:
 distclean: clean
 	rm -rf $(DISTCLEAN)
 
+# Main program, fips
+
 fips_srcs = \
 	execute.c \
 	fips.c
@@ -66,20 +67,35 @@ fips_srcs = \
 fips_modules = $(fips_srcs:.c=.o)
 
 fips: $(fips_modules)
-	$(call quiet,$(FINAL_FIPS_LINKER) $(CFLAGS)) $^ $(FINAL_FIPS_LDFLAGS) -o $@
+	$(call quiet,$(FINAL_FIPS_LINKER) $(CFLAGS)) $(FINAL_CFLAGS) $^ $(FINAL_FIPS_LDFLAGS) -o $@
+
+# GL-wrapper library, libfips
+LIBRARY_LINK_FLAGS = -shared -Wl,--version-script=libfips.sym,--no-undefined
+
+extra_cflags += -I$(srcdir) -fPIC
+
+libfips_srcs = \
+	glxwrap.c
+
+libfips_modules = $(libfips_srcs:.c=.o)
+
+libfips.so: $(libfips_modules) libfips.sym
+	$(call quiet,$(FINAL_FIPS_LINKER) $(CFLAGS)) $(FINAL_CFLAGS) $(libfips_modules) $(FINAL_LIBFIPS_LDFLAGS) $(LIBRARY_LINK_FLAGS) -o $@
 
 .PHONY: install
 install: all
-	mkdir -p $(DESTDIR)$(prefix)/bin/
-	install fips $(DESTDIR)$(prefix)/bin/fips
+	mkdir -p $(DESTDIR)$(bindir)
+	install fips $(DESTDIR)$(bindir)/fips
+	mkdir -p $(DESTDIR)$(libdir)/fips
+	install -m0644 libfips.so $(DESTDIR)$(libdir)/fips/libfips.so
 ifeq ($(MAKECMDGOALS), install)
 	@echo ""
 	@echo "Fips is now installed to $(DESTDIR)$(prefix)"
 	@echo ""
 endif
 
-SRCS  := $(SRCS) $(fips_srcs)
-CLEAN := $(CLEAN) fips $(fips_modules)
+SRCS  := $(SRCS) $(fips_srcs) $(libfips_srcs)
+CLEAN := $(CLEAN) fips $(fips_modules) $(libfips_modules)
 
 DISTCLEAN := $(DISTCLEAN) .first-build-message Makefile.config
 

@@ -74,7 +74,7 @@ main (int argc, char *argv[])
 		exit (1);
 	}
 
-	ret = execute (argc - optind, &argv[optind]);
+	ret = execute_with_preload (argc - optind, &argv[optind], "libfips.so");
 
 	return ret;
 }
