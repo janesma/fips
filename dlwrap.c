@@ -114,7 +114,6 @@ dlsym (void *handle, const char *name)
 	return dlwrap_real_dlsym (handle, name);
 }
 
-extern void *__dlsym (void *handle, const char *name);
 void *
 dlwrap_real_dlsym (void *handle, const char *name)
 {
