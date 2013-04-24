@@ -301,10 +301,21 @@ fork_exec_with_fips_preload_and_wait (char * const argv[])
 	if (pid == 0) {
 		void *ctx = talloc_new (NULL);
 		char *lib_path;
+		char *ld_preload_value;
 
 		lib_path = find_libfips_path (ctx, argv[0]);
 
-		setenv ("LD_PRELOAD", lib_path, 1);
+		ld_preload_value = getenv ("LD_PRELOAD");
+
+		if (ld_preload_value) {
+			ld_preload_value = talloc_asprintf(ctx, "%s:%s",
+							   ld_preload_value,
+							   lib_path);
+		} else {
+			ld_preload_value = lib_path;
+		}
+
+		setenv ("LD_PRELOAD", ld_preload_value, 1);
 
 		talloc_free (ctx);
 		
