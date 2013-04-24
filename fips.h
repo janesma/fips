@@ -19,64 +19,23 @@
  * THE SOFTWARE.
  */
 
-#include "fips.h"
+#ifndef FIPS_H
+#define FIPS_H
 
-#include <limits.h>
-#include <getopt.h>
+#include "config.h"
 
-#include "execute.h"
+#include <stdio.h>
+#include <stdlib.h>
 
-static void
-usage (void)
-{
-	printf("Usage: fips [OPTIONS...] <program> [program args...]\n"
-	       "\n"
-	       "Execute <program> and report GPU performance counters\n"
-	       "\n"
-	       "Options:\n"
-	       "	-h, --help	show this help message\n"
-	       "\n");
-}
+#include <string.h>
 
-int
-main (int argc, char *argv[])
-{
-	int opt, ret;
+#ifdef __GNUC__
+#define unused __attribute__ ((unused))
+#else
+#define unused
+#endif
 
-	const char *short_options = "h";
-	const struct option long_options[] = {
-		{"help", no_argument, 0, 'h'},
-		{0, 0, 0, 0}
-	};
+#define STRNCMP_LITERAL(var, literal) \
+    strncmp ((var), (literal), sizeof (literal) - 1)
 
-	while (1)
-	{
-		opt = getopt_long(argc, argv, short_options, long_options, NULL);
-		if (opt == -1)
-			break;
-
-		switch (opt) {
-		case 'h':
-			usage ();
-			return 0;
-		case '?':
-			break;
-		default:
-			fprintf(stderr, "Internal error: "
-				"unexpected getopt value: %d\n", opt);
-			exit (1);
-		}
-	}
-
-	if (optind >= argc) {
-		fprintf (stderr, "Error: No program name provided, "
-			 "see (fips --help)\n");
-		exit (1);
-	}
-
-	ret = execute_with_fips_preload (argc - optind, &argv[optind]);
-
-	return ret;
-}
-
-
+#endif

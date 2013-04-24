@@ -19,12 +19,8 @@
  * THE SOFTWARE.
  */
 
-#include "config.h"
+#include "fips.h"
 
-#include <stdio.h>
-#include <stdlib.h>
-
-#include <string.h>
 #include <errno.h>
 
 #include <unistd.h>

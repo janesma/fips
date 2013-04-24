@@ -23,15 +23,9 @@
 #define _GNU_SOURCE
 #include <dlfcn.h>
 
-#include <stdio.h>
-#include <stdlib.h>
-
-#include <string.h>
+#include "fips.h"
 
 #include "dlwrap.h"
-
-#define STRNCMP_LITERAL(var, literal) \
-    strncmp ((var), (literal), sizeof (literal) - 1)
 
 void *libfips_handle;
 
