@@ -115,6 +115,55 @@ exists (const char *path)
 	return 1;
 }
 
+/* Given a program name, search the PATH environment variable and
+ * return the first absolute path to 'program'.
+ *
+ * Returns: A string talloc'ed to 'ctx'.
+ *
+ * Note: This function aborts the current program if 'program' cannot
+ * be located by searching PATH.
+ */
+static char *
+search_path_for_program (void *ctx, const char *program)
+{
+	char *orig_path, *path, *colon, *dir, *candidate;
+	void *local = talloc_new (ctx);
+
+	/* If the program name already contains a slash, then this is
+	 * an absolute (or relative) path. Either way, we don't search
+	 * PATH, since we can directly open this filename. */
+	if (strchr (program, '/'))
+	    return talloc_strdup (ctx, program);
+
+	orig_path = path = getenv ("PATH");
+
+	while (*path) {
+		colon = strchr (path, ':');
+
+		if (colon) {
+			dir = talloc_strndup (local, path, colon - path);
+			path = colon + 1;
+		} else {
+			dir = path;
+			path = path + strlen (path);
+		}
+
+		candidate = talloc_asprintf(local, "%s/%s", dir, program);
+
+		if (exists (candidate)) {
+			talloc_steal (ctx, candidate);
+			talloc_free (local);
+			return candidate;
+		} else {
+			talloc_free (candidate);
+		}
+	}
+
+	fprintf (stderr, "Cannot find program %s (looked in %s)\n",
+		 program, orig_path);
+	exit (1);
+}
+
 /* Is the given elf program 32 or 64 bit?
  *
  * Note: This function aborts the current program if 'program' cannot
@@ -125,10 +174,12 @@ elf_bits (const char *program)
 	Elf *elf;
 	GElf_Ehdr ehdr;
 	int fd, class;
+	void *local = talloc_new (NULL);
+	char *absolute_program = search_path_for_program (local, program);
 
-	fd = open (program, O_RDONLY, 0);
+	fd = open (absolute_program, O_RDONLY, 0);
 	if (fd < 0) {
-		fprintf (stderr, "Failed to open %s: %s\n", program,
+		fprintf (stderr, "Failed to open %s: %s\n", absolute_program,
 			 strerror (errno));
 		exit (1);
 	}
@@ -142,28 +193,30 @@ elf_bits (const char *program)
 	elf = elf_begin (fd, ELF_C_READ, NULL);
 	if (elf == NULL) {
 		fprintf (stderr, "Call to elf_begin on %s failed: %s\n",
-			 program, elf_errmsg(-1));
+			 absolute_program, elf_errmsg(-1));
 		exit (1);
 	}
 
 	if (elf_kind (elf) != ELF_K_ELF) {
-		fprintf (stderr, "Not an ELF object: %s\n", program);
+		fprintf (stderr, "Not an ELF object: %s\n", absolute_program);
 		exit (1);
 	}
 
 	if (gelf_getehdr (elf, &ehdr) == NULL) {
 		fprintf (stderr, "getehdr on %s failed: %s\n",
-			 program, elf_errmsg (-1));
+			 absolute_program, elf_errmsg (-1));
 		exit (1);
 	}
 
 	class = gelf_getclass (elf);
 
 	if (class == ELFCLASSNONE) {
-		fprintf (stderr, "getclass on %s failed: %s\n", program,
-			 elf_errmsg (-1));
+		fprintf (stderr, "getclass on %s failed: %s\n",
+			 absolute_program, elf_errmsg (-1));
 		exit (1);
 	}
+
+	talloc_free (local);
 
 	if (class == ELFCLASS32)
 		return 32;
