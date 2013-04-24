@@ -211,36 +211,22 @@ else
     errors=$((errors + 1))
 fi
 
-printf "Checking which platform we are on... "
-uname=`uname`
-if [ $uname = "Darwin" ] ; then
-    printf "Mac OS X.\n"
-    platform=MACOSX
-    linker_resolves_library_dependencies=0
-elif [ $uname = "SunOS" ] ; then
-    printf "Solaris.\n"
-    platform=SOLARIS
-    linker_resolves_library_dependencies=0
-elif [ $uname = "FreeBSD" ] ; then
-    printf "FreeBSD.\n"
-    platform=FREEBSD
-    linker_resolves_library_dependencies=0
-elif [ $uname = "OpenBSD" ] ; then
-    printf "OpenBSD.\n"
-    platform=OPENBSD
-    linker_resolves_library_dependencies=0
-elif [ $uname = "Linux" ] || [ $uname = "GNU" ] ; then
-    printf "$uname\n"
-    platform="$uname"
-    linker_resolves_library_dependencies=1
+printf "Checking for libelf... "
+printf "#include <gelf.h>\nint main(void){return elf_version (EV_CURRENT);}\n" > elf-minimal.c
+if ${CC} -o elf-minimal elf-minimal.c -lelf > /dev/null 2>&1
+then
+    printf "Yes.\n"
+    have_libelf=1
+    libelf_cflags=
+    libelf_ldflags=-lelf
 else
-    printf "Unknown.\n"
-    cat <<EOF
-
-*** Warning: Unknown platform. ${PROJECT} might or might not build correctly.
-
-EOF
+    printf "No.\n"
+    have_libelf=0
+    libelf_cflags=
+    libelf_ldflags=
+    errors=$((errors + 1))
 fi
+rm -f elf-minimal elf-minimal.c
 
 if [ $errors -gt 0 ]; then
     cat <<EOF
@@ -255,6 +241,11 @@ EOF
 	echo "	http://talloc.samba.org/"
 	echo
     fi
+    if [ $have_libelf -eq 0 ]; then
+	echo "	The libelf library (including development files such as headers)"
+	echo "	http://http://sourceforge.net/projects/elftoolchain/"
+	echo
+    fi
     cat <<EOF
 With any luck, you're using a modern, package-based operating system
 that has all of these packages available in the distribution. In that
@@ -262,11 +253,11 @@ case a simple command will install everything you need. For example:
 
 On Debian and similar systems:
 
-	sudo apt-get install libtalloc-dev
+	sudo apt-get install libtalloc-dev libelf-dev
 
 Or on Fedora and similar systems:
 
-	sudo yum install libtalloc-devel
+	sudo yum install libtalloc-devel libelf-devel
 
 On other systems, similar commands can be used, but the details of the
 package names may be different.
@@ -382,24 +373,20 @@ mandir = ${MANDIR:=\$(prefix)/share/man}
 # The directory to which read-only (configuration) files should be installed
 sysconfdir = ${SYSCONFDIR:=\$(prefix)/etc}
 
-# Supported platforms (so far) are: LINUX, MACOSX, SOLARIS, FREEBSD, OPENBSD
-PLATFORM = ${platform}
-
-# Whether the linker will automatically resolve the dependency of one
-# library on another (if not, then linking a binary requires linking
-# directly against both)
-LINKER_RESOLVES_LIBRARY_DEPENDENCIES = ${linker_resolves_library_dependencies}
-
 # Flags needed to compile and link against talloc
 TALLOC_CFLAGS = ${talloc_cflags}
 TALLOC_LDFLAGS = ${talloc_ldflags}
+
+# Flags needed to compile and link against libelf
+LIBELF_CFLAGS = ${libelf_cflags}
+LIBELF_LDFLAGS = ${libelf_ldflags}
 
 # Flags needed to have linker link only to necessary libraries
 AS_NEEDED_LDFLAGS = ${as_needed_ldflags}
 
 # Combined flags for compiling and linking against all of the above
-CONFIGURE_CFLAGS = \$(TALLOC_CFLAGS)
-CONFIGURE_LDFLAGS = \$(TALLOC_LDFLAGS)
+CONFIGURE_CFLAGS = \$(TALLOC_CFLAGS) \$(LIBELF_CFLAGS)
+CONFIGURE_LDFLAGS = \$(TALLOC_LDFLAGS) \$(LIBELF_LDFLAGS)
 EOF
 
 # construct config.h

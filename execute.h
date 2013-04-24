@@ -23,10 +23,9 @@
 #define EXECUTE_H
 
 /* Execute the program with arguments as specified, but with the
- * library specified in "library" pre-loaded. The library should be
- * specified as the compiled filename (such as libfips.so).
+ * fips library specified as an LD_PRELOAD.
  */
 int
-execute_with_preload (int argc, char * const argv[], const char *library);
+execute_with_fips_preload (int argc, char * const argv[]);
 
 #endif

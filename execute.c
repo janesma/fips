@@ -36,6 +36,9 @@
 
 #include <linux/limits.h>
 
+#include <fcntl.h>
+#include <gelf.h>
+
 #include "execute.h"
 
 /* Terminate a string representing a filename at the final '/' to
@@ -112,8 +115,70 @@ exists (const char *path)
 	return 1;
 }
 
-/* Given "library" filename resolve it to an absolute path to an
- * existing file as follows:
+/* Is the given elf program 32 or 64 bit?
+ *
+ * Note: This function aborts the current program if 'program' cannot
+ * be opened as a valid ELF file. */
+static int
+elf_bits (const char *program)
+{
+	Elf *elf;
+	GElf_Ehdr ehdr;
+	int fd, class;
+
+	fd = open (program, O_RDONLY, 0);
+	if (fd < 0) {
+		fprintf (stderr, "Failed to open %s: %s\n", program,
+			 strerror (errno));
+		exit (1);
+	}
+
+	if (elf_version (EV_CURRENT ) == EV_NONE) {
+		fprintf (stderr, "Failed to initialize elf library: %s\n",
+			 elf_errmsg (-1));
+		exit (1);
+	}
+
+	elf = elf_begin (fd, ELF_C_READ, NULL);
+	if (elf == NULL) {
+		fprintf (stderr, "Call to elf_begin on %s failed: %s\n",
+			 program, elf_errmsg(-1));
+		exit (1);
+	}
+
+	if (elf_kind (elf) != ELF_K_ELF) {
+		fprintf (stderr, "Not an ELF object: %s\n", program);
+		exit (1);
+	}
+
+	if (gelf_getehdr (elf, &ehdr) == NULL) {
+		fprintf (stderr, "getehdr on %s failed: %s\n",
+			 program, elf_errmsg (-1));
+		exit (1);
+	}
+
+	class = gelf_getclass (elf);
+
+	if (class == ELFCLASSNONE) {
+		fprintf (stderr, "getclass on %s failed: %s\n", program,
+			 elf_errmsg (-1));
+		exit (1);
+	}
+
+	if (class == ELFCLASS32)
+		return 32;
+	else
+		return 64;
+
+}
+
+/* Find the appropriate path to the libfips wrapper.
+ *
+ * This involves, first, examining the elf header of the 'program'
+ * binary to be executed to know whether we should look for
+ * libfips-32.so or libfips-64.so.
+ *
+ * Next, we find the absolute patch containing the library as follows:
  *
  *   1. Look in same directory as current executable image
  *
@@ -134,9 +199,14 @@ exists (const char *path)
  * Returns: a string talloc'ed to 'ctx'
  */
 static char *
-resolve_path (void *ctx, const char *library)
+find_libfips_path (void *ctx, const char *program)
 {
-	char *bin_path, *lib_path;
+	char *bin_path, *library, *lib_path;
+	int bits;
+
+	bits = elf_bits (program);
+
+	library = talloc_asprintf(ctx, "libfips-%d.so", bits);
 
 	bin_path = get_bin_name (ctx);
 
@@ -163,14 +233,11 @@ resolve_path (void *ctx, const char *library)
 	exit (1);
 }
 
-/* After forking, set LD_PRELOAD to preload "library" within child
- * environment, then exec given arguments.
- *
- * The "library" argument is the filename (without path) of a shared
- * library to load. The complete path will be resolved with
- * resolve_library_path above. */
+/* After forking, set LD_PRELOAD to preload libfips-{32,64}.so within
+ * child environment, then exec given arguments.
+ */
 static int
-fork_exec_with_preload_and_wait (char * const argv[], const char *library)
+fork_exec_with_fips_preload_and_wait (char * const argv[])
 {
 	pid_t pid;
 	int i, status;
@@ -182,7 +249,7 @@ fork_exec_with_preload_and_wait (char * const argv[], const char *library)
 		void *ctx = talloc_new (NULL);
 		char *lib_path;
 
-		lib_path = resolve_path (ctx, library);
+		lib_path = find_libfips_path (ctx, argv[0]);
 
 		setenv ("LD_PRELOAD", lib_path, 1);
 
@@ -210,7 +277,7 @@ fork_exec_with_preload_and_wait (char * const argv[], const char *library)
 }
 
 int
-execute_with_preload (int argc, char * const argv[], const char *library)
+execute_with_fips_preload (int argc, char * const argv[])
 {
 	char **execvp_args;
 	int i;
@@ -228,5 +295,5 @@ execute_with_preload (int argc, char * const argv[], const char *library)
 	/* execvp needs final NULL */
 	execvp_args[i] = NULL;
 
-	return fork_exec_with_preload_and_wait (execvp_args, library);
+	return fork_exec_with_fips_preload_and_wait (execvp_args);
 }

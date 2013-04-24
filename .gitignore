@@ -3,6 +3,7 @@
 Makefile.config
 config.h
 fips
-libfips.so
+libfips-32.so
+libfips-64.so
 *.o
 *~

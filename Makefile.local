@@ -4,15 +4,12 @@ include Makefile.release
 
 # Smash together user's values with our extra values
 FINAL_CFLAGS = -DFIPS_VERSION=$(VERSION) $(CFLAGS) $(WARN_CFLAGS) $(CONFIGURE_CFLAGS) $(extra_cflags)
-FINAL_FIPS_LDFLAGS = $(LDFLAGS) $(AS_NEEDED_LDFLAGS) $(TALLOC_LDFLAGS)
-FINAL_LIBFIPS_LDFLAGS = $(LDFLAGS) -ldl
+FINAL_FIPS_LDFLAGS = $(LDFLAGS) $(AS_NEEDED_LDFLAGS) $(CONFIGURE_LDFLAGS)
+FINAL_LIBFIPS_LDFLAGS = $(LDFLAGS) $(CONFIGURE_LDFLAGS) -ldl
 FINAL_FIPS_LINKER = CC
-ifneq ($(LINKER_RESOLVES_LIBRARY_DEPENDENCIES),1)
-FINAL_FIPS_LDFLAGS += $(CONFIGURE_LDFLAGS)
-endif
 
 .PHONY: all
-all: fips libfips.so
+all: fips libfips-64.so libfips-32.so
 
 ifeq ($(MAKECMDGOALS),)
 ifeq ($(shell cat .first-build-message 2>/dev/null),)
@@ -46,6 +43,14 @@ endif
 # Otherwise, print the full command line.
 quiet ?= $($(shell echo $1 | sed -e s'/ .*//'))
 
+%-32.o: %.c $(global_deps)
+	@mkdir -p .deps/$(@D)
+	$(call quiet,CC $(CFLAGS) -m32) -c $(FINAL_CFLAGS) -m32 $< -o $@ -MD -MP -MF .deps/$*.d
+
+%-64.o: %.c $(global_deps)
+	@mkdir -p .deps/$(@D)
+	$(call quiet,CC $(CFLAGS) -m64) -c $(FINAL_CFLAGS) -m64 $< -o $@ -MD -MP -MF .deps/$*.d
+
 %.o: %.c $(global_deps)
 	@mkdir -p .deps/$(@D)
 	$(call quiet,CC $(CFLAGS)) -c $(FINAL_CFLAGS) $< -o $@ -MD -MP -MF .deps/$*.d
@@ -77,17 +82,23 @@ extra_cflags += -I$(srcdir) -fPIC
 libfips_srcs = \
 	glxwrap.c
 
-libfips_modules = $(libfips_srcs:.c=.o)
+libfips_32_modules = $(libfips_srcs:.c=-32.o)
 
-libfips.so: $(libfips_modules) libfips.sym
-	$(call quiet,$(FINAL_FIPS_LINKER) $(CFLAGS)) $(FINAL_CFLAGS) $(libfips_modules) $(FINAL_LIBFIPS_LDFLAGS) $(LIBRARY_LINK_FLAGS) -o $@
+libfips_64_modules = $(libfips_srcs:.c=-64.o)
+
+libfips-32.so: $(libfips_32_modules) libfips.sym
+	$(call quiet,$(FINAL_FIPS_LINKER) $(CFLAGS) -m32) $(FINAL_CFLAGS) -m32 $(libfips_32_modules) $(FINAL_LIBFIPS_LDFLAGS) $(LIBRARY_LINK_FLAGS) -o $@
+
+libfips-64.so: $(libfips_64_modules) libfips.sym
+	$(call quiet,$(FINAL_FIPS_LINKER) $(CFLAGS) -m64) $(FINAL_CFLAGS) -m64 $(libfips_64_modules) $(FINAL_LIBFIPS_LDFLAGS) $(LIBRARY_LINK_FLAGS) -o $@
 
 .PHONY: install
 install: all
 	mkdir -p $(DESTDIR)$(bindir)
 	install fips $(DESTDIR)$(bindir)/fips
 	mkdir -p $(DESTDIR)$(libdir)/fips
-	install -m0644 libfips.so $(DESTDIR)$(libdir)/fips/libfips.so
+	install -m0644 libfips-32.so $(DESTDIR)$(libdir)/fips/libfips-32.so
+	install -m0644 libfips-64.so $(DESTDIR)$(libdir)/fips/libfips-64.so
 ifeq ($(MAKECMDGOALS), install)
 	@echo ""
 	@echo "Fips is now installed to $(DESTDIR)$(prefix)"
@@ -95,7 +106,7 @@ ifeq ($(MAKECMDGOALS), install)
 endif
 
 SRCS  := $(SRCS) $(fips_srcs) $(libfips_srcs)
-CLEAN := $(CLEAN) fips $(fips_modules) $(libfips_modules)
+CLEAN := $(CLEAN) fips $(fips_modules) $(libfips_32_modules) $(libfips_64_modules)
 
 DISTCLEAN := $(DISTCLEAN) .first-build-message Makefile.config
 
