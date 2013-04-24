@@ -22,6 +22,8 @@
 #include <stdio.h>
 #include <stdlib.h>
 
+#include <string.h>
+
 #include <dlfcn.h>
 
 #include <X11/Xlib.h>
@@ -30,6 +32,8 @@
 #include <GL/glext.h>
 
 #include <sys/time.h>
+
+#include "dlwrap.h"
 
 typedef void (* fips_glXSwapBuffers_t)(Display *dpy, GLXDrawable drawable);
 
@@ -40,7 +44,7 @@ lookup (const char *name)
 	static void *libgl_handle = NULL;
 
 	if (! libgl_handle) {
-		libgl_handle = dlopen (libgl_filename, RTLD_NOW);
+		libgl_handle = dlwrap_real_dlopen (libgl_filename, RTLD_NOW | RTLD_DEEPBIND);
 		if (! libgl_handle) {
 			fprintf (stderr, "Error: Failed to dlopen %s\n",
 				 libgl_filename);
@@ -48,7 +52,7 @@ lookup (const char *name)
 		}
 	}
 
-	return dlsym (libgl_handle, name);
+	return dlwrap_real_dlsym (libgl_handle, name);
 }
 
 static void
@@ -93,4 +97,27 @@ glXSwapBuffers (Display *dpy, GLXDrawable drawable)
 
 		printf("FPS: %.3f\n", fps);
 	}
+}
+
+
+typedef __GLXextFuncPtr (* fips_glXGetProcAddressARB_t)(const GLubyte *func);
+__GLXextFuncPtr
+glXGetProcAddressARB (const GLubyte *func)
+{
+	static fips_glXGetProcAddressARB_t real_glXGetProcAddressARB = NULL;
+	const char *name = "glXGetProcAddressARB";
+
+	if (! real_glXGetProcAddressARB) {
+		real_glXGetProcAddressARB = (fips_glXGetProcAddressARB_t) lookup (name);
+		if (! real_glXGetProcAddressARB) {
+			fprintf (stderr, "Error: Failed to find function %s.\n",
+				 name);
+			return NULL;
+		}
+	}
+
+	if (strcmp ((const char *)func, "glXSwapBuffers") == 0)
+		return (__GLXextFuncPtr) glXSwapBuffers;
+	else
+		return real_glXGetProcAddressARB (func);
 }

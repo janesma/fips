@@ -1,6 +1,9 @@
 {
 global:
+	dlopen;
+	dlsym;
 	glXSwapBuffers;
+	glXGetProcAddressARB;
 local:
 	*;
 };

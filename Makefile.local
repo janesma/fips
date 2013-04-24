@@ -80,6 +80,7 @@ LIBRARY_LINK_FLAGS = -shared -Wl,--version-script=libfips.sym,--no-undefined
 extra_cflags += -I$(srcdir) -fPIC
 
 libfips_srcs = \
+	dlwrap.c \
 	glxwrap.c
 
 libfips_32_modules = $(libfips_srcs:.c=-32.o)
@@ -87,10 +88,10 @@ libfips_32_modules = $(libfips_srcs:.c=-32.o)
 libfips_64_modules = $(libfips_srcs:.c=-64.o)
 
 libfips-32.so: $(libfips_32_modules) libfips.sym
-	$(call quiet,$(FINAL_FIPS_LINKER) $(CFLAGS) -m32) $(FINAL_CFLAGS) -m32 $(libfips_32_modules) $(FINAL_LIBFIPS_LDFLAGS) $(LIBRARY_LINK_FLAGS) -o $@
+	$(call quiet,$(FINAL_FIPS_LINKER) $(CFLAGS) -m32) -o $@ $(FINAL_CFLAGS) -m32 $(libfips_32_modules)  $(LIBRARY_LINK_FLAGS) $(FINAL_LIBFIPS_LDFLAGS)
 
 libfips-64.so: $(libfips_64_modules) libfips.sym
-	$(call quiet,$(FINAL_FIPS_LINKER) $(CFLAGS) -m64) $(FINAL_CFLAGS) -m64 $(libfips_64_modules) $(FINAL_LIBFIPS_LDFLAGS) $(LIBRARY_LINK_FLAGS) -o $@
+	$(call quiet,$(FINAL_FIPS_LINKER) $(CFLAGS) -m64) -o $@ $(FINAL_CFLAGS) -m64 $(libfips_64_modules) $(LIBRARY_LINK_FLAGS) $(FINAL_LIBFIPS_LDFLAGS)
 
 .PHONY: install
 install: all
