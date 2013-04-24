@@ -21,12 +21,9 @@
 
 #include "fips.h"
 
-#include <dlfcn.h>
-
 #include <X11/Xlib.h>
 #include <GL/gl.h>
 #include <GL/glx.h>
-#include <GL/glext.h>
 
 #include <sys/time.h>
 

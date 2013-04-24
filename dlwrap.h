@@ -22,6 +22,8 @@
 #ifndef DLWRAP_H
 #define DLWRAP_H
 
+#include <dlfcn.h>
+
 /* Call the *real* dlopen. We have our own wrapper for dlopen that, of
  * necessity must use claim the symbol 'dlopen'. So whenever anything
  * internal needs to call the real, underlying dlopen function, the
