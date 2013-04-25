@@ -75,12 +75,13 @@ fips: $(fips_modules)
 	$(call quiet,$(FINAL_FIPS_LINKER) $(CFLAGS)) $(FINAL_CFLAGS) $^ $(FINAL_FIPS_LDFLAGS) -o $@
 
 # GL-wrapper library, libfips
-LIBRARY_LINK_FLAGS = -shared -Wl,--version-script=libfips.sym,--no-undefined
+LIBRARY_LINK_FLAGS = -shared -Wl,--version-script=libfips.sym
 
 extra_cflags += -I$(srcdir) -fPIC
 
 libfips_srcs = \
 	dlwrap.c \
+	glwrap.c \
 	glxwrap.c
 
 libfips_32_modules = $(libfips_srcs:.c=-32.o)

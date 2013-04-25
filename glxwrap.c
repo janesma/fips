@@ -25,9 +25,9 @@
 #include <GL/gl.h>
 #include <GL/glx.h>
 
-#include <sys/time.h>
-
 #include "dlwrap.h"
+
+#include "glwrap.h"
 
 typedef void (* fips_glXSwapBuffers_t)(Display *dpy, GLXDrawable drawable);
 
@@ -69,28 +69,9 @@ call_glXSwapBuffers (Display *dpy, GLXDrawable drawable)
 void
 glXSwapBuffers (Display *dpy, GLXDrawable drawable)
 {
-	static int initialized = 0;
-	static int frames;
-	static struct timeval tv_start, tv_now;
-
-	if (! initialized) {
-		frames = 0;
-		gettimeofday (&tv_start, NULL);
-		initialized = 1;
-	}
-
 	call_glXSwapBuffers (dpy, drawable);
 
-	frames++;
-	if (frames % 60 == 0) {
-		double fps;
-		gettimeofday (&tv_now, NULL);
-
-		fps = (double) frames / (tv_now.tv_sec - tv_start.tv_sec +
-					 (tv_now.tv_usec - tv_start.tv_usec) / 1.0e6);
-
-		printf("FPS: %.3f\n", fps);
-	}
+	glwrap_end_frame ();
 }
 
 

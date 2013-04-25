@@ -2,6 +2,37 @@
 global:
 	dlopen;
 	dlsym;
+	glDrawArrays;
+	glDrawArraysEXT;
+	glDrawArraysIndirect;
+	glDrawArraysInstanced;
+	glDrawArraysInstancedARB;
+	glDrawArraysInstancedEXT;
+	glDrawArraysInstancedBaseInstance;
+	glDrawMeshArraysSUN;
+	glMultiDrawArrays;
+	glMultiDrawArraysEXT;
+	glMultiModeDrawArraysIBM;
+	glMultiDrawArraysIndirectAMD;
+	glDrawElements;
+	glDrawElementsBaseVertex;
+	glDrawElementsIndirect;
+	glDrawElementsInstanced;
+	glDrawElementsInstancedARB;
+	glDrawElementsInstancedEXT;
+	glDrawElementsInstancedBaseVertex;
+	glDrawElementsInstancedBaseInstance;
+	glDrawElementsInstancedBaseVertexBaseInstance;
+	glDrawRangeElements;
+	glDrawRangeElementsEXT;
+	glDrawRangeElementsBaseVertex;
+	glMultiDrawElements;
+	glMultiDrawElementsBaseVertex;
+	glMultiDrawElementsEXT;
+	glMultiModeDrawElementsIBM;
+	glMultiDrawElementsIndirectAMD;
+	glUseProgram;
+	glUseProgramObjectARB;
 	glXSwapBuffers;
 	glXGetProcAddressARB;
 local:
