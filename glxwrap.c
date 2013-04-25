@@ -98,6 +98,7 @@ typedef __GLXextFuncPtr (* fips_glXGetProcAddressARB_t)(const GLubyte *func);
 __GLXextFuncPtr
 glXGetProcAddressARB (const GLubyte *func)
 {
+	__GLXextFuncPtr ptr;
 	static fips_glXGetProcAddressARB_t real_glXGetProcAddressARB = NULL;
 	const char *name = "glXGetProcAddressARB";
 
@@ -110,8 +111,11 @@ glXGetProcAddressARB (const GLubyte *func)
 		}
 	}
 
-	if (strcmp ((const char *)func, "glXSwapBuffers") == 0)
-		return (__GLXextFuncPtr) glXSwapBuffers;
-	else
-		return real_glXGetProcAddressARB (func);
+	/* If our library has this symbol, that's what we want to give. */
+	ptr = dlwrap_real_dlsym (NULL, (const char *) func);
+	if (ptr)
+		return ptr;
+
+	/* Otherwise, just defer to the real glXGetProcAddressARB. */
+	return real_glXGetProcAddressARB (func);
 }
