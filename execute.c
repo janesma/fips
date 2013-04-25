@@ -77,20 +77,20 @@ get_bin_name (void *ctx)
 	 * of the filename being linked to). Go figure. */
 	int name_len = PATH_MAX + 1;
 
-	name = talloc_size (ctx, name_len - 1);
+	name = talloc_size (ctx, name_len);
 	if (name == NULL) {
 		fprintf (stderr, "Out of memory.\n");
 		exit (1);
 	}
 
-	name_len = readlink (link, name, name_len);
+	name_len = readlink (link, name, name_len - 1);
 	if (name_len < 0) {
 		fprintf (stderr, "Failed to readlink %s: %s\n", link,
 			 strerror (errno));
 		exit (1);
 	}
 
-	name[name_len + 1] = '\0';
+	name[name_len] = '\0';
 
 	return name;
 }
