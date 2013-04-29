@@ -228,6 +228,45 @@ else
 fi
 rm -f elf-minimal elf-minimal.c
 
+printf "Checking for OpenGL header file GL/gl.h... "
+have_gl=0
+if pkg-config --exists gl; then
+    printf "Yes.\n"
+    have_gl=1
+    gl_cflags=$(pkg-config --cflags gl)
+else
+    printf "#include <GL/gl.h>\nint main(void){return 0;}\n" > gl-minimal.c
+    if ${CC} -o gl-minimal gl-minimal.c > /dev/null 2>&1
+    then
+	printf "Yes.\n"
+	have_gl=1
+    else
+	printf "No.\n"
+	errors=$((errors + 1))
+    fi
+    rm -f gl-minimal gl-minimal.c
+fi
+
+printf "Checking for GL window-system-binding headers:\n"
+have_gl_winsys=0
+
+printf "    Checking for GL/glx.h... "
+have_glx=0
+printf "#include <GL/glx.h>\nint main(void){return 0;}\n" > glx-minimal.c
+if ${CC} -o glx-minimal glx-minimal.c ${gl_cflags} > /dev/null 2>&1
+then
+    printf "Yes.\n"
+    have_gl_winsys=1
+    have_glx=1
+else
+    printf "No.\n"
+fi
+rm -f glx-minimal glx-minimal.c
+
+if [ $have_gl_winsys -eq 0 ]; then
+    errors=$((errors + 1))
+fi
+
 if [ $errors -gt 0 ]; then
     cat <<EOF
 
@@ -246,6 +285,16 @@ EOF
 	echo "	http://http://sourceforge.net/projects/elftoolchain/"
 	echo
     fi
+    if [ $have_gl -eq 0 ]; then
+	echo "	Open GL header files (GL/gl.h)"
+	echo "	http://www.mesa3d.org/"
+	echo
+    fi
+    if [ $have_gl_winsys -eq 0 ]; then
+	echo "	OpenGL window-system-bindings header files (GL/glx.h)"
+	echo "	http://www.mesa3d.org/"
+	echo
+    fi
     cat <<EOF
 With any luck, you're using a modern, package-based operating system
 that has all of these packages available in the distribution. In that
@@ -253,11 +302,13 @@ case a simple command will install everything you need. For example:
 
 On Debian and similar systems:
 
-	sudo apt-get install libtalloc-dev libelf-dev
+	sudo apt-get install libtalloc-dev libelf-dev \\
+	libgl1-mesa-dev
 
 Or on Fedora and similar systems:
 
-	sudo yum install libtalloc-devel libelf-devel
+	sudo yum install libtalloc-devel libelf-devel \\
+	mesa-libGL-devel
 
 On other systems, similar commands can be used, but the details of the
 package names may be different.
@@ -381,11 +432,14 @@ TALLOC_LDFLAGS = ${talloc_ldflags}
 LIBELF_CFLAGS = ${libelf_cflags}
 LIBELF_LDFLAGS = ${libelf_ldflags}
 
+# Flags needed to find GL and GLX header files (GL/gl.h and GL/glx.h)
+GL_CFLAGS = ${gl_cflags}
+
 # Flags needed to have linker link only to necessary libraries
 AS_NEEDED_LDFLAGS = ${as_needed_ldflags}
 
 # Combined flags for compiling and linking against all of the above
-CONFIGURE_CFLAGS = \$(TALLOC_CFLAGS) \$(LIBELF_CFLAGS)
+CONFIGURE_CFLAGS = \$(TALLOC_CFLAGS) \$(LIBELF_CFLAGS) \$(GL_CFLAGS)
 CONFIGURE_LDFLAGS = \$(TALLOC_LDFLAGS) \$(LIBELF_LDFLAGS)
 EOF
 
