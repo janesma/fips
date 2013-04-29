@@ -23,6 +23,23 @@
 
 #include "glwrap.h"
 
+/* The prototypes for some OpenGL functions changed at one point from:
+ *
+ *	const void* *indices
+ * to:
+ *	const void* const coist *indices
+ *
+ * This makes it difficult for us to provide an implementation of
+ * these functions that is consistent with the locally-available gl.h
+ * since we don't know if the extra const will be present or not.
+ *
+ * To workaround this problem, we simply #define away const altogether
+ * before including gl.h.
+ *
+ * Kudos to Keith Packard for suggesting this kludge.
+ */
+#define const
+
 #define GL_GLEXT_PROTOTYPES
 #include <GL/gl.h>
 
