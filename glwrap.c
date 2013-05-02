@@ -103,8 +103,8 @@ add_counter (void)
 	return counter->id;
 }
 
-static void *
-lookup (const char *name)
+void *
+glwrap_lookup (char *name)
 {
 	const char *libgl_filename = "libGL.so.1";
 	static void *libgl_handle = NULL;
@@ -121,20 +121,12 @@ lookup (const char *name)
 	return dlwrap_real_dlsym (libgl_handle, name);
 }
 
-/* Defer to the underlying, ''real'' function to do the real work. */
-#define DEFER(function,...) do {				\
-	static typeof(&function) real_ ## function;		\
-	if (! real_ ## function)				\
-		real_ ## function = lookup (#function);		\
-	real_ ## function(__VA_ARGS__); 			\
-} while (0);
-
 /* Execute a glBegineQuery/glEndQuery pair around an OpenGL call. */
 #define TIMED_DEFER(function,...) do {			\
 	unsigned counter;				\
 	counter = add_counter ();			\
 	glBeginQuery (GL_TIME_ELAPSED, counter);	\
-	DEFER(function, __VA_ARGS__);			\
+	GLWRAP_DEFER(function, __VA_ARGS__);		\
 	glEndQuery (GL_TIME_ELAPSED);			\
 } while (0);
 
@@ -436,7 +428,7 @@ glUseProgram (GLuint program)
 {
 	current_context.program = program;
 
-	DEFER(glUseProgram, program);
+	GLWRAP_DEFER(glUseProgram, program);
 }
 
 void
@@ -444,7 +436,7 @@ glUseProgramObjectARB (GLhandleARB programObj)
 {
 	current_context.program = programObj;
 
-	DEFER(glUseProgramObjectARB, programObj);
+	GLWRAP_DEFER(glUseProgramObjectARB, programObj);
 }
 
 static void

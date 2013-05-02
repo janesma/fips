@@ -22,6 +22,21 @@
 #ifndef GLWRAP_H
 #define GLWRAP_H
 
+/* Lookup a function named 'name' in the underlying, real, libGL.so */
+void *
+glwrap_lookup (char *name);
+
+/* Defer to the real 'function' (from libGL.so) to do the real work.
+ * The symbol is looked up once and cached in a static variable for
+ * future uses.
+ */
+#define GLWRAP_DEFER(function,...) do {				\
+	static typeof(&function) real_ ## function;		\
+	if (! real_ ## function)				\
+		real_ ## function = glwrap_lookup (#function);	\
+	real_ ## function(__VA_ARGS__); 			\
+} while (0);
+
 /* Should be called at the end of ever function wrapper for an OpenGL
  * function that ends a frame, (glXSwapBuffers and similar).
  */

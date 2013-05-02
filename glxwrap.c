@@ -29,47 +29,10 @@
 
 #include "glwrap.h"
 
-typedef void (* fips_glXSwapBuffers_t)(Display *dpy, GLXDrawable drawable);
-
-static void *
-lookup (const char *name)
-{
-	const char *libgl_filename = "libGL.so.1";
-	static void *libgl_handle = NULL;
-
-	if (! libgl_handle) {
-		libgl_handle = dlwrap_real_dlopen (libgl_filename, RTLD_NOW | RTLD_DEEPBIND);
-		if (! libgl_handle) {
-			fprintf (stderr, "Error: Failed to dlopen %s\n",
-				 libgl_filename);
-			exit (1);
-		}
-	}
-
-	return dlwrap_real_dlsym (libgl_handle, name);
-}
-
-static void
-call_glXSwapBuffers (Display *dpy, GLXDrawable drawable)
-{
-	static fips_glXSwapBuffers_t real_glXSwapBuffers = NULL;
-	const char *name = "glXSwapBuffers";
-
-	if (! real_glXSwapBuffers) {
-		real_glXSwapBuffers = (fips_glXSwapBuffers_t) lookup (name);
-		if (! real_glXSwapBuffers) {
-			fprintf (stderr, "Error: Failed to find function %s.\n",
-				 name);
-			return;
-		}
-	}
-	real_glXSwapBuffers (dpy, drawable);
-}	
-
 void
 glXSwapBuffers (Display *dpy, GLXDrawable drawable)
 {
-	call_glXSwapBuffers (dpy, drawable);
+	GLWRAP_DEFER (glXSwapBuffers, dpy, drawable);
 
 	glwrap_end_frame ();
 }
@@ -81,10 +44,10 @@ glXGetProcAddressARB (const GLubyte *func)
 {
 	__GLXextFuncPtr ptr;
 	static fips_glXGetProcAddressARB_t real_glXGetProcAddressARB = NULL;
-	const char *name = "glXGetProcAddressARB";
+	char *name = "glXGetProcAddressARB";
 
 	if (! real_glXGetProcAddressARB) {
-		real_glXGetProcAddressARB = (fips_glXGetProcAddressARB_t) lookup (name);
+		real_glXGetProcAddressARB = glwrap_lookup (name);
 		if (! real_glXGetProcAddressARB) {
 			fprintf (stderr, "Error: Failed to find function %s.\n",
 				 name);
