@@ -282,63 +282,12 @@ find_libfips_path (void *ctx, const char *program)
 	exit (1);
 }
 
-/* After forking, set LD_PRELOAD to preload libfips-{32,64}.so within
- * child environment, then exec given arguments.
- */
-static int
-fork_exec_with_fips_preload_and_wait (char * const argv[])
-{
-	pid_t pid;
-	int i, status;
-
-	pid = fork ();
-
-	/* Child */
-	if (pid == 0) {
-		void *ctx = talloc_new (NULL);
-		char *lib_path;
-		char *ld_preload_value;
-
-		lib_path = find_libfips_path (ctx, argv[0]);
-
-		ld_preload_value = getenv ("LD_PRELOAD");
-
-		if (ld_preload_value) {
-			ld_preload_value = talloc_asprintf(ctx, "%s:%s",
-							   ld_preload_value,
-							   lib_path);
-		} else {
-			ld_preload_value = lib_path;
-		}
-
-		setenv ("LD_PRELOAD", ld_preload_value, 1);
-
-		talloc_free (ctx);
-		
-		execvp (argv[0], argv);
-		fprintf (stderr, "Failed to execute:");
-		for (i = 0; argv[i]; i++) {
-			fprintf (stderr, " %s", argv[i]);
-		}
-		fprintf (stderr, "\n");
-		exit (1);
-	}
-
-	/* Parent */
-	waitpid (pid, &status, 0);
-	if (WIFEXITED (status)) {
-		return (WEXITSTATUS (status));
-	}
-	if (WIFSIGNALED (status)) {
-		fprintf (stderr, "Child terminated by signal %d\n",
-			 WTERMSIG (status));
-	}
-	return 1;
-}
-
 int
 execute_with_fips_preload (int argc, char * const argv[])
 {
+	void *ctx = talloc_new (NULL);
+	char *lib_path;
+	char *ld_preload_value;
 	char **execvp_args;
 	int i;
 
@@ -355,5 +304,27 @@ execute_with_fips_preload (int argc, char * const argv[])
 	/* execvp needs final NULL */
 	execvp_args[i] = NULL;
 
-	return fork_exec_with_fips_preload_and_wait (execvp_args);
+	lib_path = find_libfips_path (ctx, argv[0]);
+
+	ld_preload_value = getenv ("LD_PRELOAD");
+
+	if (ld_preload_value) {
+		ld_preload_value = talloc_asprintf(ctx, "%s:%s",
+						   ld_preload_value,
+						   lib_path);
+	} else {
+		ld_preload_value = lib_path;
+	}
+
+	setenv ("LD_PRELOAD", ld_preload_value, 1);
+
+	talloc_free (ctx);
+		
+	execvp (argv[0], argv);
+	fprintf (stderr, "Failed to execute:");
+	for (i = 0; argv[i]; i++) {
+		fprintf (stderr, " %s", argv[i]);
+	}
+	fprintf (stderr, "\n");
+	exit (1);
 }
