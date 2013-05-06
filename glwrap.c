@@ -23,6 +23,8 @@
 
 #include "glwrap.h"
 
+#include "metrics.h"
+
 /* The prototypes for some OpenGL functions changed at one point from:
  *
  *	const void* *indices
@@ -43,65 +45,7 @@
 #define GL_GLEXT_PROTOTYPES
 #include <GL/gl.h>
 
-#include <sys/time.h>
-
 #include "dlwrap.h"
-
-typedef struct counter
-{
-	unsigned id;
-	unsigned program;
-	struct counter *next;
-} counter_t;
-
-typedef struct program_metrics
-{
-	unsigned id;
-	double ticks;
-} program_metrics_t;
-
-typedef struct context
-{
-	unsigned int program;
-
-	counter_t *counter_head;
-	counter_t *counter_tail;
-
-	unsigned num_program_metrics;
-	program_metrics_t *program_metrics;
-} context_t;
-
-/* FIXME: Need a map from integers to context objects and track the
- * current context with glXMakeContextCurrent, eglMakeCurrent, etc. */
-
-context_t current_context;
-
-static unsigned
-add_counter (void)
-{
-	counter_t *counter;
-
-	counter = malloc (sizeof(counter_t));
-	if (counter == NULL) {
-		fprintf (stderr, "Out of memory\n");
-		exit (1);
-	}
-
-	glGenQueries (1, &counter->id);
-
-	counter->program = current_context.program;
-	counter->next = NULL;
-
-	if (current_context.counter_tail) {
-		current_context.counter_tail->next = counter;
-		current_context.counter_tail = counter;
-	} else {
-		current_context.counter_tail = counter;
-		current_context.counter_head = counter;
-	}
-
-	return counter->id;
-}
 
 void *
 glwrap_lookup (char *name)
@@ -124,7 +68,7 @@ glwrap_lookup (char *name)
 /* Execute a glBegineQuery/glEndQuery pair around an OpenGL call. */
 #define TIMED_DEFER(function,...) do {			\
 	unsigned counter;				\
-	counter = add_counter ();			\
+	counter = metrics_add_counter ();		\
 	glBeginQuery (GL_TIME_ELAPSED, counter);	\
 	GLWRAP_DEFER(function, __VA_ARGS__);		\
 	glEndQuery (GL_TIME_ELAPSED);			\
@@ -426,7 +370,7 @@ glBlitFramebufferEXT (GLint srcX0, GLint srcY0, GLint srcX1, GLint srcY1,
 void
 glUseProgram (GLuint program)
 {
-	current_context.program = program;
+	metrics_set_current_program (program);
 
 	GLWRAP_DEFER(glUseProgram, program);
 }
@@ -434,97 +378,7 @@ glUseProgram (GLuint program)
 void
 glUseProgramObjectARB (GLhandleARB programObj)
 {
-	current_context.program = programObj;
+	metrics_set_current_program (programObj);
 
 	GLWRAP_DEFER(glUseProgramObjectARB, programObj);
-}
-
-static void
-accumulate_program_ticks (unsigned program_id, unsigned ticks)
-{
-	context_t *ctx = &current_context;
-	unsigned i;
-
-	if (program_id >= ctx->num_program_metrics) {
-		ctx->program_metrics = realloc (ctx->program_metrics,
-						(program_id + 1) * sizeof (program_metrics_t));
-		for (i = ctx->num_program_metrics; i < program_id + 1; i++) {
-			ctx->program_metrics[i].id = i;
-			ctx->program_metrics[i].ticks = 0.0;
-		}
-
-		ctx->num_program_metrics = program_id + 1;
-	}
-
-	ctx->program_metrics[program_id].ticks += ticks;
-}
-
-/* FIXME: Should sort the metrics, print out percentages, etc. */
-static void
-print_program_metrics (void)
-{
-	context_t *ctx = &current_context;
-	unsigned i;
-
-	for (i = 0; i < ctx->num_program_metrics; i++) {
-		if (ctx->program_metrics[i].ticks == 0.0)
-			continue;
-		printf ("Program %d:\t%7.2f mega-ticks\n",
-			i, ctx->program_metrics[i].ticks / 1e6);
-	}
-}
-
-void
-glwrap_end_frame (void)
-{
-	static int initialized = 0;
-	static int frames;
-	static struct timeval tv_start, tv_now;
-
-	if (! initialized) {
-		frames = 0;
-		gettimeofday (&tv_start, NULL);
-		initialized = 1;
-	}
-
-
-	frames++;
-
-	if (frames % 60 == 0) {
-		double fps;
-		gettimeofday (&tv_now, NULL);
-
-		fps = (double) frames / (tv_now.tv_sec - tv_start.tv_sec +
-					 (tv_now.tv_usec - tv_start.tv_usec) / 1.0e6);
-
-		printf("FPS: %.3f\n", fps);
-
-		print_program_metrics ();
-	}
-
-	/* Consume all counters that are ready. */
-	counter_t *counter = current_context.counter_head;
-
-	while (counter) {
-		GLint available;
-		GLuint elapsed;
-
-		glGetQueryObjectiv (counter->id, GL_QUERY_RESULT_AVAILABLE,
-				    &available);
-		if (! available)
-			break;
-
-		glGetQueryObjectuiv (counter->id, GL_QUERY_RESULT, &elapsed);
-
-		accumulate_program_ticks (counter->program, elapsed);
-
-		current_context.counter_head = counter->next;
-		if (current_context.counter_head == NULL)
-			current_context.counter_tail = NULL;
-
-		glDeleteQueries (1, &counter->id);
-
-		free (counter);
-		counter = current_context.counter_head;
-	}
 }

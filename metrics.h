@@ -19,22 +19,35 @@
  * THE SOFTWARE.
  */
 
-#ifndef GLWRAP_H
-#define GLWRAP_H
+#ifndef METRICS_H
+#define METRICS_H
 
-/* Lookup a function named 'name' in the underlying, real, libGL.so */
-void *
-glwrap_lookup (char *name);
-
-/* Defer to the real 'function' (from libGL.so) to do the real work.
- * The symbol is looked up once and cached in a static variable for
- * future uses.
+/* Add a new counter to the metrics tracking state.
+ *
+ * The value accumulated in this counter be accounted against the
+ * current program (as set with metrics_set_current_program).
+ *
+ * Returns: A counter ID suitable for use with glBeginQuery/glEndQuery
  */
-#define GLWRAP_DEFER(function,...) do {				\
-	static typeof(&function) real_ ## function;		\
-	if (! real_ ## function)				\
-		real_ ## function = glwrap_lookup (#function);	\
-	real_ ## function(__VA_ARGS__); 			\
-} while (0);
+unsigned
+metrics_add_counter (void);
+
+/* Set the ID of the currently executing shader program.
+ *
+ * The metrics-tracking code will account for per-shader-program
+ * timings by accumulating counter values measured while each porogram
+ * is active (see metrics_add_counter).
+ */
+void
+metrics_set_current_program (unsigned program);
+
+/* Should be called at the end of every function wrapper for a
+ * function that ends a frame, (glXSwapBuffers and similar).
+ *
+ * This function performs whatever bookkeeping is necessary to
+ * generate a timing report, then emits that report.
+ */
+void
+metrics_end_frame (void);
 
 #endif

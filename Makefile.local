@@ -82,7 +82,8 @@ extra_cflags += -I$(srcdir) -fPIC
 libfips_srcs = \
 	dlwrap.c \
 	glwrap.c \
-	glxwrap.c
+	glxwrap.c \
+	metrics.c
 
 libfips_32_modules = $(libfips_srcs:.c=-32.o)
 
