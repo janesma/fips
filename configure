@@ -251,17 +251,36 @@ printf "Checking for GL window-system-binding headers:\n"
 have_gl_winsys=0
 
 printf "    Checking for GL/glx.h... "
-have_glx=0
+have_glx=No
 printf "#include <GL/glx.h>\nint main(void){return 0;}\n" > glx-minimal.c
 if ${CC} -o glx-minimal glx-minimal.c ${gl_cflags} > /dev/null 2>&1
 then
     printf "Yes.\n"
     have_gl_winsys=1
-    have_glx=1
+    have_glx=Yes
 else
     printf "No.\n"
 fi
 rm -f glx-minimal glx-minimal.c
+
+printf "    Checking for GL/egl.h... "
+have_egl=No
+if pkg-config --exists egl; then
+    printf "Yes.\n"
+    have_egl=Yes
+    egl_cflags=$(pkg-config --cflags egl)
+else
+    printf "#include <GL/egl.h>\nint main(void){return 0;}\n" > egl-minimal.c
+    if ${CC} -o egl-minimal egl-minimal.c ${gl_cflags} > /dev/null 2>&1
+    then
+	printf "Yes.\n"
+	have_gl_winsys=1
+	have_egl=1
+    else
+	printf "No.\n"
+    fi
+    rm -f egl-minimal egl-minimal.c
+fi
 
 if [ $have_gl_winsys -eq 0 ]; then
     errors=$((errors + 1))
@@ -291,7 +310,7 @@ EOF
 	echo
     fi
     if [ $have_gl_winsys -eq 0 ]; then
-	echo "	OpenGL window-system-bindings header files (GL/glx.h)"
+	echo "	OpenGL window-system-bindings header files (GL/glx.h and/or GL/egl.h)"
 	echo "	http://www.mesa3d.org/"
 	echo
     fi
@@ -303,12 +322,12 @@ case a simple command will install everything you need. For example:
 On Debian and similar systems:
 
 	sudo apt-get install libtalloc-dev libelf-dev \\
-	libgl1-mesa-dev
+	libgl1-mesa-dev libgles2-mesa-dev
 
 Or on Fedora and similar systems:
 
 	sudo yum install libtalloc-devel libelf-devel \\
-	mesa-libGL-devel
+	mesa-libGL-devel mesa-libGLES-devel
 
 On other systems, similar commands can be used, but the details of the
 package names may be different.
@@ -357,8 +376,14 @@ rm -f minimal minimal.c
 
 cat <<EOF
 
-All required packages were found. You may now run the following
-commands to compile and install ${PROJECT}:
+All required packages were found.
+
+The following OpenGL window-system bindings will be supported:
+
+	GLX: ${have_glx}
+	EGL: ${have_egl}
+
+You may now run the following commands to compile and install ${PROJECT}:
 
 	make
 	sudo make install
@@ -432,14 +457,23 @@ TALLOC_LDFLAGS = ${talloc_ldflags}
 LIBELF_CFLAGS = ${libelf_cflags}
 LIBELF_LDFLAGS = ${libelf_ldflags}
 
+# Whether GLX headers are available
+HAVE_GLX = ${have_glx}
+
 # Flags needed to find GL and GLX header files (GL/gl.h and GL/glx.h)
 GL_CFLAGS = ${gl_cflags}
+
+# Whether EGL headers are available
+HAVE_EGL = ${have_egl}
+
+# Flags needed to find EGL header files (EGL/egl.h)
+EGL_CFLAGS = ${egl_cflags}
 
 # Flags needed to have linker link only to necessary libraries
 AS_NEEDED_LDFLAGS = ${as_needed_ldflags}
 
 # Combined flags for compiling and linking against all of the above
-CONFIGURE_CFLAGS = \$(TALLOC_CFLAGS) \$(LIBELF_CFLAGS) \$(GL_CFLAGS)
+CONFIGURE_CFLAGS = \$(TALLOC_CFLAGS) \$(LIBELF_CFLAGS) \$(GL_CFLAGS) \$(EGL_CFLAGS)
 CONFIGURE_LDFLAGS = \$(TALLOC_LDFLAGS) \$(LIBELF_LDFLAGS)
 EOF
 

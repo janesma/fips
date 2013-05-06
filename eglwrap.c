@@ -21,45 +21,41 @@
 
 #include "fips.h"
 
-#include <X11/Xlib.h>
-#include <GL/gl.h>
-#include <GL/glx.h>
+#include <EGL/egl.h>
 
 #include "dlwrap.h"
-#include "glwrap.h"
 #include "metrics.h"
 
-void
-glXSwapBuffers (Display *dpy, GLXDrawable drawable)
+static void *
+eglwrap_lookup (char *name)
 {
-	GLWRAP_DEFER (glXSwapBuffers, dpy, drawable);
+	const char *libegl_filename = "libEGL.so.1";
+	static void *libegl_handle = NULL;
 
-	metrics_end_frame ();
-}
-
-
-typedef __GLXextFuncPtr (* fips_glXGetProcAddressARB_t)(const GLubyte *func);
-__GLXextFuncPtr
-glXGetProcAddressARB (const GLubyte *func)
-{
-	__GLXextFuncPtr ptr;
-	static fips_glXGetProcAddressARB_t real_glXGetProcAddressARB = NULL;
-	char *name = "glXGetProcAddressARB";
-
-	if (! real_glXGetProcAddressARB) {
-		real_glXGetProcAddressARB = glwrap_lookup (name);
-		if (! real_glXGetProcAddressARB) {
-			fprintf (stderr, "Error: Failed to find function %s.\n",
-				 name);
-			return NULL;
+	if (! libegl_handle) {
+		libegl_handle = dlwrap_real_dlopen (libegl_filename, RTLD_NOW | RTLD_DEEPBIND);
+		if (! libegl_handle) {
+			fprintf (stderr, "Error: Failed to dlopen %s\n",
+				 libegl_filename);
+			exit (1);
 		}
 	}
 
-	/* If our library has this symbol, that's what we want to give. */
-	ptr = dlwrap_real_dlsym (NULL, (const char *) func);
-	if (ptr)
-		return ptr;
+	return dlwrap_real_dlsym (libegl_handle, name);
+}
 
-	/* Otherwise, just defer to the real glXGetProcAddressARB. */
-	return real_glXGetProcAddressARB (func);
+EGLBoolean
+eglSwapBuffers (EGLDisplay dpy, EGLSurface surface)
+{
+	EGLBoolean ret;
+	static typeof(&eglSwapBuffers) real_eglSwapBuffers;
+
+	if (! real_eglSwapBuffers)
+		real_eglSwapBuffers = eglwrap_lookup ("eglSwapBuffers");
+
+	ret = real_eglSwapBuffers (dpy, surface);
+
+	metrics_end_frame ();
+
+	return ret;
 }

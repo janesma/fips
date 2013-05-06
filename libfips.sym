@@ -35,6 +35,7 @@ global:
 	glUseProgramObjectARB;
 	glXSwapBuffers;
 	glXGetProcAddressARB;
+	eglSwapBuffers;
 local:
 	*;
 };

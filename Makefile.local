@@ -85,6 +85,10 @@ libfips_srcs = \
 	glxwrap.c \
 	metrics.c
 
+ifeq ($(HAVE_EGL),Yes)
+libfips_srcs += eglwrap.c
+endif
+
 libfips_32_modules = $(libfips_srcs:.c=-32.o)
 
 libfips_64_modules = $(libfips_srcs:.c=-64.o)
