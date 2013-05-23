@@ -31,6 +31,13 @@ global:
 	glMultiDrawElementsEXT;
 	glMultiModeDrawElementsIBM;
 	glMultiDrawElementsIndirectAMD;
+	glCallList;
+	glCallLists;
+	glClear;
+	glEnd;
+	glDrawPixels;
+	glBlitFramebuffer;
+	glBlitFramebufferEXT;
 	glUseProgram;
 	glUseProgramObjectARB;
 	glXSwapBuffers;
