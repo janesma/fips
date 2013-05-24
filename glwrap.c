@@ -47,6 +47,8 @@
 
 #include "dlwrap.h"
 
+static int inside_new_list = 0;
+
 void *
 glwrap_lookup (char *name)
 {
@@ -65,13 +67,17 @@ glwrap_lookup (char *name)
 	return dlwrap_real_dlsym (libgl_handle, name);
 }
 
-/* Execute a glBegineQuery/glEndQuery pair around an OpenGL call. */
-#define TIMED_DEFER(function,...) do {			\
-	unsigned counter;				\
-	counter = metrics_add_counter ();		\
-	glBeginQuery (GL_TIME_ELAPSED, counter);	\
-	GLWRAP_DEFER(function, __VA_ARGS__);		\
-	glEndQuery (GL_TIME_ELAPSED);			\
+/* Execute a glBeginQuery/glEndQuery pair around an OpenGL call. */
+#define TIMED_DEFER(function,...) do {					\
+	if (! inside_new_list) {					\
+		unsigned counter;					\
+		counter = metrics_add_counter ();			\
+		glBeginQuery (GL_TIME_ELAPSED, counter);		\
+	}								\
+	GLWRAP_DEFER(function, __VA_ARGS__);				\
+	if (! inside_new_list) {					\
+		glEndQuery (GL_TIME_ELAPSED);				\
+	}								\
 } while (0);
 
 /* Thanks to apitrace source code for the list of OpenGL draw calls. */
@@ -356,6 +362,22 @@ glEnd (void)
 	if (! inside_new_list) {
 		glEndQuery (GL_TIME_ELAPSED);
 	}
+}
+
+/* And we need to track display lists to avoid inserting queries
+ * inside the list while it's being constructed. */
+void
+glNewList (GLuint list, GLenum mode)
+{
+	inside_new_list = 1;
+	GLWRAP_DEFER (glNewList, list, mode);
+}
+
+void
+glEndList (void)
+{
+	GLWRAP_DEFER (glEndList);
+	inside_new_list = 0;
 }
 
 void

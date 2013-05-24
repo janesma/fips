@@ -36,6 +36,8 @@ global:
 	glClear;
 	glBegin;
 	glEnd;
+	glNewList;
+	glEndList;
 	glDrawPixels;
 	glBlitFramebuffer;
 	glBlitFramebufferEXT;
