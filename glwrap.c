@@ -332,10 +332,30 @@ glClear (GLbitfield mask)
 	TIMED_DEFER (glClear, mask);
 }
 
+/* We can't just use TIMED_DEFER for glBegin/glEnd since the
+ * glBeginQuery/glEndQuery calls must both be outside
+ * glBegin/glEnd. */
+void
+glBegin (GLenum mode)
+{
+	if (! inside_new_list)
+	{
+		unsigned counter;
+		counter = metrics_add_counter ();
+		glBeginQuery (GL_TIME_ELAPSED, counter);
+	}
+
+	GLWRAP_DEFER (glBegin, mode);
+}
+
 void
 glEnd (void)
 {
-	TIMED_DEFER (glEnd,);
+	GLWRAP_DEFER (glEnd);
+
+	if (! inside_new_list) {
+		glEndQuery (GL_TIME_ELAPSED);
+	}
 }
 
 void
