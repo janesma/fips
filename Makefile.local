@@ -89,6 +89,9 @@ ifeq ($(HAVE_EGL),Yes)
 libfips_srcs += eglwrap.c
 endif
 
+libfips.sym: extract-wrapped-symbols $(libfips_srcs)
+	$(call quiet,extract-wrapped-symbols) ./extract-wrapped-symbols $(libfips_srcs) > $@
+
 libfips_32_modules = $(libfips_srcs:.c=-32.o)
 
 libfips_64_modules = $(libfips_srcs:.c=-64.o)
@@ -113,7 +116,7 @@ ifeq ($(MAKECMDGOALS), install)
 endif
 
 SRCS  := $(SRCS) $(fips_srcs) $(libfips_srcs)
-CLEAN := $(CLEAN) fips $(fips_modules) $(libfips_32_modules) $(libfips_64_modules)
+CLEAN := $(CLEAN) fips $(fips_modules) $(libfips_32_modules) $(libfips_64_modules) libfips.sym
 
 DISTCLEAN := $(DISTCLEAN) .first-build-message Makefile.config
 

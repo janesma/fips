@@ -1,0 +1,41 @@
+#!/bin/sh
+
+# Extract symbols from the fips source code for functions that are wrapped.
+
+# Output is a version script, (suitable to be passed to the linker
+# through a compiler flag -f -Wl,--version-script=<foo>), which
+# indicates that the extracted symbols should be exported from
+# libfips, while all other symbols are private.
+
+# We have two different patterns for identifying wrapped
+# functions. The first is a call to a macro ending in "DEFER" (such as
+# DEFER or TIMED_DEFER). In this case, the first argument to the macro
+# is the name of the wrapped function.
+
+deferred=`grep 'DEFER[ (]*e*gl' $@ | sed -s 's/.*DEFER *(\([^,)]*\).*/\1/'`
+
+# The second-case is functions for which we either implement or call
+# the underlying "real" function. In these cases, the code uses the
+# convention of having a function or a function-pointer with a name of
+# the form *wrap_real_<function>
+
+wrapped=`grep wrap_real_ $@ | sed -e 's/.*wrap_real_\([a-zA-Z0-9_]*\).*/\1/'`
+
+# With those two lists collected, all we need is a simple template for
+# a version script, along with alphabetic sorting and uniquifying of
+# the list, (and adding tabs for nice-looking indentation and ';'
+# separators).
+
+cat <<EOF
+{
+global:
+EOF
+
+echo "$deferred
+$wrapped" | sort | uniq | sed -e 's/\(.*\)/	\1;/'
+
+cat <<EOF
+local:
+	*;
+};
+EOF
