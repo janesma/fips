@@ -62,7 +62,7 @@ dlopen (const char *filename, int flag)
 void *
 dlwrap_real_dlopen (const char *filename, int flag)
 {
-	fips_dlopen_t real_dlopen = NULL;
+	static fips_dlopen_t real_dlopen = NULL;
 
 	if (! real_dlopen) {
 		real_dlopen = (fips_dlopen_t) dlwrap_real_dlsym (RTLD_NEXT, "dlopen");
