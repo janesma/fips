@@ -157,13 +157,12 @@ glMultiModeDrawArraysIBM (const GLenum *mode, const GLint *first,
 		     first, count, primcount, modestride);
 }
 
-/* FIXME?
 void
-glMultiDrawArraysIndirect (...)
+glMultiDrawArraysIndirect (GLenum mode, const void *indirect,
+			   GLsizei drawcount, GLsizei stride)
 {
-	TIMED_DEFER (glMultiDrawArraysIndirect, ...);
+	TIMED_DEFER (glMultiDrawArraysIndirect, mode, indirect, drawcount, stride);
 }
-*/
 
 void
 glMultiDrawArraysIndirectAMD (GLenum mode, const GLvoid *indirect,
@@ -303,13 +302,13 @@ glMultiModeDrawElementsIBM (const GLenum *mode, const GLsizei *count,
 		     type, indices, primcount, modestride);
 }
 
-/* FIXME?
 void
-glMultiDrawElementsIndirect (...)
+glMultiDrawElementsIndirect (GLenum mode, GLenum type, const void *indirect,
+			     GLsizei drawcount, GLsizei stride)
 {
-	TIMED_DEFER (glMultiDrawElementsIndirect, ...);
+	TIMED_DEFER (glMultiDrawElementsIndirect, mode, type,
+		     indirect, drawcount, stride);
 }
-*/
 
 void
 glMultiDrawElementsIndirectAMD (GLenum mode, GLenum type,

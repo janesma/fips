@@ -13,6 +13,7 @@ global:
 	glMultiDrawArrays;
 	glMultiDrawArraysEXT;
 	glMultiModeDrawArraysIBM;
+	glMultiDrawArraysIndirect;
 	glMultiDrawArraysIndirectAMD;
 	glDrawElements;
 	glDrawElementsBaseVertex;
@@ -30,6 +31,7 @@ global:
 	glMultiDrawElementsBaseVertex;
 	glMultiDrawElementsEXT;
 	glMultiModeDrawElementsIBM;
+	glMultiDrawElementsIndirect;
 	glMultiDrawElementsIndirectAMD;
 	glCallList;
 	glCallLists;
