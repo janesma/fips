@@ -141,18 +141,7 @@ metrics_end_frame (void)
 
 
 	frames++;
-
-	if (frames % 60 == 0) {
-		double fps;
-		gettimeofday (&tv_now, NULL);
-
-		fps = (double) frames / (tv_now.tv_sec - tv_start.tv_sec +
-					 (tv_now.tv_usec - tv_start.tv_usec) / 1.0e6);
-
-		printf("FPS: %.3f\n", fps);
-
-		print_program_metrics ();
-	}
+	gettimeofday (&tv_now, NULL);
 
 	/* Consume all counters that are ready. */
 	counter_t *counter = current_context.counter_head;
@@ -178,5 +167,16 @@ metrics_end_frame (void)
 
 		free (counter);
 		counter = current_context.counter_head;
+	}
+
+	if (frames % 60 == 0) {
+		double fps;
+
+		fps = (double) frames / (tv_now.tv_sec - tv_start.tv_sec +
+					 (tv_now.tv_usec - tv_start.tv_usec) / 1.0e6);
+
+		printf("FPS: %.3f\n", fps);
+
+		print_program_metrics ();
 	}
 }
