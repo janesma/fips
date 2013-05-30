@@ -43,12 +43,12 @@ __GLXextFuncPtr
 glXGetProcAddressARB (const GLubyte *func)
 {
 	__GLXextFuncPtr ptr;
-	static fips_glXGetProcAddressARB_t real_glXGetProcAddressARB = NULL;
+	static fips_glXGetProcAddressARB_t glxwrap_real_glXGetProcAddressARB = NULL;
 	char *name = "glXGetProcAddressARB";
 
-	if (! real_glXGetProcAddressARB) {
-		real_glXGetProcAddressARB = glwrap_lookup (name);
-		if (! real_glXGetProcAddressARB) {
+	if (! glxwrap_real_glXGetProcAddressARB) {
+		glxwrap_real_glXGetProcAddressARB = glwrap_lookup (name);
+		if (! glxwrap_real_glXGetProcAddressARB) {
 			fprintf (stderr, "Error: Failed to find function %s.\n",
 				 name);
 			return NULL;
@@ -61,5 +61,5 @@ glXGetProcAddressARB (const GLubyte *func)
 		return ptr;
 
 	/* Otherwise, just defer to the real glXGetProcAddressARB. */
-	return real_glXGetProcAddressARB (func);
+	return glxwrap_real_glXGetProcAddressARB (func);
 }

@@ -48,12 +48,12 @@ EGLBoolean
 eglSwapBuffers (EGLDisplay dpy, EGLSurface surface)
 {
 	EGLBoolean ret;
-	static typeof(&eglSwapBuffers) real_eglSwapBuffers;
+	static typeof(&eglSwapBuffers) eglwrap_real_eglSwapBuffers;
 
-	if (! real_eglSwapBuffers)
-		real_eglSwapBuffers = eglwrap_lookup ("eglSwapBuffers");
+	if (! eglwrap_real_eglSwapBuffers)
+		eglwrap_real_eglSwapBuffers = eglwrap_lookup ("eglSwapBuffers");
 
-	ret = real_eglSwapBuffers (dpy, surface);
+	ret = eglwrap_real_eglSwapBuffers (dpy, surface);
 
 	metrics_end_frame ();
 
