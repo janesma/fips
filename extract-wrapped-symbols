@@ -8,11 +8,15 @@
 # libfips, while all other symbols are private.
 
 # We have two different patterns for identifying wrapped
-# functions. The first is a call to a macro ending in "DEFER" (such as
-# DEFER or TIMED_DEFER). In this case, the first argument to the macro
-# is the name of the wrapped function.
+# functions. The first is a call to one of the DEFER macros
+# (GLWRAP_DEFER, TIMED_DEFER, WGLWRAP_DEFER_WITH_RETURN, etc.). In
+# this case, the name of the wrapped function appears as the first or
+# second argument to the macro, (second for the case of of
+# _WITH_RETURN macro).
 
 deferred=`grep 'DEFER[ (]*e*gl' $@ | sed -s 's/.*DEFER *(\([^,)]*\).*/\1/'`
+
+deferred_return=`grep 'DEFER_WITH_RETURN *([^,]*, *e*gl' $@ | sed -s 's/.*DEFER_WITH_RETURN *([^,]*, *\([^,)]*\).*/\1/'`
 
 # The second-case is functions for which we either implement or call
 # the underlying "real" function. In these cases, the code uses the
@@ -32,6 +36,7 @@ global:
 EOF
 
 echo "$deferred
+$deferred_return
 $wrapped" | sort | uniq | sed -e 's/\(.*\)/	\1;/'
 
 cat <<EOF

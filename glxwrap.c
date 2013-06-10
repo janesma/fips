@@ -45,24 +45,15 @@ glXSwapBuffers (Display *dpy, GLXDrawable drawable)
  */
 void (*glXGetProcAddressARB (const GLubyte *func))(void)
 {
-	void *ptr;
-	static typeof(&glXGetProcAddressARB) glxwrap_real_glXGetProcAddressARB = NULL;
-	char *name = "glXGetProcAddressARB";
-
-	if (! glxwrap_real_glXGetProcAddressARB) {
-		glxwrap_real_glXGetProcAddressARB = glwrap_lookup (name);
-		if (! glxwrap_real_glXGetProcAddressARB) {
-			fprintf (stderr, "Error: Failed to find function %s.\n",
-				 name);
-			return NULL;
-		}
-	}
+	void *ret;
 
 	/* If our library has this symbol, that's what we want to give. */
-	ptr = dlwrap_real_dlsym (NULL, (const char *) func);
-	if (ptr)
-		return ptr;
+	ret = dlwrap_real_dlsym (NULL, (const char *) func);
+	if (ret)
+		return ret;
 
 	/* Otherwise, just defer to the real glXGetProcAddressARB. */
-	return glxwrap_real_glXGetProcAddressARB (func);
+	GLWRAP_DEFER_WITH_RETURN (ret, glXGetProcAddressARB, func);
+
+	return ret;
 }

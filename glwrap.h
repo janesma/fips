@@ -37,4 +37,12 @@ glwrap_lookup (char *name);
 	real_ ## function(__VA_ARGS__); 			\
 } while (0);
 
+/* As GLWRAP_DEFER, but also set 'ret' to the return value */
+#define GLWRAP_DEFER_WITH_RETURN(ret, function,...) do {	\
+	static typeof(&function) real_ ## function;		\
+	if (! real_ ## function)				\
+		real_ ## function = glwrap_lookup (#function);	\
+	(ret) = real_ ## function(__VA_ARGS__); 		\
+} while (0);
+
 #endif
