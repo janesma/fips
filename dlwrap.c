@@ -46,17 +46,23 @@ dlopen (const char *filename, int flag)
 	if (STRNCMP_LITERAL (filename, "libGL.so"))
 		return dlwrap_real_dlopen (filename, flag);
 
-	/* Redirect all dlopens to libGL to our own wrapper library.
-	 * We find our own filename by looking up this very function
-	 * (that is, this "dlopen"), with dladdr).*/
-	if (dladdr (dlopen, &info)) {
-		libfips_handle = dlwrap_real_dlopen (info.dli_fname, flag);
+	/* Otherwise, for all libGL lookups we redirectl dlopens to
+	 * our own library. If we've resolved libfips_handle before,
+	 * our work is done. */
+	if (libfips_handle)
 		return libfips_handle;
-	} else {
+
+	/* We find our own filename by looking up this very function
+	 * (that is, this "dlopen"), with dladdr).*/
+	if (dladdr (dlopen, &info) == 0) {
 		fprintf (stderr, "Error: Failed to redirect dlopen of %s:\n",
 			 filename);
 		exit (1);
 	}
+
+	libfips_handle = dlwrap_real_dlopen (info.dli_fname, flag);
+
+	return libfips_handle;
 }
 
 void *
