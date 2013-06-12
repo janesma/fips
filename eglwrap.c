@@ -26,6 +26,26 @@
 #include "dlwrap.h"
 #include "metrics.h"
 
+/* Defer to the real 'function' (from libEGL.so.1) to do the real work.
+ * The symbol is looked up once and cached in a static variable for
+ * future uses.
+ */
+#define EGLWRAP_DEFER(function,...) do {			\
+	static typeof(&function) real_ ## function;		\
+	if (! real_ ## function)				\
+		real_ ## function = eglwrap_lookup (#function);	\
+	real_ ## function(__VA_ARGS__); 			\
+} while (0);
+
+/* As EGLWRAP_DEFER, but also set 'ret' to the return value */
+#define EGLWRAP_DEFER_WITH_RETURN(ret, function,...) do {	\
+	static typeof(&function) real_ ## function;		\
+	if (! real_ ## function)				\
+		real_ ## function = eglwrap_lookup (#function);	\
+	(ret) = real_ ## function(__VA_ARGS__); 		\
+} while (0);
+
+
 static void *
 eglwrap_lookup (char *name)
 {
@@ -48,13 +68,8 @@ EGLBoolean
 eglSwapBuffers (EGLDisplay dpy, EGLSurface surface)
 {
 	EGLBoolean ret;
-	static typeof(&eglSwapBuffers) eglwrap_real_eglSwapBuffers;
 
-	if (! eglwrap_real_eglSwapBuffers)
-		eglwrap_real_eglSwapBuffers = eglwrap_lookup ("eglSwapBuffers");
-
-	ret = eglwrap_real_eglSwapBuffers (dpy, surface);
-
+	EGLWRAP_DEFER_WITH_RETURN (ret, eglSwapBuffers, dpy, surface);
 	metrics_end_frame ();
 
 	return ret;
