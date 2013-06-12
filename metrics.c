@@ -147,11 +147,10 @@ metrics_end_frame (void)
 	counter_t *counter = current_context.counter_head;
 
 	while (counter) {
-		GLint available;
-		GLuint elapsed;
+		GLuint available, elapsed;
 
-		glGetQueryObjectiv (counter->id, GL_QUERY_RESULT_AVAILABLE,
-				    &available);
+		glGetQueryObjectuiv (counter->id, GL_QUERY_RESULT_AVAILABLE,
+				     &available);
 		if (! available)
 			break;
 
