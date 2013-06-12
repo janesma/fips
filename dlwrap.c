@@ -41,10 +41,18 @@ void *
 dlopen (const char *filename, int flag)
 {
 	Dl_info info;
+	void *ret;
+
+	/* Before deciding whether to redirect this dlopen to our own
+	 * library, we call the real dlopen. This assures that any
+	 * expected side-effects from loading the intended library are
+	 * resolved. Below, we may still return a handle pointing to
+	 * our own library, and not what is opened here. */
+	ret = dlwrap_real_dlopen (filename, flag);
 
 	/* Not libGL, so just return real dlopen */
 	if (STRNCMP_LITERAL (filename, "libGL.so"))
-		return dlwrap_real_dlopen (filename, flag);
+		return ret;
 
 	/* Otherwise, for all libGL lookups we redirectl dlopens to
 	 * our own library. If we've resolved libfips_handle before,
