@@ -1,0 +1,93 @@
+Known bugs
+==========
+
+Failure to build libfips-32.so on amd64 without gcc-multilib package
+
+	Configure script should do a test-compile with "#include
+	<features.h>"
+
+	Configure script should disable compilation of
+	cross-architexture library if dependencies are missing (and
+	inform the user)
+
+	Here's a debootstap recipe that can be used for testing:
+
+	   apt-get install debootstrap
+	   mkdir /home/chroot/ubuntu
+	   debootstrap precise /home/chroot/ubuntu <Ubuntu mirror>
+	   chroot=/home/chroot/ubuntu/12.04
+	   mount --bind /dev/pts $chroot/dev/pts
+	   mount --bind /proc $chroot/proc
+	   chroot $chroot
+
+undefined symbol: glGenQueries
+
+	The problem here is code in libfips directly calling OpenGL
+	functions like glGenQueries but not linking against any OpenGL
+	library.
+
+	We don't want to link against any OpenGL library so that the
+	application itself can choose which OpenGL to use (and how to
+	link/load it).
+
+	The trick is to instead make these calls indirectly by first
+	calling glXGetProcAddressARB/eglGetProcAddress. There's some
+	proof-of-concept code for this in the stash-egl-lookup-fixups
+	branch, (which needs some cleaning up).
+
+Feature requests (small-scale, near-term changes)
+=================================================
+
+Report CPU load per frame.
+
+Report GPU load per frame.
+
+Report CPU frequency per frame.
+
+Report GPU frequency per frame.
+
+Report shader compilation time.
+
+Add Eric's tiny hash table for collecting per-shader statistics
+
+	people.freedesktop.org:~anholt/hash_table
+
+Sort list of shaders in output
+
+Use better units for shader activity (eg. absolute time, relative percentage)
+
+Capture GPU performance counters.
+
+Allow dumping of shader source for investigation
+
+Infrastructure (larger-scale things, more future-looking items)
+===============================================================
+
+Use ncurses for a better top-like display.
+
+Emit per-frame data in a format for external timeline viewer.
+
+Allow enabling/disabling of tracing at run-time
+
+	Such as via signals, (optionally specified by env. variable)
+
+Investigation for other potential features
+==========================================
+
+Audit Eric's recipe for performance tuning to see what else fips
+should automatically collect:
+
+	http://dri.freedesktop.org/wiki/IntelPerformanceTuning/
+
+Audit exisiting visualization tools before writing one from scratch
+
+	Eero suggested that pytimechart might be well-suited:
+
+		http://pythonhosted.org/pytimechart/index.html
+
+	Others?
+
+Explore using perf/LTTng probing instead of LD_PRELOAD wrapper
+
+	This has the advantage of allowing full-system,
+	multi-process data collection.
