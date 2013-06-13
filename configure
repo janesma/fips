@@ -217,7 +217,7 @@ exit 1
 
 fi
 
-printf "Checking for talloc development files... "
+printf "Checking for libtalloc... "
 if pkg-config --exists talloc; then
     printf "Yes.\n"
     have_talloc=1
@@ -247,7 +247,7 @@ else
 fi
 rm -f elf-minimal elf-minimal.c
 
-printf "Checking for OpenGL header file GL/gl.h... "
+printf "Checking for GL/gl.h... "
 have_gl=0
 if pkg-config --exists gl; then
     printf "Yes.\n"
