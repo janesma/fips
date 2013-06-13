@@ -331,6 +331,20 @@ if [ $have_gl_winsys -eq 0 ]; then
     errors=$((errors + 1))
 fi
 
+printf "int main(void){return 0;}\n" > minimal.c
+
+WARN_CFLAGS=""
+printf "Checking for available C compiler warning flags:\n"
+for flag in -Wall -Wextra -Wmissing-declarations; do
+    if ${CC} $flag -o minimal minimal.c > /dev/null 2>&1
+    then
+	WARN_CFLAGS="${WARN_CFLAGS}${WARN_CFLAGS:+ }${flag}"
+    fi
+done
+printf "\t${WARN_CFLAGS}\n"
+
+rm -f minimal minimal.c
+
 if [ $errors -gt 0 ]; then
     cat <<EOF
 
@@ -384,20 +398,6 @@ configure again to ensure the packages can be found, or simply run
 EOF
     exit 1
 fi
-
-printf "int main(void){return 0;}\n" > minimal.c
-
-WARN_CFLAGS=""
-printf "Checking for available C compiler warning flags... "
-for flag in -Wall -Wextra -Wmissing-declarations; do
-    if ${CC} $flag -o minimal minimal.c > /dev/null 2>&1
-    then
-	WARN_CFLAGS="${WARN_CFLAGS}${WARN_CFLAGS:+ }${flag}"
-    fi
-done
-printf "\n\t${WARN_CFLAGS}\n"
-
-rm -f minimal minimal.c
 
 cat <<EOF
 
