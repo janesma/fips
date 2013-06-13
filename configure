@@ -217,6 +217,32 @@ exit 1
 
 fi
 
+printf "Checking for working C compiler (${CC})... "
+printf "int main(void){return 42;}\n" > minimal.c
+if ${CC} -o minimal minimal.c > /dev/null 2>&1
+then
+    printf "Yes.\n"
+else
+    printf "No.\n"
+    cat <<EOF
+
+*** Error: No functioning C compiler found. Either set the CC environment
+to a working C compiler, or else install gcc:
+
+	http://gcc.gnu.org/
+
+You may be able to install gcc with a command such as:
+
+	sudo apt-get install build-essential
+    or:
+	sudo yum install make automake gcc gcc-c++ kernel-devel
+
+EOF
+
+exit 1
+
+fi
+
 printf "Checking for libtalloc... "
 if pkg-config --exists talloc; then
     printf "Yes.\n"
