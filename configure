@@ -192,10 +192,29 @@ EOF
 
 errors=0
 
+printf "Checking for pkg-config... "
 if pkg-config --version > /dev/null 2>&1; then
-    have_pkg_config=1
+    printf "Yes.\n"
 else
-    have_pkg_config=0
+    printf "No.\n"
+    cat <<EOF
+
+*** Error: This configure script requires pkg-config to find the
+compilation flags required to link against the various libraries
+needed by ${PROJECT}. The pkg-config program can be obtained from:
+
+	http://www.freedesktop.org/wiki/Software/pkg-config/
+
+Or you may be able install it with a command such as:
+
+	sudo apt-get install pkg-config
+    or:
+	sudo yum install pkgconfig
+
+EOF
+
+exit 1
+
 fi
 
 printf "Checking for talloc development files... "
@@ -332,26 +351,6 @@ Or on Fedora and similar systems:
 On other systems, similar commands can be used, but the details of the
 package names may be different.
 
-EOF
-    if [ $have_pkg_config -eq 0 ]; then
-cat <<EOF
-Note: the pkg-config program is not available. This configure script
-uses pkg-config to find the compilation flags required to link against
-the various libraries needed by ${PROJECT}. It's possible you simply need
-to install pkg-config with a command such as:
-
-	sudo apt-get install pkg-config
-Or:
-	sudo yum install pkgconfig
-
-But if pkg-config is not available for your system, then you will need
-to modify the configure script to manually set the cflags and ldflags
-variables to the correct values to link against each library in each
-case that pkg-config could not be used to determine those values.
-
-EOF
-    fi
-cat <<EOF
 When you have installed the necessary dependencies, you can run
 configure again to ensure the packages can be found, or simply run
 "make" to compile.
