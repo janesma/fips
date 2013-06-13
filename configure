@@ -295,7 +295,7 @@ fi
 printf "Checking for GL window-system-binding headers:\n"
 have_gl_winsys=0
 
-printf "    Checking for GL/glx.h... "
+printf "	Checking for GL/glx.h... "
 have_glx=No
 printf "#include <GL/glx.h>\nint main(void){return 0;}\n" > glx-minimal.c
 if ${CC} -o glx-minimal glx-minimal.c ${gl_cflags} > /dev/null 2>&1
@@ -308,7 +308,7 @@ else
 fi
 rm -f glx-minimal glx-minimal.c
 
-printf "    Checking for GL/egl.h... "
+printf "	Checking for GL/egl.h... "
 have_egl=No
 if pkg-config --exists egl; then
     printf "Yes.\n"
