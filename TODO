@@ -28,6 +28,10 @@ Report GPU frequency per frame.
 
 Report shader compilation time.
 
+Report elapsed time per frame.
+
+Add options to control which metrics should be collected.
+
 Add Eric's tiny hash table for collecting per-shader statistics
 
 	people.freedesktop.org:~anholt/hash_table
@@ -45,6 +49,9 @@ Infrastructure (larger-scale things, more future-looking items)
 
 Use ncurses for a better top-like display.
 
+Report timestamps and CPU time durations for operations causing
+CPU/GPU syncs.
+
 Emit per-frame data in a format for external timeline viewer.
 
 Allow enabling/disabling of tracing at run-time
@@ -61,9 +68,15 @@ should automatically collect:
 
 Audit exisiting visualization tools before writing one from scratch
 
-	Eero suggested that pytimechart might be well-suited:
+	Eero suggested two possibilities:
 
+		pytimechart
+		-----------
 		http://pythonhosted.org/pytimechart/index.html
+
+		e-graph
+		-------
+		https://gitorious.org/e-graph
 
 	Others?
 
