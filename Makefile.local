@@ -8,8 +8,18 @@ FINAL_FIPS_LDFLAGS = $(LDFLAGS) $(AS_NEEDED_LDFLAGS) $(CONFIGURE_LDFLAGS)
 FINAL_LIBFIPS_LDFLAGS = $(LDFLAGS) $(CONFIGURE_LDFLAGS) -ldl
 FINAL_FIPS_LINKER = CC
 
+ALL_TARGETS = fips
+
+ifeq ($(COMPILER_SUPPORTS_32),Yes)
+ALL_TARGETS += libfips-32.so
+endif
+
+ifeq ($(COMPILER_SUPPORTS_64),Yes)
+ALL_TARGETS += libfips-64.so
+endif
+
 .PHONY: all
-all: fips libfips-64.so libfips-32.so
+all: $(ALL_TARGETS)
 
 ifeq ($(MAKECMDGOALS),)
 ifeq ($(shell cat .first-build-message 2>/dev/null),)

@@ -345,6 +345,43 @@ printf "\t${WARN_CFLAGS}\n"
 
 rm -f minimal minimal.c
 
+printf "#include <features.h>\nint main(void){return 0;}\n" > arch-minimal.c
+
+printf "Checking for machine-dependent compiler support:\n"
+
+printf "	Compiler can create 32-bit binaries... "
+have_m32=Yes
+if ${CC} -m32 -o arch-minimal arch-minimal.c > /dev/null 2>&1
+then
+    printf "Yes.\n"
+else
+    printf "No.\n"
+    have_m32=No
+fi
+
+printf "	Compiler can create 64-bit binaries... "
+have_m64=Yes
+if ${CC} -m64 -o arch-minimal arch-minimal.c > /dev/null 2>&1
+then
+    printf "Yes.\n"
+else
+    printf "No.\n"
+    have_m64=No
+fi
+
+if [ "$have_m32" = "No" ] || [ "$have_m64" = "No" ]; then
+    cat <<EOF
+
+* Warning: Cannot create both 32 and 64-bit fips libraries. Fips will not
+           support applications of the non-native size. Fixing this may be
+           as simple as running a command such as:
+
+		sudo apt-get install gcc-multilib
+EOF
+fi
+
+rm -f arch-minimal arch-minimal.c
+
 if [ $errors -gt 0 ]; then
     cat <<EOF
 
@@ -473,6 +510,10 @@ mandir = ${MANDIR:=\$(prefix)/share/man}
 
 # The directory to which read-only (configuration) files should be installed
 sysconfdir = ${SYSCONFDIR:=\$(prefix)/etc}
+
+# Whether compiler can create 32 or 64-bit binaries
+COMPILER_SUPPORTS_32 = ${have_m32}
+COMPILER_SUPPORTS_64 = ${have_m64}
 
 # Flags needed to compile and link against talloc
 TALLOC_CFLAGS = ${talloc_cflags}
