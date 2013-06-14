@@ -279,6 +279,9 @@ find_libfips_path (void *ctx, const char *program)
 		 "\t%s\n"
 		 "and\n"
 		 "\t%s/" BINDIR_TO_LIBFIPSDIR "\n", bin_path, bin_path);
+
+	fprintf(stderr, "\nIt's possible fips was not compiled with support for %d-bit applications.\n", bits);
+	fprintf(stderr, "Perhaps you need to install gcc-multilib and re-compile fips?\n");
 	exit (1);
 }
 
