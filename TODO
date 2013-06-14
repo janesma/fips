@@ -1,25 +1,5 @@
 Known bugs
 ==========
-
-Failure to build libfips-32.so on amd64 without gcc-multilib package
-
-	Configure script should do a test-compile with "#include
-	<features.h>"
-
-	Configure script should disable compilation of
-	cross-architexture library if dependencies are missing (and
-	inform the user)
-
-	Here's a debootstap recipe that can be used for testing:
-
-	   apt-get install debootstrap
-	   mkdir /home/chroot/ubuntu
-	   debootstrap precise /home/chroot/ubuntu <Ubuntu mirror>
-	   chroot=/home/chroot/ubuntu/12.04
-	   mount --bind /dev/pts $chroot/dev/pts
-	   mount --bind /proc $chroot/proc
-	   chroot $chroot
-
 undefined symbol: glGenQueries
 
 	The problem here is code in libfips directly calling OpenGL
