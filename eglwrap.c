@@ -21,6 +21,8 @@
 
 #include "fips.h"
 
+#include "fips-dispatch.h"
+
 #include <EGL/egl.h>
 
 #include "dlwrap.h"
@@ -71,6 +73,19 @@ eglSwapBuffers (EGLDisplay dpy, EGLSurface surface)
 
 	EGLWRAP_DEFER_WITH_RETURN (ret, eglSwapBuffers, dpy, surface);
 	metrics_end_frame ();
+
+	return ret;
+}
+
+EGLBoolean
+eglMakeCurrent (EGLDisplay display, EGLSurface draw, EGLSurface read,
+		EGLContext context)
+{
+	EGLBoolean ret;
+
+	fips_dispatch_init (FIPS_API_EGL);
+
+	EGLWRAP_DEFER_WITH_RETURN (ret, eglMakeCurrent, display, draw, read, context);
 
 	return ret;
 }

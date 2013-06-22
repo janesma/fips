@@ -19,12 +19,6 @@
  * THE SOFTWARE.
  */
 
-#include "fips.h"
-
-#include "glwrap.h"
-
-#include "metrics.h"
-
 /* The prototypes for some OpenGL functions changed at one point from:
  *
  *	const void* *indices
@@ -42,8 +36,12 @@
  */
 #define const
 
-#define GL_GLEXT_PROTOTYPES
-#include <GL/gl.h>
+#include "fips.h"
+#include "fips-dispatch.h"
+
+#include "glwrap.h"
+
+#include "metrics.h"
 
 #include "dlwrap.h"
 

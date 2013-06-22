@@ -1,4 +1,4 @@
-/* Copyright © 2013, Intel Corporation
+/* Copyright © 2012, Intel Corporation
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -19,24 +19,33 @@
  * THE SOFTWARE.
  */
 
-#ifndef FIPS_H
-#define FIPS_H
+#ifndef FIPS_DISPATCH_H
+#define FIPS_DISPATCH_H
 
-#include "config.h"
+#define GL_GLEXT_PROTOTYPES
+#include <GL/gl.h>
 
-#include <stdio.h>
-#include <stdlib.h>
-#include <stdbool.h>
+extern PFNGLGENQUERIESPROC fips_dispatch_glGenQueries;
+#define glGenQueries fips_dispatch_glGenQueries
 
-#include <string.h>
+extern PFNGLDELETEQUERIESPROC fips_dispatch_glDeleteQueries;
+#define glDeleteQueries fips_dispatch_glDeleteQueries
 
-#ifdef __GNUC__
-#define unused __attribute__ ((unused))
-#else
-#define unused
-#endif
+extern PFNGLBEGINQUERYPROC fips_dispatch_glBeginQuery;
+#define glBeginQuery fips_dispatch_glBeginQuery
 
-#define STRNCMP_LITERAL(var, literal) \
-    strncmp ((var), (literal), sizeof (literal) - 1)
+extern PFNGLENDQUERYPROC fips_dispatch_glEndQuery;
+#define glEndQuery fips_dispatch_glEndQuery
 
-#endif
+extern PFNGLGETQUERYOBJECTUIVPROC fips_dispatch_glGetQueryObjectuiv;
+#define glGetQueryObjectuiv fips_dispatch_glGetQueryObjectuiv
+
+typedef enum {
+	FIPS_API_GLX,
+	FIPS_API_EGL
+} fips_api_t;
+
+void
+fips_dispatch_init (fips_api_t api);
+
+#endif /* FIPS_DISPATCH_H */

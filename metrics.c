@@ -24,9 +24,7 @@
 
 #include <sys/time.h>
 
-#define GL_GLEXT_PROTOTYPES
-#include <GL/gl.h>
-
+#include "fips-dispatch.h"
 #include "metrics.h"
 
 typedef struct counter

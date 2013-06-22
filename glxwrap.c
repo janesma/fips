@@ -21,6 +21,8 @@
 
 #include "fips.h"
 
+#include "fips-dispatch.h"
+
 #include <X11/Xlib.h>
 #include <GL/gl.h>
 #include <GL/glx.h>
@@ -54,6 +56,18 @@ void (*glXGetProcAddressARB (const GLubyte *func))(void)
 
 	/* Otherwise, just defer to the real glXGetProcAddressARB. */
 	GLWRAP_DEFER_WITH_RETURN (ret, glXGetProcAddressARB, func);
+
+	return ret;
+}
+
+Bool
+glXMakeCurrent (Display *dpy, GLXDrawable drawable, GLXContext ctx)
+{
+	Bool ret;
+
+	fips_dispatch_init (FIPS_API_GLX);
+
+	GLWRAP_DEFER_WITH_RETURN (ret, glXMakeCurrent, dpy, drawable, ctx);
 
 	return ret;
 }
