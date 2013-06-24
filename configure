@@ -540,10 +540,10 @@ AS_NEEDED_LDFLAGS = ${as_needed_ldflags}
 
 # Flags needed to compile the fips binary
 FIPS_CFLAGS = \$(WARN_CFLAGS) \$(TALLOC_CFLAGS) \$(LIBELF_CFLAGS)
-FIPS_LDFLAGS = \$(WARN_CFLAGS) \$(TALLOC_LDFLAGS) \$(LIBELF_LDFLAGS)
+FIPS_LDFLAGS = \$(TALLOC_LDFLAGS) \$(LIBELF_LDFLAGS)
 
 # Flags needed to compile the libfips libraries
-LIBFIPS_CFLAGS = \$(GL_CFLAGS) \$(EGL_CFLAGS)
+LIBFIPS_CFLAGS = \$(WARN_CFLAGS) \$(GL_CFLAGS) \$(EGL_CFLAGS)
 LIBFIPS_LDFLAGS =
 EOF
 
