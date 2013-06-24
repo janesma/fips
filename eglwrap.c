@@ -77,6 +77,21 @@ eglSwapBuffers (EGLDisplay dpy, EGLSurface surface)
 	return ret;
 }
 
+void (*eglGetProcAddress (char const *func))(void)
+{
+	void *ret;
+
+	/* If our library has this symbol, that's what we want to give. */
+	ret = dlwrap_real_dlsym (NULL, (const char *) func);
+	if (ret)
+		return ret;
+
+	/* Otherwise, just defer to the real eglGetProcAddress */
+	EGLWRAP_DEFER_WITH_RETURN (ret, eglGetProcAddress, func);
+
+	return ret;
+}
+
 EGLBoolean
 eglMakeCurrent (EGLDisplay display, EGLSurface draw, EGLSurface read,
 		EGLContext context)
