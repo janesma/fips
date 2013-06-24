@@ -58,7 +58,7 @@ typedef struct context
 context_t current_context;
 
 unsigned
-metrics_add_counter (void)
+metrics_counter_new (void)
 {
 	counter_t *counter;
 
@@ -82,6 +82,18 @@ metrics_add_counter (void)
 	}
 
 	return counter->id;
+}
+
+void
+metrics_counter_start (unsigned counter)
+{
+	glBeginQuery (GL_TIME_ELAPSED, counter);
+}
+
+void
+metrics_counter_stop (void)
+{
+	glEndQuery (GL_TIME_ELAPSED);
 }
 
 void

@@ -67,16 +67,16 @@ glwrap_lookup (char *name)
 	return dlwrap_real_dlsym (libgl_handle, name);
 }
 
-/* Execute a glBeginQuery/glEndQuery pair around an OpenGL call. */
+/* Execute an OpenGL call and time it with a GPU metrics counter. */
 #define TIMED_DEFER(function,...) do {					\
 	if (! inside_new_list) {					\
 		unsigned counter;					\
-		counter = metrics_add_counter ();			\
-		glBeginQuery (GL_TIME_ELAPSED, counter);		\
+		counter = metrics_counter_new ();			\
+		metrics_counter_start (counter);			\
 	}								\
 	GLWRAP_DEFER(function, __VA_ARGS__);				\
 	if (! inside_new_list) {					\
-		glEndQuery (GL_TIME_ELAPSED);				\
+		metrics_counter_stop ();				\
 	}								\
 } while (0);
 
@@ -337,17 +337,18 @@ glClear (GLbitfield mask)
 	TIMED_DEFER (glClear, mask);
 }
 
-/* We can't just use TIMED_DEFER for glBegin/glEnd since the
- * glBeginQuery/glEndQuery calls must both be outside
- * glBegin/glEnd. */
+/* We can't just use TIMED_DEFER for glBegin/glEnd since the metrics
+ * counter must be started before glBegin and stopped after glEnd,
+ * (that is, everything from glBegin to glEnd is counted as a single
+ * operation). */
 void
 glBegin (GLenum mode)
 {
 	if (! inside_new_list)
 	{
 		unsigned counter;
-		counter = metrics_add_counter ();
-		glBeginQuery (GL_TIME_ELAPSED, counter);
+		counter = metrics_counter_new ();
+		metrics_counter_start (counter);
 	}
 
 	GLWRAP_DEFER (glBegin, mode);
@@ -359,7 +360,7 @@ glEnd (void)
 	GLWRAP_DEFER (glEnd);
 
 	if (! inside_new_list) {
-		glEndQuery (GL_TIME_ELAPSED);
+		metrics_counter_stop ();
 	}
 }
 

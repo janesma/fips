@@ -71,6 +71,7 @@ typedef void (*PFNGLGETQUERYOBJECTUIVPROC)(GLuint, GLenum, GLuint *);
 
 #define GL_QUERY_RESULT 0x8866
 #define GL_QUERY_RESULT_AVAILABLE 0x8867
+#define GL_TIME_ELAPSED 0x88BF
 
 extern PFNGLGENQUERIESPROC fips_dispatch_glGenQueries;
 #define glGenQueries fips_dispatch_glGenQueries
