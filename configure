@@ -308,14 +308,14 @@ else
 fi
 rm -f glx-minimal glx-minimal.c
 
-printf "	Checking for GL/egl.h... "
+printf "	Checking for EGL/egl.h... "
 have_egl=No
 if pkg-config --exists egl; then
     printf "Yes.\n"
     have_egl=Yes
     egl_cflags=$(pkg-config --cflags egl)
 else
-    printf "#include <GL/egl.h>\nint main(void){return 0;}\n" > egl-minimal.c
+    printf "#include <EGL/egl.h>\nint main(void){return 0;}\n" > egl-minimal.c
     if ${CC} -o egl-minimal egl-minimal.c ${gl_cflags} > /dev/null 2>&1
     then
 	printf "Yes.\n"
