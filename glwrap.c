@@ -36,8 +36,10 @@
  */
 #define const
 
+#define GL_GLEXT_PROTOTYPES
+#include <GL/gl.h>
+
 #include "fips.h"
-#include "fips-dispatch.h"
 
 #include "glwrap.h"
 

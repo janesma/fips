@@ -24,7 +24,8 @@
 
 #include <sys/time.h>
 
-#include "fips-dispatch.h"
+#include "fips-dispatch-gl.h"
+
 #include "metrics.h"
 
 typedef struct counter

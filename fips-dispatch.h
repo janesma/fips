@@ -19,33 +19,40 @@
  * THE SOFTWARE.
  */
 
+/* This header file provides prototypes to iniatialize the
+ * fips-dispatch system (fips_dispatch_init) but does not provide the
+ * prototypes for dynamically-dipatched OpenGL functions.
+ * See fips-dispatch-gl.h for those.
+ */
+
 #ifndef FIPS_DISPATCH_H
 #define FIPS_DISPATCH_H
 
-#define GL_GLEXT_PROTOTYPES
-#include <GL/gl.h>
-
-extern PFNGLGENQUERIESPROC fips_dispatch_glGenQueries;
-#define glGenQueries fips_dispatch_glGenQueries
-
-extern PFNGLDELETEQUERIESPROC fips_dispatch_glDeleteQueries;
-#define glDeleteQueries fips_dispatch_glDeleteQueries
-
-extern PFNGLBEGINQUERYPROC fips_dispatch_glBeginQuery;
-#define glBeginQuery fips_dispatch_glBeginQuery
-
-extern PFNGLENDQUERYPROC fips_dispatch_glEndQuery;
-#define glEndQuery fips_dispatch_glEndQuery
-
-extern PFNGLGETQUERYOBJECTUIVPROC fips_dispatch_glGetQueryObjectuiv;
-#define glGetQueryObjectuiv fips_dispatch_glGetQueryObjectuiv
+#include "fips.h"
 
 typedef enum {
 	FIPS_API_GLX,
 	FIPS_API_EGL
 } fips_api_t;
 
+extern bool fips_dispatch_initialized;
+extern fips_api_t fips_dispatch_api;
+
+/* Initialize fips-dispatch with the appropriate API, (whether GLX or
+ * EGL, etc.). */
 void
 fips_dispatch_init (fips_api_t api);
+
+/* Lookup a named symbol, (via either glXGetProcAddressARB or
+ * eglGetProcAddress).
+ *
+ * Note: No user of fips-dispatch need ever call this
+ * function. Instead, users should simply include fips-dispatch-gl.h,
+ * then make direct calls to GL functions and through some
+ * C-preprocessor magic, the lookup will magically happen at
+ * runtime.
+ */
+void *
+fips_dispatch_lookup (const char *name);
 
 #endif /* FIPS_DISPATCH_H */

@@ -19,8 +19,6 @@
  * THE SOFTWARE.
  */
 
-#include "fips.h"
-
 #include "fips-dispatch.h"
 
 #define GL_GLEXT_PROTOTYPES
@@ -29,149 +27,22 @@
 
 #include <EGL/egl.h>
 
-static bool fips_initialized;
-static fips_api_t fips_api;
+bool fips_dispatch_initialized;
+fips_api_t fips_dispatch_api;
 
 void
 fips_dispatch_init (fips_api_t api)
 {
-	fips_api = api;
+	fips_dispatch_api = api;
 
-	fips_initialized = true;
+	fips_dispatch_initialized = true;
 }
 
-static void
-check_initialized (void)
+void *
+fips_dispatch_lookup (const char *name)
 {
-	if (fips_initialized)
-		return;
-
-	fprintf (stderr,
-		 "Internal error: fips_dispatch_init must be called before\n"
-		 "any OpenGL function supported via fips_dispatch.\n");
-	exit (1);
-}
-
-static void
-unsupported (const char *name)
-{
-	fprintf (stderr, "Error: fips failed to find support for %s\n", name);
-
-	exit (1);
-}
-
-static void *
-lookup (const char *name)
-{
-	if (fips_api == FIPS_API_GLX)
+	if (fips_dispatch_api == FIPS_API_GLX)
 		return glXGetProcAddressARB ((const GLubyte *)name);
 	else
 		return eglGetProcAddress (name);
 }
-
-static void
-resolve_glGenQueries (void)
-{
-	fips_dispatch_glGenQueries = lookup ("glGenQueries");
-
-	if (! fips_dispatch_glGenQueries)
-		fips_dispatch_glGenQueries = lookup ("glGenQueriesARB");
-
-	if (! fips_dispatch_glGenQueries)
-		unsupported ("GenQueries");
-}
-
-static void
-stub_glGenQueries (GLsizei n, GLuint *ids)
-{
-	check_initialized ();
-	resolve_glGenQueries ();
-	fips_dispatch_glGenQueries (n, ids);
-}
-
-PFNGLGENQUERIESPROC fips_dispatch_glGenQueries = stub_glGenQueries;
-
-static void
-resolve_glDeleteQueries (void)
-{
-	fips_dispatch_glDeleteQueries = lookup ("glDeleteQueries");
-
-	if (! fips_dispatch_glDeleteQueries)
-		fips_dispatch_glDeleteQueries = lookup ("glDeleteQueriesARB");
-
-	if (! fips_dispatch_glDeleteQueries)
-		unsupported ("DeleteQueries");
-}
-
-static void
-stub_glDeleteQueries (GLsizei n, const GLuint * ids)
-{
-	check_initialized ();
-	resolve_glDeleteQueries ();
-	fips_dispatch_glDeleteQueries (n, ids);
-}
-
-PFNGLDELETEQUERIESPROC fips_dispatch_glDeleteQueries = stub_glDeleteQueries;
-
-static void
-resolve_glBeginQuery (void)
-{
-	fips_dispatch_glBeginQuery = lookup ("glBeginQuery");
-
-	if (! fips_dispatch_glBeginQuery)
-		fips_dispatch_glBeginQuery = lookup ("glBeginQueryARB");
-
-	if (! fips_dispatch_glBeginQuery)
-		unsupported ("BeginQuery");
-}
-
-static void
-stub_glBeginQuery (GLenum target, GLuint id)
-{
-	check_initialized ();
-	resolve_glBeginQuery ();
-	fips_dispatch_glBeginQuery (target, id);
-}
-
-PFNGLBEGINQUERYPROC fips_dispatch_glBeginQuery = stub_glBeginQuery;
-
-static void
-resolve_glEndQuery (void)
-{
-	fips_dispatch_glEndQuery = lookup ("glEndQuery");
-
-	if (! fips_dispatch_glEndQuery)
-		fips_dispatch_glEndQuery = lookup ("glEndQueryARB");
-
-	if (! fips_dispatch_glEndQuery)
-		unsupported ("EndQuery");
-}
-
-static void
-stub_glEndQuery (GLenum target)
-{
-	check_initialized ();
-	resolve_glEndQuery ();
-	fips_dispatch_glEndQuery (target);
-}
-
-PFNGLENDQUERYPROC fips_dispatch_glEndQuery = stub_glEndQuery;
-
-static void
-resolve_glGetQueryObjectuiv (void)
-{
-	fips_dispatch_glGetQueryObjectuiv = (PFNGLGETQUERYOBJECTUIVARBPROC) lookup("glGetQueryObjectuivARB");
-
-	if (! fips_dispatch_glGetQueryObjectuiv)
-		unsupported ("GetQueryObjectuiv");
-}
-
-static void
-stub_glGetQueryObjectuiv (GLuint id, GLenum pname, GLuint * params)
-{
-	check_initialized ();
-	resolve_glGetQueryObjectuiv ();
-	fips_dispatch_glGetQueryObjectuiv (id, pname, params);
-}
-
-PFNGLGETQUERYOBJECTUIVPROC fips_dispatch_glGetQueryObjectuiv = stub_glGetQueryObjectuiv;

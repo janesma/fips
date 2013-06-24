@@ -95,6 +95,7 @@ extra_cflags += -I$(srcdir) -fPIC
 libfips_srcs = \
 	dlwrap.c \
 	fips-dispatch.c \
+	fips-dispatch-gl.c \
 	glwrap.c \
 	glxwrap.c \
 	metrics.c
