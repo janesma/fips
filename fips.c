@@ -43,7 +43,17 @@ main (int argc, char *argv[])
 {
 	int opt, ret;
 
-	const char *short_options = "h";
+	/* The initial '+' means that getopt will stop looking for
+	 * options after the first non-option argument. This means
+	 * that a command such as:
+	 *
+	 *	fips glxgears -fullscreen
+	 *
+	 * Will do what is intended, (namely, have fips invoke
+	 * "glxgears -fullscreen" rather than trying to interpret
+	 * -fullscreen as options to fips itself.
+	 */
+	const char *short_options = "+h";
 	const struct option long_options[] = {
 		{"help", no_argument, 0, 'h'},
 		{0, 0, 0, 0}
