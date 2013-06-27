@@ -24,13 +24,19 @@ echo "OpenGL, different linking mechanisms, and different symbol-lookup."
 echo ""
 
 printf "		Win-sys	Link-mode	Lookup\n"
-printf "		-------	-------------	------------\n"
+printf "		-------	-------------	-----------------\n"
 
-printf "Testing		GLX	link to libGL	direct calls	... "
+printf "Testing		GLX	link to libGL	direct calls		... "
 test glx-link-call
 
-printf "Testing		GLX	dlopen(libGL)	dlsym		... "
+printf "Testing		GLX	dlopen(libGL)	dlsym			... "
 test glx-dlopen-dlsym
+
+printf "Testing		GLX	dlopen(libGL)	glXGetProcAddress	... "
+test glx-dlopen-gpa
+
+printf "Testing		GLX	dlopen(libGL)	glXGetProcAddressARB	... "
+test glx-dlopen-gpaa
 
 echo ""
 
