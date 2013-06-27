@@ -8,6 +8,7 @@ test_programs =
 
 ifeq ($(HAVE_X11),Yes)
 test_programs += $(dir)/glx-link-call
+test_programs += $(dir)/glx-dlopen-dlsym
 endif
 
 glx_link_call_srcs = \
@@ -19,11 +20,20 @@ glx_link_call_modules = $(glx_link_call_srcs:.c=.o)
 $(dir)/glx-link-call: $(glx_link_call_modules)
 	$(call quiet,$(FIPS_LINKER) $(CFLAGS)) $^ $(GL_LDFLAGS) $(X11_LDFLAGS) -o $@
 
+glx_dlopen_dlsym_srcs = \
+	$(dir)/glx-dlopen-dlsym.c \
+	$(dir)/util.c
+
+glx_dlopen_dlsym_modules = $(glx_dlopen_dlsym_srcs:.c=.o)
+
+$(dir)/glx-dlopen-dlsym: $(glx_dlopen_dlsym_modules)
+	$(call quiet,$(FIPS_LINKER) $(CFLAGS)) $^ -ldl $(X11_LDFLAGS) -o $@
+
 test: all $(test_programs)
 	@${dir}/fips-test
 
 check: test
 
-SRCS := $(SRCS) $(glx_link_call_srcs)
+SRCS := $(SRCS) $(glx_link_call_srcs) $(glx_dlopen_dlsym_srcs)
 
-CLEAN += $(test_programs) $(glx_link_call_modules)
+CLEAN += $(test_programs) $(glx_link_call_modules) $(glx_dlopen_dlsym_modules)

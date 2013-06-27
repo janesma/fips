@@ -26,8 +26,11 @@ echo ""
 printf "		Win-sys	Link-mode	Lookup\n"
 printf "		-------	-------------	------------\n"
 
-printf "Testing		GLX	link to libGL	direct calls ... "
+printf "Testing		GLX	link to libGL	direct calls	... "
 test glx-link-call
+
+printf "Testing		GLX	dlopen(libGL)	dlsym		... "
+test glx-dlopen-dlsym
 
 echo ""
 
