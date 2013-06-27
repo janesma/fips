@@ -39,10 +39,6 @@ ifeq ($(shell cat .first-build-message 2>/dev/null),)
 endif
 endif
 
-.PHONY: test
-test:
-	@echo "FIXME: Should consider adding a test suite here."
-
 # The user has not set any verbosity, default to quiet mode and inform the
 # user how to enable verbose compiles.
 ifeq ($(V),)

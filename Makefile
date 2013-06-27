@@ -2,7 +2,7 @@
 all:
 
 # List all subdirectores here. Each contains its own Makefile.local
-subdirs :=
+subdirs := test
 
 # We make all targets depend on the Makefiles themselves.
 global_deps = Makefile Makefile.config Makefile.local \

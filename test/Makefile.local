@@ -1,0 +1,29 @@
+# -*- makefile -*-
+
+dir := test
+
+extra_cflags += -I. $(GL_CFLAGS) $(X11_CFLAGS)
+
+test_programs =
+
+ifeq ($(HAVE_X11),Yes)
+test_programs += $(dir)/glx-link-call
+endif
+
+glx_link_call_srcs = \
+	$(dir)/glx-link-call.c \
+	$(dir)/util.c
+
+glx_link_call_modules = $(glx_link_call_srcs:.c=.o)
+
+$(dir)/glx-link-call: $(glx_link_call_modules)
+	$(call quiet,$(FIPS_LINKER) $(CFLAGS)) $^ $(GL_LDFLAGS) $(X11_LDFLAGS) -o $@
+
+test: all $(test_programs)
+	@${dir}/fips-test
+
+check: test
+
+SRCS := $(SRCS) $(glx_link_call_srcs)
+
+CLEAN += $(test_programs) $(glx_link_call_modules)

@@ -1,0 +1,41 @@
+#!/bin/sh
+
+dir=$(dirname "$0")
+
+tests=0
+errors=0
+
+test ()
+{
+    script="$1"
+
+    tests=$((tests + 1))
+
+    if ./fips -v "${dir}/${script}" | grep -q "fips: terminating"; then
+	printf "PASS\n"
+    else
+	printf "FAIL\n"
+	errors=$((errors + 1))
+    fi
+}
+
+echo "Testing fips with programs using different window-system interfaces to"
+echo "OpenGL, different linking mechanisms, and different symbol-lookup."
+echo ""
+
+printf "		Win-sys	Link-mode	Lookup\n"
+printf "		-------	-------------	------------\n"
+
+printf "Testing		GLX	link to libGL	direct calls ... "
+test glx-link-call
+
+echo ""
+
+if [ $errors -gt 0 ]; then
+    echo "Error: $errors/$tests tests failed."
+    exit 1
+else
+    echo "All $tests tests passed."
+    exit 0
+fi
+
