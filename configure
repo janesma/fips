@@ -279,6 +279,7 @@ if pkg-config --exists gl; then
     printf "Yes.\n"
     have_gl=1
     gl_cflags=$(pkg-config --cflags gl)
+    gl_ldflags=$(pkg-config --libs gl)
 else
     printf "#include <GL/gl.h>\nint main(void){return 0;}\n" > gl-minimal.c
     if ${CC} -o gl-minimal gl-minimal.c > /dev/null 2>&1
@@ -314,6 +315,7 @@ if pkg-config --exists egl; then
     printf "Yes.\n"
     have_egl=Yes
     egl_cflags=$(pkg-config --cflags egl)
+    egl_ldflags=$(pkg-config --libs egl)
 else
     printf "#include <EGL/egl.h>\nint main(void){return 0;}\n" > egl-minimal.c
     if ${CC} -o egl-minimal egl-minimal.c ${gl_cflags} > /dev/null 2>&1
@@ -528,12 +530,14 @@ HAVE_GLX = ${have_glx}
 
 # Flags needed to find GL and GLX header files (GL/gl.h and GL/glx.h)
 GL_CFLAGS = ${gl_cflags}
+GL_LDFLAGS = ${gl_ldflags}
 
 # Whether EGL headers are available
 HAVE_EGL = ${have_egl}
 
 # Flags needed to find EGL header files (EGL/egl.h)
 EGL_CFLAGS = ${egl_cflags}
+EGL_LDFLAGS = ${egl_ldflags}
 
 # Flags needed to have linker link only to necessary libraries
 AS_NEEDED_LDFLAGS = ${as_needed_ldflags}
