@@ -35,6 +35,7 @@ usage (void)
 	       "\n"
 	       "Options:\n"
 	       "	-h, --help	show this help message\n"
+	       "	-v, --verbose	print verbose messages about fips activity"
 	       "\n");
 }
 
@@ -53,9 +54,10 @@ main (int argc, char *argv[])
 	 * "glxgears -fullscreen" rather than trying to interpret
 	 * -fullscreen as options to fips itself.
 	 */
-	const char *short_options = "+h";
+	const char *short_options = "+hv";
 	const struct option long_options[] = {
 		{"help", no_argument, 0, 'h'},
+		{"verbose", no_argument, 0, 'v'},
 		{0, 0, 0, 0}
 	};
 
@@ -69,6 +71,9 @@ main (int argc, char *argv[])
 		case 'h':
 			usage ();
 			return 0;
+		case 'v':
+			setenv ("FIPS_VERBOSE", "1", 1);
+			break;
 		case '?':
 			break;
 		default:

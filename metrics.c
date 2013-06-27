@@ -57,6 +57,9 @@ typedef struct context
 
 context_t current_context;
 
+int frames;
+int verbose;
+
 unsigned
 metrics_counter_new (void)
 {
@@ -137,19 +140,31 @@ print_program_metrics (void)
 	}
 }
 
+/* Called at program exit */
+static void
+metrics_exit (void)
+{
+	if (verbose)
+		printf ("fips: terminating\n");
+}
+
+
 void
 metrics_end_frame (void)
 {
 	static int initialized = 0;
-	static int frames;
 	static struct timeval tv_start, tv_now;
 
 	if (! initialized) {
-		frames = 0;
 		gettimeofday (&tv_start, NULL);
+		atexit (metrics_exit);
+		if (getenv ("FIPS_VERBOSE"))
+			verbose = 1;
 		initialized = 1;
 	}
 
+	if (verbose)
+		printf ("fips: frame %d complete\n", frames);
 
 	frames++;
 	gettimeofday (&tv_now, NULL);
