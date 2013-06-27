@@ -40,7 +40,7 @@ glXSwapBuffers (Display *dpy, GLXDrawable drawable)
 }
 
 /* glXGetProcAddressARB is a function which accepts a string and
- * returns a generic function pointer (which nominall accepts void and
+ * returns a generic function pointer (which nominally accepts void and
  * has void return type). Of course, the user is expected to cast the
  * returned function pointer to a function pointer of the expected
  * type.
@@ -58,6 +58,17 @@ void (*glXGetProcAddressARB (const GLubyte *func))(void)
 	GLWRAP_DEFER_WITH_RETURN (ret, glXGetProcAddressARB, func);
 
 	return ret;
+}
+
+void (*glXGetProcAddress (const GLubyte *func))(void)
+{
+	/* This comment must not be removed. It ensures that the
+	 * glXGetProcAddress function ends up in our exported symbol
+	 * list even though there's not otherwise any code saying:
+	 *
+	 * GLWRAP_DEFER_WITH_RETURN (ret, glXGetProcAddress, func);
+	 */
+	return glXGetProcAddressARB(func);
 }
 
 Bool
