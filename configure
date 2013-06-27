@@ -309,6 +309,17 @@ else
 fi
 rm -f glx-minimal glx-minimal.c
 
+printf "	Checking for X11... "
+have_x11=No
+if pkg-config --exists x11; then
+  printf "Yes.\n"
+  have_x11=Yes
+  x11_cflags=$(pkg-config --cflags x11)
+  x11_ldflags=$(pkg-config --libs x11)
+else
+  printf "No.\n"
+fi
+
 printf "	Checking for EGL/egl.h... "
 have_egl=No
 if pkg-config --exists egl; then
@@ -528,9 +539,16 @@ LIBELF_LDFLAGS = ${libelf_ldflags}
 # Whether GLX headers are available
 HAVE_GLX = ${have_glx}
 
-# Flags needed to find GL and GLX header files (GL/gl.h and GL/glx.h)
+# Flags needed to compile and link against libGL
 GL_CFLAGS = ${gl_cflags}
 GL_LDFLAGS = ${gl_ldflags}
+
+# Wheter X11 headers and library are available
+HAVE_X11 = ${have_x11}
+
+# Flags needs to compile and link against libX11
+X11_CLFLAGS = ${x11_cflags}
+X11_LDFLAGS = ${x11_ldflags}
 
 # Whether EGL headers are available
 HAVE_EGL = ${have_egl}
