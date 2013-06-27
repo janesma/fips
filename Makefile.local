@@ -2,14 +2,14 @@
 
 include Makefile.release
 
-# Smash together user's values with our extra values
-FINAL_FIPS_CFLAGS = -DFIPS_VERSION=$(VERSION) $(CFLAGS) $(FIPS_CFLAGS) $(extra_cflags)
-FINAL_FIPS_LDFLAGS = $(LDFLAGS) $(AS_NEEDED_LDFLAGS) $(FIPS_LDFLAGS)
+# Smash together user's values with values from Makefile.config
+FIPS_CFLAGS = -DFIPS_VERSION=$(VERSION) $(CFLAGS) $(WARN_CFLAGS) $(TALLOC_CFLAGS) $(LIBELF_CFLAGS) $(extra_cflags)
+FIPS_LDFLAGS = $(LDFLAGS) $(AS_NEEDED_LDFLAGS) $(TALLOC_LDFLAGS) $(LIBELF_LDFLAGS)
 
-FINAL_LIBFIPS_CFLAGS = $(CFLAGS) $(LIBFIPS_CFLAGS) $(extra_cflags)
-FINAL_LIBFIPS_LDFLAGS = $(LDFLAGS) $(LIBFIPS_LDFLAGS) -ldl
+LIBFIPS_CFLAGS = $(CFLAGS) $(WARN_CFLAGS) $(GL_CFLAGS) $(EGL_CFLAGS) $(extra_cflags)
+LIBFIPS_LDFLAGS = $(LDFLAGS) -ldl
 
-FINAL_FIPS_LINKER = CC
+FIPS_LINKER = CC
 
 ALL_TARGETS = fips
 
@@ -58,15 +58,15 @@ quiet ?= $($(shell echo $1 | sed -e s'/ .*//'))
 
 %-32.o: %.c $(global_deps)
 	@mkdir -p .deps/$(@D)
-	$(call quiet,CC $(CFLAGS) -m32) -c $(FINAL_LIBFIPS_CFLAGS) -m32 $< -o $@ -MD -MP -MF .deps/$*.d
+	$(call quiet,CC $(CFLAGS) -m32) -c $(LIBFIPS_CFLAGS) -m32 $< -o $@ -MD -MP -MF .deps/$*.d
 
 %-64.o: %.c $(global_deps)
 	@mkdir -p .deps/$(@D)
-	$(call quiet,CC $(CFLAGS) -m64) -c $(FINAL_LIBFIPS_CFLAGS) -m64 $< -o $@ -MD -MP -MF .deps/$*.d
+	$(call quiet,CC $(CFLAGS) -m64) -c $(LIBFIPS_CFLAGS) -m64 $< -o $@ -MD -MP -MF .deps/$*.d
 
 %.o: %.c $(global_deps)
 	@mkdir -p .deps/$(@D)
-	$(call quiet,CC $(CFLAGS)) -c $(FINAL_FIPS_CFLAGS) $< -o $@ -MD -MP -MF .deps/$*.d
+	$(call quiet,CC $(CFLAGS)) -c $(FIPS_CFLAGS) $< -o $@ -MD -MP -MF .deps/$*.d
 
 .PHONY : clean
 clean:
@@ -85,7 +85,7 @@ fips_srcs = \
 fips_modules = $(fips_srcs:.c=.o)
 
 fips: $(fips_modules)
-	$(call quiet,$(FINAL_FIPS_LINKER) $(CFLAGS)) $(FINAL_FIPS_CFLAGS) $^ $(FINAL_FIPS_LDFLAGS) -o $@
+	$(call quiet,$(FIPS_LINKER) $(CFLAGS)) $(FIPS_CFLAGS) $^ $(FIPS_LDFLAGS) -o $@
 
 # GL-wrapper library, libfips
 LIBRARY_LINK_FLAGS = -shared -Wl,--version-script=libfips.sym
@@ -112,10 +112,10 @@ libfips_32_modules = $(libfips_srcs:.c=-32.o)
 libfips_64_modules = $(libfips_srcs:.c=-64.o)
 
 libfips-32.so: $(libfips_32_modules) libfips.sym
-	$(call quiet,$(FINAL_FIPS_LINKER) $(CFLAGS) -m32) -o $@ $(FINAL_LIBFIPS_CFLAGS) -m32 $(libfips_32_modules)  $(LIBRARY_LINK_FLAGS) $(FINAL_LIBFIPS_LDFLAGS)
+	$(call quiet,$(FIPS_LINKER) $(CFLAGS) -m32) -o $@ $(LIBFIPS_CFLAGS) -m32 $(libfips_32_modules)  $(LIBRARY_LINK_FLAGS) $(LIBFIPS_LDFLAGS)
 
 libfips-64.so: $(libfips_64_modules) libfips.sym
-	$(call quiet,$(FINAL_FIPS_LINKER) $(CFLAGS) -m64) -o $@ $(FINAL_LIBFIPS_CFLAGS) -m64 $(libfips_64_modules) $(LIBRARY_LINK_FLAGS) $(FINAL_LIBFIPS_LDFLAGS)
+	$(call quiet,$(FIPS_LINKER) $(CFLAGS) -m64) -o $@ $(LIBFIPS_CFLAGS) -m64 $(libfips_64_modules) $(LIBRARY_LINK_FLAGS) $(LIBFIPS_LDFLAGS)
 
 .PHONY: install
 install: all
