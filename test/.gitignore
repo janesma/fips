@@ -1,4 +1,6 @@
 glx-link-call
+glx-link-gpa
+glx-link-gpaa
 glx-dlopen-dlsym
 glx-dlopen-gpa
 glx-dlopen-gpaa

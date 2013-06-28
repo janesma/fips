@@ -29,6 +29,12 @@ printf "		-------	-------------	-----------------\n"
 printf "Testing		GLX	link to libGL	direct calls		... "
 test glx-link-call
 
+printf "Testing		GLX	link to libGL	glXGetProcAddress	... "
+test glx-link-gpa
+
+printf "Testing		GLX	link to libGL	glXGetProcAddressARB	... "
+test glx-link-gpaa
+
 printf "Testing		GLX	dlopen(libGL)	dlsym			... "
 test glx-dlopen-dlsym
 
