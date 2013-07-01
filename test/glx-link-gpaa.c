@@ -72,8 +72,8 @@ FIPS_GLXMAKECURRENT_FN my_glXMakeCurrent;
 typedef void (*FIPS_GLXSWAPBUFFERS_FN)(Display *, GLXDrawable);
 FIPS_GLXSWAPBUFFERS_FN my_glXSwapBuffers;
 
-#define HANDLE_EVENTS_GL_PREFIX my_
-#include "handle-events.c"
+#define COMMON_GL_PREFIX my_
+#include "common.c"
 
 static void
 resolve_symbols (void)
@@ -157,11 +157,11 @@ main (void)
 
 	dpy = util_x11_init_display ();
 
-	create_context (dpy, &ctx, &visual_info);
+	common_create_context (dpy, &ctx, &visual_info);
 
 	window = util_x11_init_window (dpy, visual_info);
 
-        handle_events (dpy, ctx, window);
+        common_handle_events (dpy, ctx, window);
 
 	util_x11_fini_window (dpy, window);
 

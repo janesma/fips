@@ -22,28 +22,28 @@
 /* This is C code intended to be included (yes, included) by test
  * programs in the fips test suite.
  *
- * It defines a function:
+ * It defines two functions for use by the test:
  *
  *	static void
- *	handle_events(Display *dpy, Window window);
- *
- * which handles X events, responding by drawing a few frames using
- * OpenGL.
+ *	common_create_context (Display *dpy, GLXContext *ctx, XVisualInfo **vi);
+ * and:
+ *	static void
+ *	common_handle_events (Display *dpy, Window window);
  *
  * Before including this file, the test program must define a macro
- * HANDLE_EVENTS_GL_PREFIX to some prefix. This macro can be empty (to
+ * COMMON_GL_PREFIX to some prefix. This macro can be empty (to
  * directly call functions in an OpenGL-library directly linked) or
  * can be some custom prefix to call through symbols defined in the
  * test program.
  */
 
-#ifndef HANDLE_EVENTS_GL_PREFIX
-#error Code including handle-events.c must define HANDLE_EVENTS_GL_PREFIX
+#ifndef COMMON_GL_PREFIX
+#error Code including common.c must define COMMON_GL_PREFIX
 #endif
 
 #define concat_(a,b) a ## b
 #define concat(a,b) concat_(a,b)
-#define _(func) concat(HANDLE_EVENTS_GL_PREFIX, func)
+#define _(func) concat(COMMON_GL_PREFIX, func)
 
 static void
 set_2d_projection (int width, int height)
@@ -62,7 +62,8 @@ paint_rgb_using_clear (double r, double g, double b)
 }
 
 static void
-create_context (Display *dpy, GLXContext *ctx_ret, XVisualInfo **visual_info_ret)
+common_create_context (Display *dpy,
+		       GLXContext *ctx_ret, XVisualInfo **visual_info_ret)
 {
         int visual_attr[] = {
                 GLX_RGBA,
@@ -118,7 +119,7 @@ draw (Display *dpy, GLXContext ctx, Window window, int width, int height)
 }
 
 static void
-handle_events(Display *dpy, GLXContext ctx, Window window)
+common_handle_events(Display *dpy, GLXContext ctx, Window window)
 {
         XEvent xev;
 	int width = 0;
