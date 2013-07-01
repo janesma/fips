@@ -23,15 +23,16 @@
 #define UTIL_X11_H
 
 #include <X11/Xlib.h>
+#include <X11/Xutil.h>
 
-void
-util_x11_init_display (Display **dpy);
+Display *
+util_x11_init_display (void);
 
 void
 util_x11_fini_display (Display *dpy);
 
-void
-util_x11_init_window (Display *dpy, Window *window);
+Window
+util_x11_init_window (Display *dpy, XVisualInfo *visual_info);
 
 void
 util_x11_fini_window (Display *dpy, Window window);

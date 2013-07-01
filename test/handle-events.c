@@ -62,9 +62,8 @@ paint_rgb_using_clear (double r, double g, double b)
 }
 
 static void
-draw (Display *dpy, Window window, int width, int height)
+create_context (Display *dpy, GLXContext *ctx_ret, XVisualInfo **visual_info_ret)
 {
-	int i;
         int visual_attr[] = {
                 GLX_RGBA,
                 GLX_RED_SIZE,		8,
@@ -79,8 +78,14 @@ draw (Display *dpy, Window window, int width, int height)
         };
 
 	/* Window and context setup. */
-        XVisualInfo *visual_info = _(glXChooseVisual) (dpy, 0, visual_attr);
-        GLXContext ctx = _(glXCreateContext) (dpy, visual_info, NULL, True);
+        *visual_info_ret = _(glXChooseVisual) (dpy, 0, visual_attr);
+        *ctx_ret = _(glXCreateContext) (dpy, *visual_info_ret, NULL, True);
+}
+
+static void
+draw (Display *dpy, GLXContext ctx, Window window, int width, int height)
+{
+	int i;
         _(glXMakeCurrent) (dpy, window, ctx);
 
         _(glViewport) (0, 0, width, height);
@@ -113,7 +118,7 @@ draw (Display *dpy, Window window, int width, int height)
 }
 
 static void
-handle_events(Display *dpy, Window window)
+handle_events(Display *dpy, GLXContext ctx, Window window)
 {
         XEvent xev;
 	int width = 0;
@@ -130,7 +135,7 @@ handle_events(Display *dpy, Window window)
                         break;
                 case Expose:
                         if (xev.xexpose.count == 0) {
-                                draw (dpy, window, width, height);
+                                draw (dpy, ctx, window, width, height);
                                 return;
                         }
                         break;

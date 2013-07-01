@@ -40,12 +40,16 @@ main (void)
 {
         Display *dpy;
         Window window;
+	GLXContext ctx;
+	XVisualInfo *visual_info;
 
-	util_x11_init_display (&dpy);
+	dpy = util_x11_init_display ();
 
-	util_x11_init_window (dpy, &window);
+	create_context (dpy, &ctx, &visual_info);
 
-        handle_events (dpy, window);
+	window = util_x11_init_window (dpy, visual_info);
+
+        handle_events (dpy, ctx, window);
 
 	util_x11_fini_window (dpy, window);
 

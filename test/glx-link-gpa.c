@@ -150,14 +150,18 @@ main (void)
 {
         Display *dpy;
         Window window;
-
-	util_x11_init_display (&dpy);
-
-	util_x11_init_window (dpy, &window);
+	GLXContext ctx;
+	XVisualInfo *visual_info;
 
 	resolve_symbols ();
 
-        handle_events (dpy, window);
+	dpy = util_x11_init_display ();
+
+	create_context (dpy, &ctx, &visual_info);
+
+	window = util_x11_init_window (dpy, visual_info);
+
+        handle_events (dpy, ctx, window);
 
 	util_x11_fini_window (dpy, window);
 
