@@ -17,7 +17,7 @@ endif
 
 glx_link_call_srcs = \
 	$(dir)/glx-link-call.c \
-	$(dir)/util.c
+	$(dir)/util-x11.c
 
 glx_link_call_modules = $(glx_link_call_srcs:.c=.o)
 
@@ -26,7 +26,7 @@ $(dir)/glx-link-call: $(glx_link_call_modules)
 
 glx_link_gpa_srcs = \
 	$(dir)/glx-link-gpa.c \
-	$(dir)/util.c
+	$(dir)/util-x11.c
 
 glx_link_gpa_modules = $(glx_link_gpa_srcs:.c=.o)
 
@@ -35,7 +35,7 @@ $(dir)/glx-link-gpa: $(glx_link_gpa_modules)
 
 glx_link_gpaa_srcs = \
 	$(dir)/glx-link-gpaa.c \
-	$(dir)/util.c
+	$(dir)/util-x11.c
 
 glx_link_gpaa_modules = $(glx_link_gpaa_srcs:.c=.o)
 
@@ -44,7 +44,7 @@ $(dir)/glx-link-gpaa: $(glx_link_gpaa_modules)
 
 glx_dlopen_dlsym_srcs = \
 	$(dir)/glx-dlopen-dlsym.c \
-	$(dir)/util.c
+	$(dir)/util-x11.c
 
 glx_dlopen_dlsym_modules = $(glx_dlopen_dlsym_srcs:.c=.o)
 
@@ -53,7 +53,7 @@ $(dir)/glx-dlopen-dlsym: $(glx_dlopen_dlsym_modules)
 
 glx_dlopen_gpa_srcs = \
 	$(dir)/glx-dlopen-gpa.c \
-	$(dir)/util.c
+	$(dir)/util-x11.c
 
 glx_dlopen_gpa_modules = $(glx_dlopen_gpa_srcs:.c=.o)
 
@@ -62,7 +62,7 @@ $(dir)/glx-dlopen-gpa: $(glx_dlopen_gpa_modules)
 
 glx_dlopen_gpaa_srcs = \
 	$(dir)/glx-dlopen-gpaa.c \
-	$(dir)/util.c
+	$(dir)/util-x11.c
 
 glx_dlopen_gpaa_modules = $(glx_dlopen_gpaa_srcs:.c=.o)
 

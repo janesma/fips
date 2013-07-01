@@ -19,40 +19,24 @@
  * THE SOFTWARE.
  */
 
-#include <stdio.h>
-#include <stdlib.h>
+#ifndef UTIL_X11_H
+#define UTIL_X11_H
 
-#include "util.h"
-
-void
-util_init_display_window (Display **dpy, Window *window)
-{
-	int width = 64;
-	int height = 64;
-
-        *dpy = XOpenDisplay (NULL);
-
-        if (*dpy == NULL) {
-                fprintf(stderr, "Failed to open display %s\n",
-                        XDisplayName(NULL));
-                exit (1);
-        }
-
-        *window = XCreateSimpleWindow(*dpy, DefaultRootWindow (*dpy),
-				      0, 0, width, height, 0,
-				      BlackPixel (*dpy, DefaultScreen (*dpy)),
-				      BlackPixel (*dpy, DefaultScreen (*dpy)));
-
-        XSelectInput(*dpy, *window,
-                     KeyPressMask | StructureNotifyMask | ExposureMask);
-
-        XMapWindow (*dpy, *window);
-
-}
+#include <X11/Xlib.h>
 
 void
-util_fini_display_window (Display *dpy, Window window)
-{
-        XDestroyWindow (dpy, window);
-        XCloseDisplay (dpy);
-}
+util_x11_init_display (Display **dpy);
+
+void
+util_x11_fini_display (Display *dpy);
+
+void
+util_x11_init_window (Display *dpy, Window *window);
+
+void
+util_x11_fini_window (Display *dpy, Window window);
+
+#endif /* UTIL_X11_H */
+
+
+

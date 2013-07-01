@@ -30,7 +30,7 @@
 #include <GL/gl.h>
 #include <GL/glx.h>
 
-#include "util.h"
+#include "util-x11.h"
 
 #define HANDLE_EVENTS_GL_PREFIX
 #include "handle-events.c"
@@ -41,11 +41,15 @@ main (void)
         Display *dpy;
         Window window;
 
-	util_init_display_window (&dpy, &window);
+	util_x11_init_display (&dpy);
+
+	util_x11_init_window (dpy, &window);
 
         handle_events (dpy, window);
 
-	util_fini_display_window (dpy, window);
+	util_x11_fini_window (dpy, window);
+
+	util_x11_fini_display (dpy);
 
         return 0;
 }

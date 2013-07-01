@@ -34,7 +34,7 @@
 #include <stdlib.h>
 #include <dlfcn.h>
 
-#include "util.h"
+#include "util-x11.h"
 
 void* (*my_glXGetProcAddressARB) (char *);
 void (*my_glClear) (GLbitfield);
@@ -147,13 +147,17 @@ main (void)
         Display *dpy;
         Window window;
 
-	util_init_display_window (&dpy, &window);
+	util_x11_init_display (&dpy);
+
+	util_x11_init_window (dpy, &window);
 
 	resolve_symbols ();
 
         handle_events (dpy, window);
 
-	util_fini_display_window (dpy, window);
+	util_x11_fini_window (dpy, window);
+
+	util_x11_fini_display (dpy);
 
         return 0;
 }
