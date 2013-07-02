@@ -39,4 +39,6 @@
 #define STRNCMP_LITERAL(var, literal) \
     strncmp ((var), (literal), sizeof (literal) - 1)
 
+#define ARRAY_SIZE(arr) (sizeof(arr) / sizeof(arr[0]))
+
 #endif

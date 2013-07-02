@@ -23,6 +23,8 @@
 #define _GNU_SOURCE
 #include <dlfcn.h>
 
+#include <assert.h>
+
 #include "fips.h"
 
 #include "dlwrap.h"
@@ -31,6 +33,35 @@ void *libfips_handle;
 
 typedef void * (* fips_dlopen_t)(const char * filename, int flag);
 typedef void * (* fips_dlsym_t)(void *handle, const char *symbol);
+
+static const char *wrapped_libs[] = {
+	"libGL.so",
+	"libEGL.so"
+};
+
+static void *orig_handles[ARRAY_SIZE(wrapped_libs)];
+
+/* Match 'filename' against an internal list of libraries for which
+ * libfips has wrappers.
+ *
+ * Returns true and sets *index_ret if a match is found.
+ * Returns false if no match is found. */
+static bool
+find_wrapped_library_index (const char *filename, unsigned *index_ret)
+{
+	unsigned i;
+
+	for (i = 0; i < ARRAY_SIZE(wrapped_libs); i++) {
+		if (strncmp(wrapped_libs[i], filename,
+			    strlen (wrapped_libs[i])) == 0)
+		{
+			*index_ret = i;
+			return true;
+		}
+	}
+
+	return false;
+}
 
 /* Many (most?) OpenGL programs dlopen libGL.so.1 rather than linking
  * against it directly, which means they would not be seeing our
@@ -42,6 +73,7 @@ dlopen (const char *filename, int flag)
 {
 	Dl_info info;
 	void *ret;
+	unsigned index;
 
 	/* Before deciding whether to redirect this dlopen to our own
 	 * library, we call the real dlopen. This assures that any
@@ -50,15 +82,19 @@ dlopen (const char *filename, int flag)
 	 * our own library, and not what is opened here. */
 	ret = dlwrap_real_dlopen (filename, flag);
 
-	/* Not libGL, so just return real dlopen */
-	if (STRNCMP_LITERAL (filename, "libGL.so"))
+	/* If filename is not a wrapped library, just return real dlopen */
+	if (! find_wrapped_library_index (filename, &index))
 		return ret;
 
-	/* Otherwise, for all libGL lookups we redirectl dlopens to
-	 * our own library. If we've resolved libfips_handle before,
-	 * our work is done. */
+	assert (index < ARRAY_SIZE(orig_handles));
+	orig_handles[index] = ret;
+
+	/* Otherwise, we return our own handle so that we can intercept
+	 * future calls to dlsym. We encode the index in the return value
+	 * so that we can later map back to the originally requested
+	 * dlopen-handle if necessary. */
 	if (libfips_handle)
-		return libfips_handle;
+		return libfips_handle + index;
 
 	/* We find our own filename by looking up this very function
 	 * (that is, this "dlopen"), with dladdr).*/
@@ -70,7 +106,7 @@ dlopen (const char *filename, int flag)
 
 	libfips_handle = dlwrap_real_dlopen (info.dli_fname, flag);
 
-	return libfips_handle;
+	return libfips_handle + index;
 }
 
 void *
@@ -89,21 +125,23 @@ dlwrap_real_dlopen (const char *filename, int flag)
 	return real_dlopen (filename, flag);
 }
 
-/* Since we redirect a dlopen of libGL.so to libfips we need to ensure
- * that dlysm succeeds for all functions that might be defined in the
- * real, underlying libGL library. But we're far too lazy to implement
- * wrappers for function that would simply pass-through, so instead we
- * also wrap dlysm and arrange for it to pass things through with
- * RTLD_next if libfips does not have the function desired.
-*/
+/* Since we redirect dlopens of libGL.so and libEGL.so to libfips we
+ * need to ensure that dlysm succeeds for all functions that might be
+ * defined in the real, underlying libGL library. But we're far too
+ * lazy to implement wrappers for function that would simply
+ * pass-through, so instead we also wrap dlysm and arrange for it to
+ * pass things through with RTLD_next if libfips does not have the
+ * function desired.  */
 void *
 dlsym (void *handle, const char *name)
 {
-	static void *libgl_handle = NULL;
 	static void *symbol;
+	unsigned index;
 
-	/* All gl symbols are preferentially looked up in libfips. */
-	if (STRNCMP_LITERAL (name, "gl") == 0) {
+	/* All gl* and egl* symbols are preferentially looked up in libfips. */
+	if (STRNCMP_LITERAL (name, "gl") == 0 ||
+	    STRNCMP_LITERAL (name, "egl") == 0)
+	{
 		symbol = dlwrap_real_dlsym (libfips_handle, name);
 		if (symbol)
 			return symbol;
@@ -112,13 +150,20 @@ dlsym (void *handle, const char *name)
 	/* Failing that, anything specifically requested from the
 	 * libfips library should be redirected to a real GL
 	 * library. */
-	if (handle == libfips_handle) {
-		if (! libgl_handle)
-			libgl_handle = dlwrap_real_dlopen ("libGL.so.1", RTLD_LAZY);
-		return dlwrap_real_dlsym (libgl_handle, name);
+
+	/* We subtract the index back out of the handle (see the addition
+	 * of the index in our wrapper for dlopen above) to then use the
+	 * correct, original dlopen'ed handle for the library of
+	 * interest. */
+	index = handle - libfips_handle;
+	if (index < ARRAY_SIZE(orig_handles)) {
+		return dlwrap_real_dlsym (orig_handles[index], name);
 	}
 
-	/* And anything else is some unrelated dlsym. Just pass it through. */
+	/* And anything else is some unrelated dlsym. Just pass it
+	 * through.  (This also covers the cases of lookups with
+	 * special handles such as RTLD_DEFAULT or RTLD_NEXT.)
+	 */
 	return dlwrap_real_dlsym (handle, name);
 }
 
