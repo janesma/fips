@@ -21,13 +21,13 @@
 
 /* Perform some simple drawing via OpenGL as follows:
  *
- *	1. Using EGL to construct an OpenGL context
- *	2. By directly linking with libEGL.so and libGL.so
+ *	1. Using EGL to construct an OpenGLESv2 context
+ *	2. By directly linking with libEGL.so and libGLESv2.so
  *	3. By using eglGetProcAddress to lookup OpenGL functions
  */
 
 #define GL_GLEXT_PROTOTYPES
-#include <GL/gl.h>
+#include <GLES2/gl2.h>
 #include <EGL/egl.h>
 
 #include <stdio.h>
@@ -90,7 +90,7 @@ main (void)
 
 	dpy = util_x11_init_display ();
 
-	common_create_egl_context (dpy, EGL_OPENGL_API, &egl_dpy,
+	common_create_egl_context (dpy, EGL_OPENGL_ES_API, &egl_dpy,
 				   &ctx, &config, &visual_info);
 
 	window = util_x11_init_window (dpy, visual_info);

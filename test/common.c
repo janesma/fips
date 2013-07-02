@@ -90,15 +90,6 @@
 #define _E(func) concat(COMMON_EGL_PREFIX, func)
 
 static void
-set_2d_projection (int width, int height)
-{
-	_(glMatrixMode) (GL_PROJECTION);
-	_(glLoadIdentity) ();
-	_(glOrtho) (0, width, height, 0, 0, 1);
-	_(glMatrixMode) (GL_MODELVIEW);
-}
-
-static void
 paint_rgb_using_clear (double r, double g, double b)
 {
         _(glClearColor) (r, g, b, 1.0);
@@ -125,9 +116,14 @@ common_create_egl_context (Display *dpy, EGLenum api, EGLDisplay *egl_dpy_ret,
 	int num_configs;
 	EGLint major, minor;
 	EGLBoolean success;
-	int context_attr[] = {
+	int opengl_context_attr[] = {
 		EGL_NONE
 	};
+	int glesv2_context_attr[] = {
+		EGL_CONTEXT_CLIENT_VERSION, 2,
+		EGL_NONE
+	};
+	int *context_attr;
 	EGLContext ctx;
 	XVisualInfo *visual_info, visual_attr;
 	int visualid, num_visuals;
@@ -161,6 +157,10 @@ common_create_egl_context (Display *dpy, EGLenum api, EGLDisplay *egl_dpy_ret,
 
 	_E(eglBindAPI) (api);
 
+	if (api == EGL_OPENGL_ES_API)
+		context_attr = glesv2_context_attr;
+	else
+		context_attr = opengl_context_attr;
 	ctx = _E(eglCreateContext) (egl_dpy, config, NULL, context_attr);
 	if (!ctx) {
 		fprintf (stderr, "Error: Failed to create EGL context\n");
@@ -215,8 +215,6 @@ draw (COMMON_SWAP_DISPLAY dpy, COMMON_SWAP_WINDOW window, int width, int height)
 {
 	int i;
         _(glViewport) (0, 0, width, height);
-
-	set_2d_projection (width, height);
 
 /* Simply count through some colors, frame by frame. */
 #define RGB(frame) (((frame+1)/4) % 2), (((frame+1)/2) % 2), ((frame+1) % 2)

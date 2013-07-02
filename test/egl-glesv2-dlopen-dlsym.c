@@ -21,13 +21,13 @@
 
 /* Perform some simple drawing via OpenGL as follows:
  *
- *	1. Using EGL to construct an OpenGL context
- *	2. By using dlopen to dynamically load libGL.so
- *	3. By using eglGetProcAddress to lookup OpenGL functions
+ *	1. Using EGL to construct an OpenGLESv2 context
+ *	2. By using dlopen to dynamically load libGLESv2.so and libEGL.so
+ *	3. By using dlsym to lookup OpenGL functions
  */
 
 #define GL_GLEXT_PROTOTYPES
-#include <GL/gl.h>
+#include <GLES2/gl2.h>
 #include <EGL/egl.h>
 
 #include <stdio.h>
@@ -42,23 +42,12 @@ EGLContext (*my_eglCreateContext)(EGLDisplay, EGLConfig, EGLContext, EGLint cons
 EGLSurface (*my_eglCreateWindowSurface)(EGLDisplay, EGLConfig, NativeWindowType, EGLint const *);
 EGLBoolean (*my_eglGetConfigAttrib)(EGLDisplay, EGLConfig, EGLint, EGLint *);
 EGLDisplay (*my_eglGetDisplay)(NativeDisplayType);
-void * (*my_eglGetProcAddress)(char const *);
 EGLBoolean (*my_eglInitialize)(EGLDisplay, EGLint *, EGLint *);
 EGLBoolean (*my_eglMakeCurrent)(EGLDisplay, EGLSurface, EGLSurface, EGLContext);
 EGLBoolean (*my_eglSwapBuffers)(EGLDisplay, EGLSurface);
-
-/* The OpenGL header files give typedefs for the types of all
- * functions provided by etensisons. Here, though, we're using
- * glxGetProcAddress to lookup core functions, so we provide our own
- * typedefs. */
-typedef void (*FIPS_GLCLEAR_FN)(GLbitfield);
-FIPS_GLCLEAR_FN my_glClear;
-
-typedef void (*FIPS_GLCLEARCOLOR_FN)(GLclampf, GLclampf, GLclampf, GLclampf);
-FIPS_GLCLEARCOLOR_FN my_glClearColor;
-
-typedef void (*FIPS_GLVIEWPORT_FN)(GLint, GLint, GLsizei, GLsizei);
-FIPS_GLVIEWPORT_FN my_glViewport;
+void (*my_glClear)(GLbitfield);
+void (*my_glClearColor)(GLclampf, GLclampf, GLclampf, GLclampf);
+void (*my_glViewport)(GLint, GLint, GLsizei, GLsizei);
 
 #define COMMON_USE_EGL
 #define COMMON_GL_PREFIX my_
@@ -68,18 +57,19 @@ FIPS_GLVIEWPORT_FN my_glViewport;
 static void
 resolve_symbols (void)
 {
-	void *egl_handle, *gl_handle;
+	void *glesv2_handle;
+	void *egl_handle;
 	char *error;
+
+	glesv2_handle = dlopen ("libGLESv2.so", RTLD_LAZY);
+	if (glesv2_handle == NULL) {
+		fprintf (stderr, "Error: Failed to open libGL.so\n");
+		exit (1);
+	}
 
 	egl_handle = dlopen ("libEGL.so", RTLD_LAZY);
 	if (egl_handle == NULL) {
 		fprintf (stderr, "Error: Failed to open libEGL.so\n");
-		exit (1);
-	}
-
-	gl_handle = dlopen ("libGL.so", RTLD_LAZY);
-	if (gl_handle == NULL) {
-		fprintf (stderr, "Error: Failed to open libGL.so\n");
 		exit (1);
 	}
 
@@ -128,13 +118,6 @@ resolve_symbols (void)
 		exit (1);
 	}
 
-	my_eglGetProcAddress = dlsym (egl_handle, "eglGetProcAddress");
-	error = dlerror ();
-	if (error) {
-		fprintf (stderr, "Failed to dlsym eglGetProcAddress: %s\n", error);
-		exit (1);
-	}
-
 	my_eglInitialize = dlsym (egl_handle, "eglInitialize");
 	error = dlerror ();
 	if (error) {
@@ -156,21 +139,24 @@ resolve_symbols (void)
 		exit (1);
 	}
 
-	my_glClear = (FIPS_GLCLEAR_FN) my_eglGetProcAddress ("glClear");
-	if (my_glClear == NULL) {
-		fprintf (stderr, "Failed to eglGetProcAddress glClear\n");
+	my_glClear = dlsym (glesv2_handle, "glClear");
+	error = dlerror ();
+	if (error) {
+		fprintf (stderr, "Failed to dlsym glClear: %s\n", error);
 		exit (1);
 	}
 
-	my_glClearColor = (FIPS_GLCLEARCOLOR_FN) my_eglGetProcAddress ("glClearColor");
-	if (my_glClearColor == NULL) {
-		fprintf (stderr, "Failed to eglGetProcAddress glClearColor\n");
+	my_glClearColor = dlsym (glesv2_handle, "glClearColor");
+	error = dlerror ();
+	if (error) {
+		fprintf (stderr, "Failed to dlsym glClearColor: %s\n", error);
 		exit (1);
 	}
 
-	my_glViewport = (FIPS_GLVIEWPORT_FN) my_eglGetProcAddress ("glViewport");
-	if (my_glViewport == NULL) {
-		fprintf (stderr, "Failed to eglGetProcAddress glViewport\n");
+	my_glViewport = dlsym (glesv2_handle, "glViewport");
+	error = dlerror ();
+	if (error) {
+		fprintf (stderr, "Failed to dlsym glViewport: %s\n", error);
 		exit (1);
 	}
 }
@@ -190,7 +176,7 @@ main (void)
 
 	dpy = util_x11_init_display ();
 
-	common_create_egl_context (dpy, EGL_OPENGL_API, &egl_dpy,
+	common_create_egl_context (dpy, EGL_OPENGL_ES_API, &egl_dpy,
 				   &ctx, &config, &visual_info);
 
 	window = util_x11_init_window (dpy, visual_info);

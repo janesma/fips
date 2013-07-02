@@ -21,13 +21,13 @@
 
 /* Perform some simple drawing via OpenGL as follows:
  *
- *	1. Using EGL to construct an OpenGL context
- *	2. By using dlopen to dynamically load libGL.so
+ *	1. Using EGL to construct an OpenGLESv2 context
+ *	2. By using dlopen to dynamically load libGLESv2.so
  *	3. By using eglGetProcAddress to lookup OpenGL functions
  */
 
 #define GL_GLEXT_PROTOTYPES
-#include <GL/gl.h>
+#include <GLES2/gl2.h>
 #include <EGL/egl.h>
 
 #include <stdio.h>
@@ -68,7 +68,7 @@ FIPS_GLVIEWPORT_FN my_glViewport;
 static void
 resolve_symbols (void)
 {
-	void *egl_handle, *gl_handle;
+	void *egl_handle, *glesv2_handle;
 	char *error;
 
 	egl_handle = dlopen ("libEGL.so", RTLD_LAZY);
@@ -77,9 +77,9 @@ resolve_symbols (void)
 		exit (1);
 	}
 
-	gl_handle = dlopen ("libGL.so", RTLD_LAZY);
-	if (gl_handle == NULL) {
-		fprintf (stderr, "Error: Failed to open libGL.so\n");
+	glesv2_handle = dlopen ("libGLESv2.so", RTLD_LAZY);
+	if (glesv2_handle == NULL) {
+		fprintf (stderr, "Error: Failed to open libGLESv2.so\n");
 		exit (1);
 	}
 
@@ -190,7 +190,7 @@ main (void)
 
 	dpy = util_x11_init_display ();
 
-	common_create_egl_context (dpy, EGL_OPENGL_API, &egl_dpy,
+	common_create_egl_context (dpy, EGL_OPENGL_ES_API, &egl_dpy,
 				   &ctx, &config, &visual_info);
 
 	window = util_x11_init_window (dpy, visual_info);

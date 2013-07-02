@@ -326,7 +326,17 @@ if pkg-config --exists egl; then
     egl_ldflags=$(pkg-config --libs egl)
 else
     printf "No.\n"
-    have_egl=No
+fi
+
+printf "	Checking for GLESv2... "
+have_glesv2=No
+if pkg-config --exists glesv2; then
+    printf "Yes.\n"
+    have_glesv2=Yes
+    glesv2_cflags=$(pkg-config --cflags glesv2)
+    glesv2_ldflags=$(pkg-config --libs glesv2)
+else
+    printf "No.\n"
 fi
 
 printf "int main(void){return 0;}\n" > minimal.c
@@ -528,10 +538,10 @@ HAVE_GLX = ${have_glx}
 GL_CFLAGS = ${gl_cflags}
 GL_LDFLAGS = ${gl_ldflags}
 
-# Wheter X11 headers and library are available
+# Whether X11 headers and library are available
 HAVE_X11 = ${have_x11}
 
-# Flags needs to compile and link against libX11
+# Flags needed to compile and link against libX11
 X11_CLFLAGS = ${x11_cflags}
 X11_LDFLAGS = ${x11_ldflags}
 
@@ -541,6 +551,13 @@ HAVE_EGL = ${have_egl}
 # Flags needed to find EGL header files (EGL/egl.h)
 EGL_CFLAGS = ${egl_cflags}
 EGL_LDFLAGS = ${egl_ldflags}
+
+# Whether GLESv2 headers and library are available
+HAVE_GLESV2 = ${have_glesv2}
+
+# Flags needed to compile and link against GLESv2
+GLESV2_CFLAGS = ${glesv2_cflags}
+GLESV2_LDFLAGS = ${glesv2_ldflags}
 
 # Flags needed to have linker link only to necessary libraries
 AS_NEEDED_LDFLAGS = ${as_needed_ldflags}

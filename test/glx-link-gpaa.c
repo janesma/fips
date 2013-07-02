@@ -45,15 +45,6 @@ FIPS_GLCLEAR_FN my_glClear;
 typedef void (*FIPS_GLCLEARCOLOR_FN)(GLclampf, GLclampf, GLclampf, GLclampf);
 FIPS_GLCLEARCOLOR_FN my_glClearColor;
 
-typedef void (*FIPS_GLLOADIDENTITY_FN)(void);
-FIPS_GLLOADIDENTITY_FN my_glLoadIdentity;
-
-typedef void (*FIPS_GLMATRIXMODE_FN)(GLenum);
-FIPS_GLMATRIXMODE_FN my_glMatrixMode;
-
-typedef void (*FIPS_GLORTHO_FN)(GLdouble, GLdouble, GLdouble, GLdouble, GLdouble, GLdouble);
-FIPS_GLORTHO_FN my_glOrtho;
-
 typedef void (*FIPS_GLVIEWPORT_FN)(GLint, GLint, GLsizei, GLsizei);
 FIPS_GLVIEWPORT_FN my_glViewport;
 
@@ -87,24 +78,6 @@ resolve_symbols (void)
 	my_glClearColor = (FIPS_GLCLEARCOLOR_FN) glXGetProcAddressARB ((GLubyte*) "glClearColor");
 	if (my_glClearColor == NULL) {
 		fprintf (stderr, "Failed to glXGetProcAddressARB glClearColor\n");
-		exit (1);
-	}
-
-	my_glLoadIdentity = (FIPS_GLLOADIDENTITY_FN) glXGetProcAddressARB ((GLubyte*) "glLoadIdentity");
-	if (my_glLoadIdentity == NULL) {
-		fprintf (stderr, "Failed to glXGetProcAddressARB glLoadIdentity\n");
-		exit (1);
-	}
-
-	my_glMatrixMode = (FIPS_GLMATRIXMODE_FN) glXGetProcAddressARB ((GLubyte*) "glMatrixMode");
-	if (my_glMatrixMode == NULL) {
-		fprintf (stderr, "Failed to glXGetProcAddressARB glMatrixMode\n");
-		exit (1);
-	}
-
-	my_glOrtho = (FIPS_GLORTHO_FN) glXGetProcAddressARB ((GLubyte*) "glOrtho");
-	if (my_glOrtho == NULL) {
-		fprintf (stderr, "Failed to glXGetProcAddressARB glOrtho\n");
 		exit (1);
 	}
 

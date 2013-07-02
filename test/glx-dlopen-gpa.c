@@ -39,9 +39,6 @@
 void* (*my_glXGetProcAddress) (char *);
 void (*my_glClear) (GLbitfield);
 void (*my_glClearColor) (GLclampf, GLclampf, GLclampf, GLclampf);
-void (*my_glLoadIdentity) (void);
-void (*my_glMatrixMode) (GLenum);
-void (*my_glOrtho) (GLdouble, GLdouble, GLdouble, GLdouble, GLdouble, GLdouble);
 void (*my_glViewport) (GLint, GLint, GLsizei, GLsizei);
 XVisualInfo * (*my_glXChooseVisual) (Display *, int, int *);
 GLXContext (*my_glXCreateContext) (Display *, XVisualInfo *, GLXContext, Bool);
@@ -83,24 +80,6 @@ resolve_symbols (void)
 	my_glClearColor = my_glXGetProcAddress ("glClearColor");
 	if (my_glClearColor == NULL) {
 		fprintf (stderr, "Failed to glXGetProcAddress glClearColor\n");
-		exit (1);
-	}
-
-	my_glLoadIdentity = my_glXGetProcAddress ("glLoadIdentity");
-	if (my_glLoadIdentity == NULL) {
-		fprintf (stderr, "Failed to glXGetProcAddress glLoadIdentity\n");
-		exit (1);
-	}
-
-	my_glMatrixMode = my_glXGetProcAddress ("glMatrixMode");
-	if (my_glMatrixMode == NULL) {
-		fprintf (stderr, "Failed to glXGetProcAddress glMatrixMode\n");
-		exit (1);
-	}
-
-	my_glOrtho = my_glXGetProcAddress ("glOrtho");
-	if (my_glOrtho == NULL) {
-		fprintf (stderr, "Failed to glXGetProcAddress glOrtho\n");
 		exit (1);
 	}
 

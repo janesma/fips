@@ -44,10 +44,10 @@ test glx-dlopen-gpa
 printf "Testing	GLX		dlopen(libGL)	glXGetProcAddressARB	... "
 test glx-dlopen-gpaa
 
-printf "Testing	EGL/OpenGL	link to libEGL	direct calls		... "
+printf "Testing	EGL/OpenGL	link to libGL	direct calls		... "
 test egl-opengl-link-call
 
-printf "Testing	EGL/OpenGL	link to libEGL	eglGetProcAddress	... "
+printf "Testing	EGL/OpenGL	link to libGL	eglGetProcAddress	... "
 test egl-opengl-link-gpa
 
 printf "Testing	EGL/OpenGL	dlopen(libGL)	dlsym			... "
@@ -55,6 +55,18 @@ test egl-opengl-dlopen-dlsym
 
 printf "Testing	EGL/OpenGL	dlopen(libGL)	eglGetProcAddress	... "
 test egl-opengl-dlopen-gpa
+
+printf "Testing	EGL/GLESv2	link libGLESv2	direct calls		... "
+test egl-glesv2-link-call
+
+printf "Testing	EGL/GLESv2	link libGLESv2	eglGetProcAddress	... "
+test egl-glesv2-link-gpa
+
+printf "Testing	EGL/GLESv2	dlopen(GLESv2)	dlsym			... "
+test egl-glesv2-dlopen-dlsym
+
+printf "Testing	EGL/GLESv2	dlopen(GLESv2)	eglGetProcAddress	... "
+test egl-glesv2-dlopen-gpa
 
 echo ""
 

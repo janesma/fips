@@ -47,9 +47,6 @@ EGLBoolean (*my_eglMakeCurrent)(EGLDisplay, EGLSurface, EGLSurface, EGLContext);
 EGLBoolean (*my_eglSwapBuffers)(EGLDisplay, EGLSurface);
 void (*my_glClear)(GLbitfield);
 void (*my_glClearColor)(GLclampf, GLclampf, GLclampf, GLclampf);
-void (*my_glLoadIdentity)(void);
-void (*my_glMatrixMode)(GLenum);
-void (*my_glOrtho)(GLdouble, GLdouble, GLdouble, GLdouble, GLdouble, GLdouble);
 void (*my_glViewport)(GLint, GLint, GLsizei, GLsizei);
 
 #define COMMON_USE_EGL
@@ -153,27 +150,6 @@ resolve_symbols (void)
 	error = dlerror ();
 	if (error) {
 		fprintf (stderr, "Failed to dlsym glClearColor: %s\n", error);
-		exit (1);
-	}
-
-	my_glLoadIdentity = dlsym (gl_handle, "glLoadIdentity");
-	error = dlerror ();
-	if (error) {
-		fprintf (stderr, "Failed to dlsym glLoadIdentity: %s\n", error);
-		exit (1);
-	}
-
-	my_glMatrixMode = dlsym (gl_handle, "glMatrixMode");
-	error = dlerror ();
-	if (error) {
-		fprintf (stderr, "Failed to dlsym glMatrixMode: %s\n", error);
-		exit (1);
-	}
-
-	my_glOrtho = dlsym (gl_handle, "glOrtho");
-	error = dlerror ();
-	if (error) {
-		fprintf (stderr, "Failed to dlsym glOrtho: %s\n", error);
 		exit (1);
 	}
 
