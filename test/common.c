@@ -22,23 +22,63 @@
 /* This is C code intended to be included (yes, included) by test
  * programs in the fips test suite.
  *
- * It defines two functions for use by the test:
- *
- *	static void
- *	common_create_context (Display *dpy, GLXContext *ctx, XVisualInfo **vi);
- * and:
- *	static void
- *	common_handle_events (Display *dpy, Window window);
- *
  * Before including this file, the test program must define a macro
  * COMMON_GL_PREFIX to some prefix. This macro can be empty (to
  * directly call functions in an OpenGL-library directly linked) or
  * can be some custom prefix to call through symbols defined in the
  * test program.
+ *
+ * Optionally, the test program may define the macro COMMON_USE_EGL to
+ * instruct the common code to use EGL (rather than GLX which it will
+ * use by default if COMMON_USE_EGL is not defined).
+ *
+ * If COMMON_USE_EGL is not defined, this file provides three
+ * functions for use by the test program:
+ *
+ *	static void
+ *	common_create_glx_context (Display *dpy,
+ *				   GLXContext *ctx, XVisualInfo **vi);
+ *
+ *	static void
+ *	common_make_current (Display *dpy, GLXContext ctx, Window window)
+ *
+ *	static void
+ *	common_handle_events (Display *dpy, GLXContext ctx, Window window);
+ *
+ * If COMMON_USE_EGL is defined, this file instead provides three
+ * similar functions:
+ *
+ *	static void
+ *	common_create_egl_context (Display *dpy, EGLenum api,
+ *				   EGLDisplay *egl_dpy, EGLContext *ctx,
+ *				   EGLConfig *config, XVisualInfo **vi);
+ *
+ *	static void
+ *	common_make_current (EGLDisplay egl_dpy, EGLContext ctx,
+ *			     EGLSurface surface)
+ *
+ *	static void
+ *	common_handle_event (Display *dpy, EGLDisplay egl_dpy,
+ *			     EGLSurface surface);
  */
+
+#include <stdio.h>
+#include <stdlib.h>
 
 #ifndef COMMON_GL_PREFIX
 #error Code including common.c must define COMMON_GL_PREFIX
+#endif
+
+#ifdef COMMON_USE_EGL
+#define COMMON_CONTEXT EGLContext
+#define COMMON_SWAP_DISPLAY EGLDisplay
+#define COMMON_SWAP_WINDOW EGLSurface
+#define COMMON_SWAP_FUNCTION eglSwapBuffers
+#else
+#define COMMON_CONTEXT GLXContext
+#define COMMON_SWAP_DISPLAY Display*
+#define COMMON_SWAP_WINDOW Window
+#define COMMON_SWAP_FUNCTION glXSwapBuffers
 #endif
 
 #define concat_(a,b) a ## b
@@ -61,9 +101,78 @@ paint_rgb_using_clear (double r, double g, double b)
         _(glClear) (GL_COLOR_BUFFER_BIT);
 }
 
+#ifdef COMMON_USE_EGL
 static void
-common_create_context (Display *dpy,
-		       GLXContext *ctx_ret, XVisualInfo **visual_info_ret)
+common_create_egl_context (Display *dpy, EGLenum api, EGLDisplay *egl_dpy_ret,
+			   EGLContext *ctx_ret, EGLConfig *config_ret,
+			   XVisualInfo **visual_info_ret)
+{
+	EGLDisplay egl_dpy;
+	int config_attr[] = {
+                EGL_RED_SIZE,		8,
+                EGL_GREEN_SIZE, 	8,
+                EGL_BLUE_SIZE,		8,
+                EGL_ALPHA_SIZE, 	8,
+		EGL_SURFACE_TYPE,	EGL_WINDOW_BIT,
+		EGL_RENDERABLE_TYPE,	EGL_OPENGL_BIT,
+                EGL_NONE
+        };
+	EGLConfig config;
+	int num_configs;
+	EGLint major, minor;
+	EGLBoolean success;
+	int context_attr[] = {
+		EGL_NONE
+	};
+	EGLContext ctx;
+	XVisualInfo *visual_info, visual_attr;
+	int visualid, num_visuals;
+
+	egl_dpy = eglGetDisplay (dpy);
+
+	success = eglInitialize (egl_dpy, &major, &minor);
+	if (!success) {
+		fprintf (stderr, "Error: Failed to initialized EGL\n");
+		exit (1);
+	}
+
+	success = eglChooseConfig (egl_dpy, config_attr, &config, 1, &num_configs);
+	if (!success || num_configs == 0) {
+		fprintf (stderr, "Error: Failed to find EGL config\n");
+		exit (1);
+	}
+
+	success = eglGetConfigAttrib (egl_dpy, config, EGL_NATIVE_VISUAL_ID, &visualid);
+	if (!success) {
+		fprintf (stderr, "Error: Failed to find native Visual ID\n");
+		exit (1);
+	}
+
+	visual_attr.visualid = visualid;
+	visual_info = XGetVisualInfo (dpy, VisualIDMask, &visual_attr, &num_visuals);
+	if (!visual_info) {
+		fprintf (stderr, "Error: Failed to get XVisualInfo\n");
+		exit (1);
+	}
+
+	eglBindAPI (api);
+
+	ctx = eglCreateContext (egl_dpy, config, NULL, context_attr);
+	if (!ctx) {
+		fprintf (stderr, "Error: Failed to create EGL context\n");
+		exit (1);
+	}
+
+	*egl_dpy_ret = egl_dpy;
+	*ctx_ret = ctx;
+	*config_ret = config;
+	*visual_info_ret = visual_info;
+	
+}
+#else
+static void
+common_create_glx_context (Display *dpy,
+			   GLXContext *ctx_ret, XVisualInfo **visual_info_ret)
 {
         int visual_attr[] = {
                 GLX_RGBA,
@@ -78,17 +187,29 @@ common_create_context (Display *dpy,
                 None
         };
 
-	/* Window and context setup. */
         *visual_info_ret = _(glXChooseVisual) (dpy, 0, visual_attr);
         *ctx_ret = _(glXCreateContext) (dpy, *visual_info_ret, NULL, True);
 }
+#endif
+
+#ifdef COMMON_USE_EGL
+static void
+common_make_current (EGLDisplay egl_dpy, EGLContext ctx, EGLSurface surface)
+{
+	_(eglMakeCurrent) (egl_dpy, surface, surface, ctx);
+}
+#else
+static void
+common_make_current (Display *dpy, GLXContext ctx, Window window)
+{
+	_(glXMakeCurrent) (dpy, window, ctx);
+}
+#endif
 
 static void
-draw (Display *dpy, GLXContext ctx, Window window, int width, int height)
+draw (COMMON_SWAP_DISPLAY dpy, COMMON_SWAP_WINDOW window, int width, int height)
 {
 	int i;
-        _(glXMakeCurrent) (dpy, window, ctx);
-
         _(glViewport) (0, 0, width, height);
 
 	set_2d_projection (width, height);
@@ -100,26 +221,23 @@ draw (Display *dpy, GLXContext ctx, Window window, int width, int height)
 	for (i = 0; i < 2; i++) {
 		/* Frame: Draw a solid (magenta) frame */
 		paint_rgb_using_clear (RGB(frame));
-		_(glXSwapBuffers) (dpy, window);
+		_(COMMON_SWAP_FUNCTION) (dpy, window);
 		frame++;
 
 		/* Frame: Draw a solid (yellow) frame */
 		paint_rgb_using_clear (RGB(frame));
-		_(glXSwapBuffers) (dpy, window);
+		_(COMMON_SWAP_FUNCTION) (dpy, window);
 		frame++;
 
 		/* Frame: Draw a solid (cyan) frame */
 		paint_rgb_using_clear (RGB(frame));
-		_(glXSwapBuffers) (dpy, window);
+		_(COMMON_SWAP_FUNCTION) (dpy, window);
 		frame++;
 	}
-
-	/* Cleanup */
-        _(glXDestroyContext) (dpy, ctx);
 }
 
 static void
-common_handle_events(Display *dpy, GLXContext ctx, Window window)
+common_handle_events(Display *dpy, COMMON_SWAP_DISPLAY swap_dpy, COMMON_SWAP_WINDOW window)
 {
         XEvent xev;
 	int width = 0;
@@ -136,7 +254,7 @@ common_handle_events(Display *dpy, GLXContext ctx, Window window)
                         break;
                 case Expose:
                         if (xev.xexpose.count == 0) {
-                                draw (dpy, ctx, window, width, height);
+                                draw (swap_dpy, window, width, height);
                                 return;
                         }
                         break;

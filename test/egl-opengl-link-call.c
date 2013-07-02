@@ -21,17 +21,17 @@
 
 /* Perform some simple drawing via OpenGL as follows:
  *
- *	1. Using GLX to construct an OpenGL context
- *	2. By directly linking with libGL.so
+ *	1. Using EGL to construct an OpenGL context
+ *	2. By directly linking with libEGL.so
  *	3. By directly calling OpenGL functions
  */
 
-#define GL_GLEXT_PROTOTYPES
+#include <EGL/egl.h>
 #include <GL/gl.h>
-#include <GL/glx.h>
 
 #include "util-x11.h"
 
+#define COMMON_USE_EGL
 #define COMMON_GL_PREFIX
 #include "common.c"
 
@@ -39,19 +39,25 @@ int
 main (void)
 {
         Display *dpy;
-        Window window;
-	GLXContext ctx;
+	Window window;
+	EGLDisplay egl_dpy;
+	EGLContext ctx;
+	EGLConfig config;
+        EGLSurface surface;
 	XVisualInfo *visual_info;
 
 	dpy = util_x11_init_display ();
 
-	common_create_glx_context (dpy, &ctx, &visual_info);
+	common_create_egl_context (dpy, EGL_OPENGL_API, &egl_dpy,
+				   &ctx, &config, &visual_info);
 
 	window = util_x11_init_window (dpy, visual_info);
 
-        common_make_current (dpy, ctx, window);
+	surface = eglCreateWindowSurface (egl_dpy, config, window, NULL);
 
-        common_handle_events (dpy, dpy, window);
+	common_make_current (egl_dpy, ctx, surface);
+
+        common_handle_events (dpy, egl_dpy, surface);
 
 	util_x11_fini_window (dpy, window);
 

@@ -23,26 +23,29 @@ echo "Testing fips with programs using different window-system interfaces to"
 echo "OpenGL, different linking mechanisms, and different symbol-lookup."
 echo ""
 
-printf "		Win-sys	Link-mode	Lookup\n"
-printf "		-------	-------------	-----------------\n"
+printf "	Window sys.	Link-mode	Lookup\n"
+printf "	-----------	-------------	-----------------\n"
 
-printf "Testing		GLX	link to libGL	direct calls		... "
+printf "Testing	GLX		link to libGL	direct calls		... "
 test glx-link-call
 
-printf "Testing		GLX	link to libGL	glXGetProcAddress	... "
+printf "Testing	GLX		link to libGL	glXGetProcAddress	... "
 test glx-link-gpa
 
-printf "Testing		GLX	link to libGL	glXGetProcAddressARB	... "
+printf "Testing	GLX		link to libGL	glXGetProcAddressARB	... "
 test glx-link-gpaa
 
-printf "Testing		GLX	dlopen(libGL)	dlsym			... "
+printf "Testing	GLX		dlopen(libGL)	dlsym			... "
 test glx-dlopen-dlsym
 
-printf "Testing		GLX	dlopen(libGL)	glXGetProcAddress	... "
+printf "Testing	GLX		dlopen(libGL)	glXGetProcAddress	... "
 test glx-dlopen-gpa
 
-printf "Testing		GLX	dlopen(libGL)	glXGetProcAddressARB	... "
+printf "Testing	GLX		dlopen(libGL)	glXGetProcAddressARB	... "
 test glx-dlopen-gpaa
+
+printf "Testing	EGL/OpenGL	link to libEGL	direct calls		... "
+test egl-opengl-link-call
 
 echo ""
 
