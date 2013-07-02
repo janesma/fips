@@ -5,4 +5,7 @@ glx-dlopen-dlsym
 glx-dlopen-gpa
 glx-dlopen-gpaa
 egl-opengl-link-call
+egl-opengl-link-gpa
+egl-opengl-dlopen-dlsym
+egl-opengl-dlopen-gpa
 

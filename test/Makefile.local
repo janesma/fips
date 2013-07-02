@@ -14,6 +14,9 @@ test_programs += $(dir)/glx-dlopen-dlsym
 test_programs += $(dir)/glx-dlopen-gpa
 test_programs += $(dir)/glx-dlopen-gpaa
 test_programs += $(dir)/egl-opengl-link-call
+test_programs += $(dir)/egl-opengl-link-gpa
+test_programs += $(dir)/egl-opengl-dlopen-dlsym
+test_programs += $(dir)/egl-opengl-dlopen-gpa
 endif
 
 glx_link_call_srcs = \
@@ -79,6 +82,33 @@ egl_opengl_link_call_modules = $(egl_opengl_link_call_srcs:.c=.o)
 $(dir)/egl-opengl-link-call: $(egl_opengl_link_call_modules)
 	$(call quiet,$(FIPS_LINKER) $(CFLAGS)) $^ $(EGL_LDFLAGS) $(GL_LDFLAGS) $(X11_LDFLAGS) -o $@
 
+egl_opengl_link_gpa_srcs = \
+	$(dir)/egl-opengl-link-gpa.c \
+	$(dir)/util-x11.c
+
+egl_opengl_link_gpa_modules = $(egl_opengl_link_gpa_srcs:.c=.o)
+
+$(dir)/egl-opengl-link-gpa: $(egl_opengl_link_gpa_modules)
+	$(call quiet,$(FIPS_LINKER) $(CFLAGS)) $^ $(EGL_LDFLAGS) $(GL_LDFLAGS) $(X11_LDFLAGS) -o $@
+
+egl_opengl_dlopen_dlsym_srcs = \
+	$(dir)/egl-opengl-dlopen-dlsym.c \
+	$(dir)/util-x11.c
+
+egl_opengl_dlopen_dlsym_modules = $(egl_opengl_dlopen_dlsym_srcs:.c=.o)
+
+$(dir)/egl-opengl-dlopen-dlsym: $(egl_opengl_dlopen_dlsym_modules)
+	$(call quiet,$(FIPS_LINKER) $(CFLAGS)) $^ -ldl $(X11_LDFLAGS) -o $@
+
+egl_opengl_dlopen_gpa_srcs = \
+	$(dir)/egl-opengl-dlopen-gpa.c \
+	$(dir)/util-x11.c
+
+egl_opengl_dlopen_gpa_modules = $(egl_opengl_dlopen_gpa_srcs:.c=.o)
+
+$(dir)/egl-opengl-dlopen-gpa: $(egl_opengl_dlopen_gpa_modules)
+	$(call quiet,$(FIPS_LINKER) $(CFLAGS)) $^ -ldl $(X11_LDFLAGS) -o $@
+
 test: all $(test_programs)
 	@${dir}/fips-test
 
@@ -90,7 +120,10 @@ SRCS := $(SRCS) \
 	$(glx_link_gpaa_srcs) \
 	$(glx_dlopen_dlsym_srcs) \
 	$(glx_dlopen_gpa_srcs) \
-	$(egl_opengl_link_call_srcs)
+	$(egl_opengl_link_call_srcs) \
+	$(egl_opengl_link_gpa_srcs) \
+	$(egl_opengl_dlopen_dlsym_srcs) \
+	$(egl_opengl_dlopen_gpa_srcs)
 
 CLEAN += $(test_programs) \
 	$(glx_link_call_modules) \
@@ -98,4 +131,7 @@ CLEAN += $(test_programs) \
 	$(glx_link_gpaa_modules) \
 	$(glx_dlopen_dlsym_modules) \
 	$(glx_dlopen_gpa_modules) \
-	$(egl_opengl_link_call_modules)
+	$(egl_opengl_link_call_modules) \
+	$(egl_opengl_link_gpa_modules) \
+	$(egl_opengl_dlopen_dlsym_modules) \
+	$(egl_opengl_dlopen_dlsym_modules)

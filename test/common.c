@@ -70,20 +70,24 @@
 #endif
 
 #ifdef COMMON_USE_EGL
+#ifndef COMMON_EGL_PREFIX
+#error Code including common.c with COMMON_USE_EGL must define COMMON_EGL_PREFIX
+#endif
 #define COMMON_CONTEXT EGLContext
 #define COMMON_SWAP_DISPLAY EGLDisplay
 #define COMMON_SWAP_WINDOW EGLSurface
-#define COMMON_SWAP_FUNCTION eglSwapBuffers
+#define COMMON_SWAP_FUNCTION _E(eglSwapBuffers)
 #else
 #define COMMON_CONTEXT GLXContext
 #define COMMON_SWAP_DISPLAY Display*
 #define COMMON_SWAP_WINDOW Window
-#define COMMON_SWAP_FUNCTION glXSwapBuffers
+#define COMMON_SWAP_FUNCTION _(glXSwapBuffers)
 #endif
 
 #define concat_(a,b) a ## b
 #define concat(a,b) concat_(a,b)
 #define _(func) concat(COMMON_GL_PREFIX, func)
+#define _E(func) concat(COMMON_EGL_PREFIX, func)
 
 static void
 set_2d_projection (int width, int height)
@@ -128,21 +132,21 @@ common_create_egl_context (Display *dpy, EGLenum api, EGLDisplay *egl_dpy_ret,
 	XVisualInfo *visual_info, visual_attr;
 	int visualid, num_visuals;
 
-	egl_dpy = eglGetDisplay (dpy);
+	egl_dpy = _E(eglGetDisplay) (dpy);
 
-	success = eglInitialize (egl_dpy, &major, &minor);
+	success = _E(eglInitialize) (egl_dpy, &major, &minor);
 	if (!success) {
 		fprintf (stderr, "Error: Failed to initialized EGL\n");
 		exit (1);
 	}
 
-	success = eglChooseConfig (egl_dpy, config_attr, &config, 1, &num_configs);
+	success = _E(eglChooseConfig) (egl_dpy, config_attr, &config, 1, &num_configs);
 	if (!success || num_configs == 0) {
 		fprintf (stderr, "Error: Failed to find EGL config\n");
 		exit (1);
 	}
 
-	success = eglGetConfigAttrib (egl_dpy, config, EGL_NATIVE_VISUAL_ID, &visualid);
+	success = _E(eglGetConfigAttrib) (egl_dpy, config, EGL_NATIVE_VISUAL_ID, &visualid);
 	if (!success) {
 		fprintf (stderr, "Error: Failed to find native Visual ID\n");
 		exit (1);
@@ -155,9 +159,9 @@ common_create_egl_context (Display *dpy, EGLenum api, EGLDisplay *egl_dpy_ret,
 		exit (1);
 	}
 
-	eglBindAPI (api);
+	_E(eglBindAPI) (api);
 
-	ctx = eglCreateContext (egl_dpy, config, NULL, context_attr);
+	ctx = _E(eglCreateContext) (egl_dpy, config, NULL, context_attr);
 	if (!ctx) {
 		fprintf (stderr, "Error: Failed to create EGL context\n");
 		exit (1);
@@ -196,7 +200,7 @@ common_create_glx_context (Display *dpy,
 static void
 common_make_current (EGLDisplay egl_dpy, EGLContext ctx, EGLSurface surface)
 {
-	_(eglMakeCurrent) (egl_dpy, surface, surface, ctx);
+	_E(eglMakeCurrent) (egl_dpy, surface, surface, ctx);
 }
 #else
 static void
@@ -221,17 +225,17 @@ draw (COMMON_SWAP_DISPLAY dpy, COMMON_SWAP_WINDOW window, int width, int height)
 	for (i = 0; i < 2; i++) {
 		/* Frame: Draw a solid (magenta) frame */
 		paint_rgb_using_clear (RGB(frame));
-		_(COMMON_SWAP_FUNCTION) (dpy, window);
+		COMMON_SWAP_FUNCTION (dpy, window);
 		frame++;
 
 		/* Frame: Draw a solid (yellow) frame */
 		paint_rgb_using_clear (RGB(frame));
-		_(COMMON_SWAP_FUNCTION) (dpy, window);
+		COMMON_SWAP_FUNCTION (dpy, window);
 		frame++;
 
 		/* Frame: Draw a solid (cyan) frame */
 		paint_rgb_using_clear (RGB(frame));
-		_(COMMON_SWAP_FUNCTION) (dpy, window);
+		COMMON_SWAP_FUNCTION (dpy, window);
 		frame++;
 	}
 }

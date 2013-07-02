@@ -22,7 +22,7 @@
 /* Perform some simple drawing via OpenGL as follows:
  *
  *	1. Using EGL to construct an OpenGL context
- *	2. By directly linking with libEGL.so
+ *	2. By directly linking with libEGL.so and libGL.so
  *	3. By directly calling OpenGL functions
  */
 
@@ -33,6 +33,7 @@
 
 #define COMMON_USE_EGL
 #define COMMON_GL_PREFIX
+#define COMMON_EGL_PREFIX
 #include "common.c"
 
 int

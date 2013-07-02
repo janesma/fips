@@ -47,6 +47,15 @@ test glx-dlopen-gpaa
 printf "Testing	EGL/OpenGL	link to libEGL	direct calls		... "
 test egl-opengl-link-call
 
+printf "Testing	EGL/OpenGL	link to libEGL	eglGetProcAddress	... "
+test egl-opengl-link-gpa
+
+printf "Testing	EGL/OpenGL	dlopen(libGL)	dlsym			... "
+test egl-opengl-dlopen-dlsym
+
+printf "Testing	EGL/OpenGL	dlopen(libGL)	eglGetProcAddress	... "
+test egl-opengl-dlopen-gpa
+
 echo ""
 
 if [ $errors -gt 0 ]; then
