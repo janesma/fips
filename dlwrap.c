@@ -29,6 +29,8 @@
 
 #include "dlwrap.h"
 
+#include "glwrap.h"
+
 void *libfips_handle;
 
 typedef void * (* fips_dlopen_t)(const char * filename, int flag);
@@ -85,6 +87,13 @@ dlopen (const char *filename, int flag)
 	/* If filename is not a wrapped library, just return real dlopen */
 	if (! find_wrapped_library_index (filename, &index))
 		return ret;
+
+	/* When the application dlopens any wrapped library starting
+	 * with 'libGL', (whether libGL.so.1 or libGLESv2.so.2), let's
+	 * continue to use that library handle for future lookups of
+	 * OpenGL functions. */
+	if (STRNCMP_LITERAL (filename, "libGL") == 0)
+		glwrap_set_gl_handle (ret);
 
 	assert (index < ARRAY_SIZE(orig_handles));
 	orig_handles[index] = ret;

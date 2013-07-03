@@ -26,6 +26,10 @@
 void *
 glwrap_lookup (char *name);
 
+/* Register a dlopened handle to be used by glwrap. */
+void
+glwrap_set_gl_handle (void *handle);
+
 /* Defer to the real 'function' (from libGL.so) to do the real work.
  * The symbol is looked up once and cached in a static variable for
  * future uses.

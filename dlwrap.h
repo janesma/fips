@@ -22,6 +22,7 @@
 #ifndef DLWRAP_H
 #define DLWRAP_H
 
+#define _GNU_SOURCE
 #include <dlfcn.h>
 
 /* Call the *real* dlopen. We have our own wrapper for dlopen that, of

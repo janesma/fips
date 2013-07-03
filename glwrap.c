@@ -19,6 +19,8 @@
  * THE SOFTWARE.
  */
 
+#include "dlwrap.h"
+
 /* The prototypes for some OpenGL functions changed at one point from:
  *
  *	const void* *indices
@@ -45,26 +47,48 @@
 
 #include "metrics.h"
 
-#include "dlwrap.h"
-
 static int inside_new_list = 0;
+
+static void *gl_handle;
+
+void
+glwrap_set_gl_handle (void *handle)
+{
+	if (gl_handle == NULL)
+		gl_handle = handle;
+}
 
 void *
 glwrap_lookup (char *name)
 {
-	const char *libgl_filename = "libGL.so.1";
-	static void *libgl_handle = NULL;
+	void *ret;
 
-	if (! libgl_handle) {
-		libgl_handle = dlwrap_real_dlopen (libgl_filename, RTLD_NOW | RTLD_DEEPBIND);
-		if (! libgl_handle) {
-			fprintf (stderr, "Error: Failed to dlopen %s\n",
-				 libgl_filename);
-			exit (1);
-		}
+	/* We don't call dlopen here to find the library in which to
+	 * perform a dlsym lookup. That's because the application may
+	 * be loading libGL.so or libGLESv2.so for its OpenGL symbols.
+	 *
+	 * So we instead watch for one of those filenames to go by in
+	 * our dlopen wrapper, which will then call
+	 * glwrap_set_gl_handle to give us the handle to use here.
+	 *
+
+	 * If the application hasn't called dlopen on a "libGL"
+	 * library, then presumably the application is linked directly
+	 * to an OpenGL implementation. In this case, we can use
+	 * RTLD_NEXT to find the symbol.
+	 */
+	if (gl_handle == NULL)
+		gl_handle = RTLD_NEXT;
+
+	ret = dlwrap_real_dlsym (gl_handle, name);
+
+	if (ret == NULL) {
+		fprintf (stderr, "Error: glwrap_lookup failed to dlsym %s\n",
+			 name);
+		exit (1);
 	}
 
-	return dlwrap_real_dlsym (libgl_handle, name);
+	return ret;
 }
 
 /* Execute an OpenGL call and time it with a GPU metrics counter. */
