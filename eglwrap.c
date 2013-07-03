@@ -50,12 +50,8 @@
 
 /* Note: We only need to perform a lookup in libEGL.so.1, (not
  * libGLESv2.so.2). This is because the functions we wrap, (currently
- * wglSwapBufers, eglGetProcAddress, and eglMakeCurrent), exist only
+ * eglSwapBufers, eglGetProcAddress, and eglMakeCurrent), exist only
  * in libEGL.so.1.
- *
- * If we *do* later add wrappers for functions that lib in
- * libGLESv2.so.2 then those might more naturally live in a file named
- * gleswrap.c or so.
  */
 static void *
 eglwrap_lookup (char *name)
