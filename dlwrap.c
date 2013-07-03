@@ -38,7 +38,8 @@ typedef void * (* fips_dlsym_t)(void *handle, const char *symbol);
 
 static const char *wrapped_libs[] = {
 	"libGL.so",
-	"libEGL.so"
+	"libEGL.so",
+	"libGLESv2.so"
 };
 
 static void *orig_handles[ARRAY_SIZE(wrapped_libs)];
