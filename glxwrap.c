@@ -47,10 +47,14 @@ glXSwapBuffers (Display *dpy, GLXDrawable drawable)
  */
 void (*glXGetProcAddressARB (const GLubyte *func))(void)
 {
+	static void *libfips_handle = NULL;
 	void *ret;
 
+	if (libfips_handle == NULL)
+		libfips_handle = dlwrap_dlopen_libfips ();
+
 	/* If our library has this symbol, that's what we want to give. */
-	ret = dlwrap_real_dlsym (NULL, (const char *) func);
+	ret = dlwrap_real_dlsym (libfips_handle, (const char *) func);
 	if (ret)
 		return ret;
 

@@ -66,6 +66,31 @@ find_wrapped_library_index (const char *filename, unsigned *index_ret)
 	return false;
 }
 
+/* Perform a dlopen on the libfips library itself.
+ *
+ * Many places in fips need to lookup symbols within the libfips
+ * library itself, (and not in any other library). This function
+ * provides a reliable way to get a handle for performing such
+ * lookups.
+ *
+ * The returned handle can be passed to dlwrap_real_dlsym for the
+ * lookups. */
+void *
+dlwrap_dlopen_libfips (void)
+{
+	Dl_info info;
+
+	/* We first find our own filename by looking up a function
+	 * known to exist only in libfips. This function itself
+	 * (dlwrap_dlopen_libfips) is a good one for that purpose. */
+	if (dladdr (dlwrap_dlopen_libfips, &info) == 0) {
+		fprintf (stderr, "Internal error: Failed to lookup filename of libfips library with dladdr\n");
+		exit (1);
+	}
+
+	return dlwrap_real_dlopen (info.dli_fname, RTLD_NOW);
+}
+
 /* Many (most?) OpenGL programs dlopen libGL.so.1 rather than linking
  * against it directly, which means they would not be seeing our
  * wrapped GL symbols via LD_PRELOAD. So we catch the dlopen in a
@@ -74,7 +99,6 @@ find_wrapped_library_index (const char *filename, unsigned *index_ret)
 void *
 dlopen (const char *filename, int flag)
 {
-	Dl_info info;
 	void *ret;
 	unsigned index;
 
@@ -99,23 +123,13 @@ dlopen (const char *filename, int flag)
 	assert (index < ARRAY_SIZE(orig_handles));
 	orig_handles[index] = ret;
 
+	if (libfips_handle == NULL)
+		libfips_handle = dlwrap_dlopen_libfips ();
+
 	/* Otherwise, we return our own handle so that we can intercept
 	 * future calls to dlsym. We encode the index in the return value
 	 * so that we can later map back to the originally requested
 	 * dlopen-handle if necessary. */
-	if (libfips_handle)
-		return libfips_handle + index;
-
-	/* We find our own filename by looking up this very function
-	 * (that is, this "dlopen"), with dladdr).*/
-	if (dladdr (dlopen, &info) == 0) {
-		fprintf (stderr, "Error: Failed to redirect dlopen of %s:\n",
-			 filename);
-		exit (1);
-	}
-
-	libfips_handle = dlwrap_real_dlopen (info.dli_fname, flag);
-
 	return libfips_handle + index;
 }
 

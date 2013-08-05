@@ -33,6 +33,18 @@
 void *
 dlwrap_real_dlopen (const char *filename, int flag);
 
+/* Perform a dlopen on the libfips library itself.
+ *
+ * Many places in fips need to lookup symbols within the libfips
+ * library itself, (and not in any other library). This function
+ * provides a reliable way to get a handle for performing such
+ * lookups.
+ *
+ * The returned handle can be passed to dlwrap_real_dlsym for the
+ * lookups. */
+void *
+dlwrap_dlopen_libfips (void);
+
 /* Call the *real* dlsym. We have our own wrapper for dlsym that, of
  * necessity must use claim the symbol 'dlsym'. So whenever anything
  * internal needs to call the real, underlying dlysm function, the
