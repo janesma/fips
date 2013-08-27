@@ -19,6 +19,8 @@
  * THE SOFTWARE.
  */
 
+#define _GNU_SOURCE
+
 #include <stdio.h>
 #include <stdlib.h>
 
@@ -128,18 +130,52 @@ accumulate_program_ticks (unsigned program_id, unsigned ticks)
 	ctx->program_metrics[program_id].ticks += ticks;
 }
 
-/* FIXME: Should sort the metrics, print out percentages, etc. */
+static int
+time_compare(const void *in_a, const void *in_b, void *arg)
+{
+	int a = *(const int *)in_a;
+	int b = *(const int *)in_b;
+	struct program_metrics *metrics = arg;
+
+	if (metrics[a].ticks < metrics[b].ticks)
+		return -1;
+	if (metrics[a].ticks > metrics[b].ticks)
+		return 1;
+	return 0;
+}
+
 static void
 print_program_metrics (void)
 {
 	context_t *ctx = &current_context;
 	unsigned i;
+	int *sorted; /* Sorted indices into the ctx->program_metrics */
+	double total = 0;
+
+	/* Make a sorted list of the programs by time used, and figure
+	 * out to total so we can print percentages.
+	 */
+	sorted = calloc(ctx->num_program_metrics, sizeof(*sorted));
+	for (i = 0; i < ctx->num_program_metrics; i++) {
+		sorted[i] = i;
+		total += ctx->program_metrics[i].ticks;
+	}
+	qsort_r(sorted, ctx->num_program_metrics, sizeof(*sorted),
+		time_compare, ctx->program_metrics);
 
 	for (i = 0; i < ctx->num_program_metrics; i++) {
-		if (ctx->program_metrics[i].ticks == 0.0)
+		struct program_metrics *metric =
+			&ctx->program_metrics[sorted[i]];
+
+		/* Since we sparsely fill the array based on program
+		 * id, many "programs" have no time.
+		 */
+		if (metric->ticks == 0.0)
 			continue;
-		printf ("Program %d:\t%7.2f ms\n",
-			i, ctx->program_metrics[i].ticks / 1e6);
+
+		printf ("Program %d:\t%7.2f ms (% 2.1f%%)\n",
+			metric->id, metric->ticks / 1e6,
+			metric->ticks / total * 100);
 	}
 }
 
