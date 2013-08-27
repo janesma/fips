@@ -135,7 +135,7 @@ print_program_metrics (void)
 	for (i = 0; i < ctx->num_program_metrics; i++) {
 		if (ctx->program_metrics[i].ticks == 0.0)
 			continue;
-		printf ("Program %d:\t%7.2f mega-ticks\n",
+		printf ("Program %d:\t%7.2f ms\n",
 			i, ctx->program_metrics[i].ticks / 1e6);
 	}
 }
