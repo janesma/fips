@@ -37,6 +37,9 @@ typedef struct counter
 
 typedef struct program_metrics
 {
+	/* This happens to also be the index into the
+	 * ctx->program_metrics array currently
+	 */
 	unsigned id;
 	double ticks;
 } program_metrics_t;
