@@ -1,20 +1,3 @@
-Known bugs
-==========
-undefined symbol: glGenQueries
-
-	The problem here is code in libfips directly calling OpenGL
-	functions like glGenQueries but not linking against any OpenGL
-	library.
-
-	We don't want to link against any OpenGL library so that the
-	application itself can choose which OpenGL to use (and how to
-	link/load it).
-
-	The trick is to instead make these calls indirectly by first
-	calling glXGetProcAddressARB/eglGetProcAddress. There's some
-	proof-of-concept code for this in the stash-egl-lookup-fixups
-	branch, (which needs some cleaning up).
-
 Feature requests (small-scale, near-term changes)
 =================================================
 
@@ -35,10 +18,6 @@ Add options to control which metrics should be collected.
 Add Eric's tiny hash table for collecting per-shader statistics
 
 	people.freedesktop.org:~anholt/hash_table
-
-Sort list of shaders in output
-
-Use better units for shader activity (eg. absolute time, relative percentage)
 
 Capture GPU performance counters.
 
