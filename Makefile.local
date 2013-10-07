@@ -118,8 +118,12 @@ install: all
 	mkdir -p $(DESTDIR)$(bindir)
 	install fips $(DESTDIR)$(bindir)/fips
 	mkdir -p $(DESTDIR)$(libdir)/fips
+ifeq ($(COMPILER_SUPPORTS_32), Yes)
 	install -m0644 libfips-32.so $(DESTDIR)$(libdir)/fips/libfips-32.so
+endif
+ifeq ($(COMPILER_SUPPORTS_64), Yes)
 	install -m0644 libfips-64.so $(DESTDIR)$(libdir)/fips/libfips-64.so
+endif
 ifeq ($(MAKECMDGOALS), install)
 	@echo ""
 	@echo "Fips is now installed to $(DESTDIR)$(prefix)"
