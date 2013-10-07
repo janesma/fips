@@ -71,14 +71,31 @@ glwrap_lookup (char *name)
 	 * our dlopen wrapper, which will then call
 	 * glwrap_set_gl_handle to give us the handle to use here.
 	 *
-
 	 * If the application hasn't called dlopen on a "libGL"
 	 * library, then presumably the application is linked directly
 	 * to an OpenGL implementation. In this case, we can use
 	 * RTLD_NEXT to find the symbol.
+	 *
+	 * But just in case, we also let the user override that by
+	 * specifying the FIPS_LIBGL environment variable to the path
+	 * of the real libGL.so library that fips should dlopen here.
 	 */
-	if (gl_handle == NULL)
-		gl_handle = RTLD_NEXT;
+	if (gl_handle == NULL) {
+		const char *path;
+
+		path = getenv ("FIPS_LIBGL");
+		if (path) {
+			gl_handle = dlopen (path, RTLD_LAZY);
+
+			if (gl_handle == NULL) {
+				fprintf (stderr, "Failed to dlopen FIPS_LIBGL: "
+					 "%s\n", path);
+				exit (1);
+			}
+		} else {
+			gl_handle = RTLD_NEXT;
+		}
+	}
 
 	ret = dlwrap_real_dlsym (gl_handle, name);
 
