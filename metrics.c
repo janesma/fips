@@ -43,7 +43,7 @@ typedef struct program_metrics
 	 * ctx->program_metrics array currently
 	 */
 	unsigned id;
-	double ticks;
+	double time_ns;
 } program_metrics_t;
 
 typedef struct context
@@ -111,7 +111,7 @@ metrics_set_current_program (unsigned program)
 }
 
 static void
-accumulate_program_ticks (unsigned program_id, unsigned ticks)
+accumulate_program_time (unsigned program_id, unsigned time_ns)
 {
 	context_t *ctx = &current_context;
 	unsigned i;
@@ -121,13 +121,13 @@ accumulate_program_ticks (unsigned program_id, unsigned ticks)
 						(program_id + 1) * sizeof (program_metrics_t));
 		for (i = ctx->num_program_metrics; i < program_id + 1; i++) {
 			ctx->program_metrics[i].id = i;
-			ctx->program_metrics[i].ticks = 0.0;
+			ctx->program_metrics[i].time_ns = 0.0;
 		}
 
 		ctx->num_program_metrics = program_id + 1;
 	}
 
-	ctx->program_metrics[program_id].ticks += ticks;
+	ctx->program_metrics[program_id].time_ns += time_ns;
 }
 
 static int
@@ -137,9 +137,9 @@ time_compare(const void *in_a, const void *in_b, void *arg)
 	int b = *(const int *)in_b;
 	struct program_metrics *metrics = arg;
 
-	if (metrics[a].ticks < metrics[b].ticks)
+	if (metrics[a].time_ns < metrics[b].time_ns)
 		return -1;
-	if (metrics[a].ticks > metrics[b].ticks)
+	if (metrics[a].time_ns > metrics[b].time_ns)
 		return 1;
 	return 0;
 }
@@ -158,7 +158,7 @@ print_program_metrics (void)
 	sorted = calloc(ctx->num_program_metrics, sizeof(*sorted));
 	for (i = 0; i < ctx->num_program_metrics; i++) {
 		sorted[i] = i;
-		total += ctx->program_metrics[i].ticks;
+		total += ctx->program_metrics[i].time_ns;
 	}
 	qsort_r(sorted, ctx->num_program_metrics, sizeof(*sorted),
 		time_compare, ctx->program_metrics);
@@ -170,12 +170,12 @@ print_program_metrics (void)
 		/* Since we sparsely fill the array based on program
 		 * id, many "programs" have no time.
 		 */
-		if (metric->ticks == 0.0)
+		if (metric->time_ns == 0.0)
 			continue;
 
 		printf ("Program %d:\t%7.2f ms (% 2.1f%%)\n",
-			metric->id, metric->ticks / 1e6,
-			metric->ticks / total * 100);
+			metric->id, metric->time_ns / 1e6,
+			metric->time_ns / total * 100);
 	}
 }
 
@@ -221,7 +221,7 @@ metrics_end_frame (void)
 
 		glGetQueryObjectuiv (counter->id, GL_QUERY_RESULT, &elapsed);
 
-		accumulate_program_ticks (counter->program, elapsed);
+		accumulate_program_time (counter->program, elapsed);
 
 		current_context.counter_head = counter->next;
 		if (current_context.counter_head == NULL)
