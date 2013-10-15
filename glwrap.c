@@ -111,9 +111,7 @@ glwrap_lookup (char *name)
 /* Execute an OpenGL call and time it with a GPU metrics counter. */
 #define TIMED_DEFER(function,...) do {					\
 	if (! inside_new_list) {					\
-		unsigned counter;					\
-		counter = metrics_counter_new ();			\
-		metrics_counter_start (counter);			\
+		metrics_counter_start ();				\
 	}								\
 	GLWRAP_DEFER(function, __VA_ARGS__);				\
 	if (! inside_new_list) {					\
@@ -386,11 +384,7 @@ void
 glBegin (GLenum mode)
 {
 	if (! inside_new_list)
-	{
-		unsigned counter;
-		counter = metrics_counter_new ();
-		metrics_counter_start (counter);
-	}
+		metrics_counter_start ();
 
 	GLWRAP_DEFER (glBegin, mode);
 }
@@ -400,9 +394,8 @@ glEnd (void)
 {
 	GLWRAP_DEFER (glEnd);
 
-	if (! inside_new_list) {
+	if (! inside_new_list)
 		metrics_counter_stop ();
-	}
 }
 
 /* And we need to track display lists to avoid inserting queries

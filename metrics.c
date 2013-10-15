@@ -65,8 +65,8 @@ context_t current_context;
 int frames;
 int verbose;
 
-unsigned
-metrics_counter_new (void)
+void
+metrics_counter_start (void)
 {
 	counter_t *counter;
 
@@ -89,13 +89,7 @@ metrics_counter_new (void)
 		current_context.counter_head = counter;
 	}
 
-	return counter->id;
-}
-
-void
-metrics_counter_start (unsigned counter)
-{
-	glBeginQuery (GL_TIME_ELAPSED, counter);
+	glBeginQuery (GL_TIME_ELAPSED, counter->id);
 }
 
 void

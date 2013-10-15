@@ -22,20 +22,13 @@
 #ifndef METRICS_H
 #define METRICS_H
 
-/* Add a new counter to the metrics tracking state.
+/* Start accumulating GPU time.
  *
- * The value accumulated in this counter be accounted against the
+ * The time accumulated will be accounted against the
  * current program (as set with metrics_set_current_program).
- *
- * Returns: A counter ID suitable for use with metrics_counter_start
- * and metrics_counter_stop.
  */
-unsigned
-metrics_counter_new (void);
-
-/* Start accumulating GPU time spent into the given counter. */
 void
-metrics_counter_start (unsigned counter);
+metrics_counter_start (void);
 
 /* Stop accumulating GPU time (stops the most-recently started counter) */
 void
