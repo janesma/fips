@@ -77,7 +77,12 @@ eglSwapBuffers (EGLDisplay dpy, EGLSurface surface)
 	EGLBoolean ret;
 
 	EGLWRAP_DEFER_WITH_RETURN (ret, eglSwapBuffers, dpy, surface);
+
+	metrics_counter_stop ();
+
 	metrics_end_frame ();
+
+	metrics_counter_start ();
 
 	return ret;
 }
@@ -106,6 +111,8 @@ eglMakeCurrent (EGLDisplay display, EGLSurface draw, EGLSurface read,
 	fips_dispatch_init (FIPS_API_EGL);
 
 	EGLWRAP_DEFER_WITH_RETURN (ret, eglMakeCurrent, display, draw, read, context);
+
+	metrics_counter_start ();
 
 	return ret;
 }

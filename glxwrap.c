@@ -36,7 +36,11 @@ glXSwapBuffers (Display *dpy, GLXDrawable drawable)
 {
 	GLWRAP_DEFER (glXSwapBuffers, dpy, drawable);
 
+	metrics_counter_stop ();
+
 	metrics_end_frame ();
+
+	metrics_counter_start ();
 }
 
 /* glXGetProcAddressARB is a function which accepts a string and
@@ -84,6 +88,8 @@ glXMakeCurrent (Display *dpy, GLXDrawable drawable, GLXContext ctx)
 
 	GLWRAP_DEFER_WITH_RETURN (ret, glXMakeCurrent, dpy, drawable, ctx);
 
+	metrics_counter_start ();
+
 	return ret;
 }
 
@@ -95,6 +101,8 @@ glXMakeContextCurrent (Display *dpy, GLXDrawable drawable, GLXDrawable read, GLX
 	fips_dispatch_init (FIPS_API_GLX);
 
 	GLWRAP_DEFER_WITH_RETURN (ret, glXMakeContextCurrent, dpy, drawable, read, ctx);
+
+	metrics_counter_start ();
 
 	return ret;
 }
