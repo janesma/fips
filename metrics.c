@@ -150,6 +150,12 @@ metrics_set_current_op (metrics_op_t op)
 	current_context.op = op;
 }
 
+metrics_op_t
+metrics_get_current_op (void)
+{
+	return current_context.op;
+}
+
 static void
 accumulate_program_time (metrics_op_t op, unsigned time_ns)
 {

@@ -49,10 +49,20 @@
 
 static void *gl_handle;
 
+/* Switch metrics operation persistently, (until next SWITCH) */
 #define SWITCH_METRICS_OP(op)			\
 	metrics_counter_stop ();		\
 	metrics_set_current_op (op);		\
 	metrics_counter_start ();
+
+/* Switch metrics operation temporarily, see RESTORE_METRICS_OP */
+#define SAVE_THEN_SWITCH_METRICS_OP(op)			\
+	metrics_op_t save = metrics_get_current_op ();	\
+	SWITCH_METRICS_OP (op);
+
+/* Switch back to metrics operation saved by SAVE_THEN_SWITCH_METRICS_OP */
+#define RESTORE_METRICS_OP(op)				\
+	SWITCH_METRICS_OP (save);
 
 void
 glwrap_set_gl_handle (void *handle)
@@ -133,61 +143,75 @@ glUseProgramObjectARB (GLhandleARB programObj)
 void
 glAccum (GLenum op, GLfloat value)
 {
-	SWITCH_METRICS_OP (METRICS_OP_ACCUM);
+	SAVE_THEN_SWITCH_METRICS_OP (METRICS_OP_ACCUM);
 
 	GLWRAP_DEFER (glAccum, op, value);
+
+	RESTORE_METRICS_OP ();
 }
 
 void
 glClearAccum (GLfloat red, GLfloat green, GLfloat blue, GLfloat alpha)
 {
-	SWITCH_METRICS_OP (METRICS_OP_ACCUM);
+	SAVE_THEN_SWITCH_METRICS_OP (METRICS_OP_ACCUM);
 
 	GLWRAP_DEFER (glClearAccum, red, green, blue, alpha);
+
+	RESTORE_METRICS_OP ();
 }
 
 void
 glClearAccumxOES (GLfixed red, GLfixed green, GLfixed blue, GLfixed alpha)
 {
-	SWITCH_METRICS_OP (METRICS_OP_ACCUM);
+	SAVE_THEN_SWITCH_METRICS_OP (METRICS_OP_ACCUM);
 
 	GLWRAP_DEFER (glClearAccumxOES, red, green, blue, alpha);
+
+	RESTORE_METRICS_OP ();
 }
 
 /* METRICS_OP_BUFFER_DATA */
 void
 glBufferData (GLenum target, GLsizeiptr size, const GLvoid *data, GLenum usage)
 {
-	SWITCH_METRICS_OP (METRICS_OP_BUFFER_DATA);
+	SAVE_THEN_SWITCH_METRICS_OP (METRICS_OP_BUFFER_DATA);
 
 	GLWRAP_DEFER (glBufferData, target, size, data, usage);
+
+	RESTORE_METRICS_OP ();
 }
 
 void
 glNamedBufferDataEXT (GLuint buffer, GLsizeiptr size, const GLvoid *data,
 		      GLenum usage)
 {
-	SWITCH_METRICS_OP (METRICS_OP_BUFFER_DATA);
+	SAVE_THEN_SWITCH_METRICS_OP (METRICS_OP_BUFFER_DATA);
 
 	GLWRAP_DEFER (glNamedBufferDataEXT, buffer, size, data, usage);
+
+	RESTORE_METRICS_OP ();
 }
 
 void
 glBufferSubData (GLenum target, GLintptr offset, GLsizeiptr size,
 		 const GLvoid *data)
 {
-	SWITCH_METRICS_OP (METRICS_OP_BUFFER_DATA);
+	SAVE_THEN_SWITCH_METRICS_OP (METRICS_OP_BUFFER_DATA);
 
 	GLWRAP_DEFER (glBufferSubData, target, offset, size, data);
+
+	RESTORE_METRICS_OP ();
 }
 
 void
 glNamedBufferSubDataEXT (GLuint buffer, GLintptr offset, GLsizeiptr size,
 			 const GLvoid *data)
 {
-	SWITCH_METRICS_OP (METRICS_OP_BUFFER_DATA);
+	SAVE_THEN_SWITCH_METRICS_OP (METRICS_OP_BUFFER_DATA);
 
 	GLWRAP_DEFER (glNamedBufferSubDataEXT, buffer, offset, size, data);
+
+	RESTORE_METRICS_OP ();
 }
 
 void *
@@ -195,9 +219,11 @@ glMapBuffer (GLenum target, GLenum access)
 {
 	void *ret;
 
-	SWITCH_METRICS_OP (METRICS_OP_BUFFER_DATA);
+	SAVE_THEN_SWITCH_METRICS_OP (METRICS_OP_BUFFER_DATA);
 
 	GLWRAP_DEFER_WITH_RETURN (ret, glMapBuffer, target, access);
+
+	RESTORE_METRICS_OP ();
 
 	return ret;
 }
@@ -207,9 +233,11 @@ glMapBufferARB (GLenum target, GLenum access)
 {
 	void *ret;
 
-	SWITCH_METRICS_OP (METRICS_OP_BUFFER_DATA);
+	SAVE_THEN_SWITCH_METRICS_OP (METRICS_OP_BUFFER_DATA);
 
 	GLWRAP_DEFER_WITH_RETURN (ret, glMapBufferARB, target, access);
+
+	RESTORE_METRICS_OP ();
 
 	return ret;
 }
@@ -220,10 +248,12 @@ glMapBufferRange (GLenum target, GLintptr offset, GLsizeiptr length,
 {
 	void *ret;
 
-	SWITCH_METRICS_OP (METRICS_OP_BUFFER_DATA);
+	SAVE_THEN_SWITCH_METRICS_OP (METRICS_OP_BUFFER_DATA);
 
 	GLWRAP_DEFER_WITH_RETURN (ret, glMapBufferRange, target, offset,
 				  length, access);
+
+	RESTORE_METRICS_OP ();
 
 	return ret;
 }
@@ -233,9 +263,11 @@ glUnmapBuffer (GLenum target)
 {
 	GLboolean ret;
 
-	SWITCH_METRICS_OP (METRICS_OP_BUFFER_DATA);
+	SAVE_THEN_SWITCH_METRICS_OP (METRICS_OP_BUFFER_DATA);
 
 	GLWRAP_DEFER_WITH_RETURN (ret, glUnmapBuffer, target);
+
+	RESTORE_METRICS_OP ();
 
 	return ret;
 }
@@ -245,9 +277,11 @@ glUnmapNamedBufferEXT (GLuint buffer)
 {
 	GLboolean ret;
 
-	SWITCH_METRICS_OP (METRICS_OP_BUFFER_DATA);
+	SAVE_THEN_SWITCH_METRICS_OP (METRICS_OP_BUFFER_DATA);
 
 	GLWRAP_DEFER_WITH_RETURN (ret, glUnmapNamedBufferEXT, buffer);
+
+	RESTORE_METRICS_OP ();
 
 	return ret;
 }
@@ -257,9 +291,11 @@ glUnmapBufferARB (GLenum target)
 {
 	GLboolean ret;
 
-	SWITCH_METRICS_OP (METRICS_OP_BUFFER_DATA);
+	SAVE_THEN_SWITCH_METRICS_OP (METRICS_OP_BUFFER_DATA);
 
 	GLWRAP_DEFER_WITH_RETURN (ret, glUnmapBufferARB, target);
+
+	RESTORE_METRICS_OP ();
 
 	return ret;
 }
@@ -267,26 +303,32 @@ glUnmapBufferARB (GLenum target)
 void
 glFlushMappedBufferRange (GLenum target, GLintptr offset, GLsizeiptr length)
 {
-	SWITCH_METRICS_OP (METRICS_OP_BUFFER_DATA);
+	SAVE_THEN_SWITCH_METRICS_OP (METRICS_OP_BUFFER_DATA);
 
 	GLWRAP_DEFER (glFlushMappedBufferRange, target, offset, length);
+
+	RESTORE_METRICS_OP ();
 }
 
 void
 glFlushMappedBufferRangeAPPLE (GLenum target, GLintptr offset, GLsizeiptr size)
 {
-	SWITCH_METRICS_OP (METRICS_OP_BUFFER_DATA);
+	SAVE_THEN_SWITCH_METRICS_OP (METRICS_OP_BUFFER_DATA);
 
 	GLWRAP_DEFER (glFlushMappedBufferRangeAPPLE, target, offset, size);
+
+	RESTORE_METRICS_OP ();
 }
 
 void
 glFlushMappedNamedBufferRangeEXT (GLuint buffer, GLintptr offset,
 				  GLsizeiptr length)
 {
-	SWITCH_METRICS_OP (METRICS_OP_BUFFER_DATA);
+	SAVE_THEN_SWITCH_METRICS_OP (METRICS_OP_BUFFER_DATA);
 
 	GLWRAP_DEFER (glFlushMappedNamedBufferRangeEXT, buffer, offset, length);
+
+	RESTORE_METRICS_OP ();
 }
 
 void *
@@ -294,9 +336,11 @@ glMapNamedBufferEXT (GLuint buffer, GLenum access)
 {
 	void *ret;
 
-	SWITCH_METRICS_OP (METRICS_OP_BUFFER_DATA);
+	SAVE_THEN_SWITCH_METRICS_OP (METRICS_OP_BUFFER_DATA);
 
 	GLWRAP_DEFER_WITH_RETURN (ret, glMapNamedBufferEXT, buffer, access);
+
+	RESTORE_METRICS_OP ();
 
 	return ret;
 }
@@ -307,10 +351,12 @@ glMapNamedBufferRangeEXT (GLuint buffer, GLintptr offset, GLsizeiptr length,
 {
 	void *ret;
 
-	SWITCH_METRICS_OP (METRICS_OP_BUFFER_DATA);
+	SAVE_THEN_SWITCH_METRICS_OP (METRICS_OP_BUFFER_DATA);
 
 	GLWRAP_DEFER_WITH_RETURN (ret, glMapNamedBufferRangeEXT, buffer,
 				  offset, length, access);
+
+	RESTORE_METRICS_OP ();
 
 	return ret;
 }
@@ -321,10 +367,12 @@ glCopyBufferSubData (GLenum readTarget, GLenum writeTarget,
 		     GLintptr readOffset, GLintptr writeOffset,
 		     GLsizeiptr size)
 {
-	SWITCH_METRICS_OP (METRICS_OP_BUFFER_SUB_DATA);
+	SAVE_THEN_SWITCH_METRICS_OP (METRICS_OP_BUFFER_SUB_DATA);
 
 	GLWRAP_DEFER (glCopyBufferSubData, readTarget, writeTarget,
 		      readOffset, writeOffset, size);
+
+	RESTORE_METRICS_OP ();
 }
 
 void
@@ -332,10 +380,12 @@ glNamedCopyBufferSubDataEXT (GLuint readBuffer, GLuint writeBuffer,
 			     GLintptr readOffset, GLintptr writeOffset,
 			     GLsizeiptr size)
 {
-	SWITCH_METRICS_OP (METRICS_OP_BUFFER_SUB_DATA);
+	SAVE_THEN_SWITCH_METRICS_OP (METRICS_OP_BUFFER_SUB_DATA);
 
 	GLWRAP_DEFER (glNamedCopyBufferSubDataEXT, readBuffer,
 		      writeBuffer, readOffset, writeOffset, size);
+
+	RESTORE_METRICS_OP ();
 }
 
 /* METRICS_OP_BITMAP */
@@ -343,20 +393,24 @@ void
 glBitmap (GLsizei width, GLsizei height, GLfloat xorig, GLfloat yorig,
 	  GLfloat xmove, GLfloat ymove, const GLubyte *bitmap)
 {
-	SWITCH_METRICS_OP (METRICS_OP_BITMAP);
+	SAVE_THEN_SWITCH_METRICS_OP (METRICS_OP_BITMAP);
 
 	GLWRAP_DEFER (glBitmap, width, height, xorig, yorig,
 		      xmove, ymove, bitmap);
+
+	RESTORE_METRICS_OP ();
 }
 
 void
 glBitmapxOES (GLsizei width, GLsizei height, GLfixed xorig, GLfixed yorig,
 	      GLfixed xmove, GLfixed ymove, const GLubyte *bitmap)
 {
-	SWITCH_METRICS_OP (METRICS_OP_BITMAP);
+	SAVE_THEN_SWITCH_METRICS_OP (METRICS_OP_BITMAP);
 
 	GLWRAP_DEFER (glBitmapxOES, width, height, xorig, yorig,
 		      xmove, ymove, bitmap);
+
+	RESTORE_METRICS_OP ();
 }
 
 /* METRICS_OP_BLIT_FRAMEBUFFER */
@@ -365,10 +419,12 @@ glBlitFramebuffer (GLint srcX0, GLint srcY0, GLint srcX1, GLint srcY1,
 		   GLint dstX0, GLint dstY0, GLint dstX1, GLint dstY1,
 		   GLbitfield mask, GLenum filter)
 {
-	SWITCH_METRICS_OP (METRICS_OP_BLIT_FRAMEBUFFER);
+	SAVE_THEN_SWITCH_METRICS_OP (METRICS_OP_BLIT_FRAMEBUFFER);
 
 	GLWRAP_DEFER (glBlitFramebuffer, srcX0, srcY0, srcX1, srcY1,
 		      dstX0, dstY0, dstX1, dstY1, mask, filter);
+
+	RESTORE_METRICS_OP ();
 }
 
 void
@@ -376,51 +432,63 @@ glBlitFramebufferEXT (GLint srcX0, GLint srcY0, GLint srcX1, GLint srcY1,
 		      GLint dstX0, GLint dstY0, GLint dstX1, GLint dstY1,
 		      GLbitfield mask, GLenum filter)
 {
-	SWITCH_METRICS_OP (METRICS_OP_BLIT_FRAMEBUFFER);
+	SAVE_THEN_SWITCH_METRICS_OP (METRICS_OP_BLIT_FRAMEBUFFER);
 
 	GLWRAP_DEFER (glBlitFramebufferEXT, srcX0, srcY0, srcX1, srcY1,
 		      dstX0, dstY0, dstX1, dstY1, mask, filter);
+
+	RESTORE_METRICS_OP ();
 }
 
 /* METRICS_OP_CLEAR */
 void 
 glClear (GLbitfield mask)
 {
-	SWITCH_METRICS_OP (METRICS_OP_CLEAR);
+	SAVE_THEN_SWITCH_METRICS_OP (METRICS_OP_CLEAR);
 
 	GLWRAP_DEFER (glClear, mask);
+
+	RESTORE_METRICS_OP ();
 }
 
 void
 glClearBufferfi (GLenum buffer, GLint drawbuffer, GLfloat depth, GLint stencil)
 {
-	SWITCH_METRICS_OP (METRICS_OP_CLEAR);
+	SAVE_THEN_SWITCH_METRICS_OP (METRICS_OP_CLEAR);
 
 	GLWRAP_DEFER (glClearBufferfi, buffer, drawbuffer, depth, stencil);
+
+	RESTORE_METRICS_OP ();
 }
 
 void
 glClearBufferfv (GLenum buffer, GLint drawbuffer, const GLfloat *value)
 {
-	SWITCH_METRICS_OP (METRICS_OP_CLEAR);
+	SAVE_THEN_SWITCH_METRICS_OP (METRICS_OP_CLEAR);
 
 	GLWRAP_DEFER (glClearBufferfv, buffer, drawbuffer, value);
+
+	RESTORE_METRICS_OP ();
 }
 
 void
 glClearBufferiv (GLenum buffer, GLint drawbuffer, const GLint *value)
 {
-	SWITCH_METRICS_OP (METRICS_OP_CLEAR);
+	SAVE_THEN_SWITCH_METRICS_OP (METRICS_OP_CLEAR);
 
 	GLWRAP_DEFER (glClearBufferiv, buffer, drawbuffer, value);
+
+	RESTORE_METRICS_OP ();
 }
 
 void
 glClearBufferuiv (GLenum buffer, GLint drawbuffer, const GLuint *value)
 {
-	SWITCH_METRICS_OP (METRICS_OP_CLEAR);
+	SAVE_THEN_SWITCH_METRICS_OP (METRICS_OP_CLEAR);
 
 	GLWRAP_DEFER (glClearBufferuiv, buffer, drawbuffer, value);
+
+	RESTORE_METRICS_OP ();
 }
 
 /* METRICS_OP_CLEAR_BUFFER_DATA */
@@ -429,10 +497,12 @@ void
 glClearBufferData (GLenum target, GLenum internalformat, GLenum format,
 		   GLenum type, const void *data)
 {
-	SWITCH_METRICS_OP (METRICS_OP_CLEAR_BUFFER_DATA);
+	SAVE_THEN_SWITCH_METRICS_OP (METRICS_OP_CLEAR_BUFFER_DATA);
 
 	GLWRAP_DEFER (glClearBufferData, target, internalformat, format,
 		      type, data);
+
+	RESTORE_METRICS_OP ();
 }
 
 void
@@ -440,20 +510,24 @@ glClearBufferSubData (GLenum target, GLenum internalformat, GLintptr offset,
 		      GLsizeiptr size, GLenum format, GLenum type,
 		      const void *data)
 {
-	SWITCH_METRICS_OP (METRICS_OP_CLEAR_BUFFER_DATA);
+	SAVE_THEN_SWITCH_METRICS_OP (METRICS_OP_CLEAR_BUFFER_DATA);
 
 	GLWRAP_DEFER (glClearBufferSubData, target, internalformat,
 		      offset, size, format, type, data);
+
+	RESTORE_METRICS_OP ();
 }
 
 void
 glClearNamedBufferDataEXT (GLuint buffer, GLenum internalformat, GLenum format,
 			   GLenum type, const void *data)
 {
-	SWITCH_METRICS_OP (METRICS_OP_CLEAR_BUFFER_DATA);
+	SAVE_THEN_SWITCH_METRICS_OP (METRICS_OP_CLEAR_BUFFER_DATA);
 
 	GLWRAP_DEFER (glClearNamedBufferDataEXT, buffer, internalformat,
 		      format, type, data);
+
+	RESTORE_METRICS_OP ();
 }
 
 void
@@ -461,10 +535,12 @@ glClearNamedBufferSubDataEXT (GLuint buffer, GLenum internalformat,
 			      GLenum format, GLenum type, GLsizeiptr offset,
 			      GLsizeiptr size, const void *data)
 {
-	SWITCH_METRICS_OP (METRICS_OP_CLEAR_BUFFER_DATA);
+	SAVE_THEN_SWITCH_METRICS_OP (METRICS_OP_CLEAR_BUFFER_DATA);
 
 	GLWRAP_DEFER (glClearNamedBufferSubDataEXT, buffer,
 		      internalformat, format, type, offset, size, data);
+
+	RESTORE_METRICS_OP ();
 }
 
 /* METRICS_OP_CLEAR_TEX_IMAGE */
@@ -474,9 +550,11 @@ glClearNamedBufferSubDataEXT (GLuint buffer, GLenum internalformat,
 void
 glCopyPixels (GLint x, GLint y, GLsizei width, GLsizei height, GLenum type )
 {
-	SWITCH_METRICS_OP (METRICS_OP_COPY_PIXELS);
+	SAVE_THEN_SWITCH_METRICS_OP (METRICS_OP_COPY_PIXELS);
 
 	GLWRAP_DEFER (glCopyPixels, x, y, width, height, type);
+
+	RESTORE_METRICS_OP ();
 }
 
 /* METRICS_OP_COPY_TEX_IMAGE */
@@ -484,20 +562,24 @@ void
 glCopyTexImage1D (GLenum target, GLint level, GLenum internalformat,
 		  GLint x, GLint y, GLsizei width, GLint border)
 {
-	SWITCH_METRICS_OP (METRICS_OP_COPY_TEX_IMAGE);
+	SAVE_THEN_SWITCH_METRICS_OP (METRICS_OP_COPY_TEX_IMAGE);
 
 	GLWRAP_DEFER (glCopyTexImage1D, target, level, internalformat,
 		      x, y, width, border);
+
+	RESTORE_METRICS_OP ();
 }
 
 void
 glCopyTexImage1DEXT (GLenum target, GLint level, GLenum internalformat,
 		     GLint x, GLint y, GLsizei width, GLint border)
 {
-	SWITCH_METRICS_OP (METRICS_OP_COPY_TEX_IMAGE);
+	SAVE_THEN_SWITCH_METRICS_OP (METRICS_OP_COPY_TEX_IMAGE);
 
 	GLWRAP_DEFER (glCopyTexImage1DEXT, target, level, internalformat,
 		      x, y, width, border);
+
+	RESTORE_METRICS_OP ();
 }
 
 void
@@ -505,10 +587,12 @@ glCopyTexImage2D (GLenum target, GLint level, GLenum internalformat,
 		  GLint x, GLint y, GLsizei width, GLsizei height,
 		  GLint border)
 {
-	SWITCH_METRICS_OP (METRICS_OP_COPY_TEX_IMAGE);
+	SAVE_THEN_SWITCH_METRICS_OP (METRICS_OP_COPY_TEX_IMAGE);
 
 	GLWRAP_DEFER (glCopyTexImage2D, target, level, internalformat,
 		      x, y, width, height, border);
+
+	RESTORE_METRICS_OP ();
 }
 
 void
@@ -516,30 +600,36 @@ glCopyTexImage2DEXT (GLenum target, GLint level, GLenum internalformat,
 		     GLint x, GLint y, GLsizei width, GLsizei height,
 		     GLint border)
 {
-	SWITCH_METRICS_OP (METRICS_OP_COPY_TEX_IMAGE);
+	SAVE_THEN_SWITCH_METRICS_OP (METRICS_OP_COPY_TEX_IMAGE);
 
 	GLWRAP_DEFER (glCopyTexImage2DEXT, target, level, internalformat,
 		      x, y, width, height, border);
+
+	RESTORE_METRICS_OP ();
 }
 
 void
 glCopyTexSubImage1D (GLenum target, GLint level, GLint xoffset,
 		     GLint x, GLint y, GLsizei width)
 {
-	SWITCH_METRICS_OP (METRICS_OP_COPY_TEX_IMAGE);
+	SAVE_THEN_SWITCH_METRICS_OP (METRICS_OP_COPY_TEX_IMAGE);
 
 	GLWRAP_DEFER (glCopyTexSubImage1D, target, level, xoffset,
 		      x, y, width);
+
+	RESTORE_METRICS_OP ();
 }
 
 void
 glCopyTexSubImage1DEXT (GLenum target, GLint level, GLint xoffset,
 			GLint x, GLint y, GLsizei width)
 {
-	SWITCH_METRICS_OP (METRICS_OP_COPY_TEX_IMAGE);
+	SAVE_THEN_SWITCH_METRICS_OP (METRICS_OP_COPY_TEX_IMAGE);
 
 	GLWRAP_DEFER (glCopyTexSubImage1DEXT, target, level, xoffset,
 		      x, y, width);
+
+	RESTORE_METRICS_OP ();
 }
 
 void
@@ -547,10 +637,12 @@ glCopyTexSubImage2D (GLenum target, GLint level, GLint xoffset,
 		     GLint yoffset, GLint x, GLint y, GLsizei width,
 		     GLsizei height)
 {
-	SWITCH_METRICS_OP (METRICS_OP_COPY_TEX_IMAGE);
+	SAVE_THEN_SWITCH_METRICS_OP (METRICS_OP_COPY_TEX_IMAGE);
 
 	GLWRAP_DEFER (glCopyTexSubImage2D, target, level, xoffset, yoffset,
 		      x, y, width, height);
+
+	RESTORE_METRICS_OP ();
 }
 
 void
@@ -558,10 +650,12 @@ glCopyTexSubImage2DEXT (GLenum target, GLint level, GLint xoffset,
 			GLint yoffset, GLint x, GLint y, GLsizei width,
 			GLsizei height)
 {
-	SWITCH_METRICS_OP (METRICS_OP_COPY_TEX_IMAGE);
+	SAVE_THEN_SWITCH_METRICS_OP (METRICS_OP_COPY_TEX_IMAGE);
 
 	GLWRAP_DEFER (glCopyTexSubImage2DEXT, target, level, xoffset, yoffset,
 		      x, y, width, height);
+
+	RESTORE_METRICS_OP ();
 }
 
 void
@@ -569,10 +663,12 @@ glCopyTexSubImage3D (GLenum target, GLint level, GLint xoffset,
 		     GLint yoffset, GLint zoffset, GLint x, GLint y,
 		     GLsizei width, GLsizei height)
 {
-	SWITCH_METRICS_OP (METRICS_OP_COPY_TEX_IMAGE);
+	SAVE_THEN_SWITCH_METRICS_OP (METRICS_OP_COPY_TEX_IMAGE);
 
 	GLWRAP_DEFER (glCopyTexSubImage3D, target, level, xoffset, yoffset,
 		      zoffset, x, y, width, height);
+
+	RESTORE_METRICS_OP ();
 }
 
 void
@@ -580,10 +676,12 @@ glCopyTexSubImage3DEXT (GLenum target, GLint level, GLint xoffset,
 			GLint yoffset, GLint zoffset, GLint x, GLint y,
 			GLsizei width, GLsizei height)
 {
-	SWITCH_METRICS_OP (METRICS_OP_COPY_TEX_IMAGE);
+	SAVE_THEN_SWITCH_METRICS_OP (METRICS_OP_COPY_TEX_IMAGE);
 
 	GLWRAP_DEFER (glCopyTexSubImage3DEXT, target, level, xoffset, yoffset,
 		      zoffset, x, y, width, height);
+
+	RESTORE_METRICS_OP ();
 }
 
 void
@@ -591,10 +689,12 @@ glCopyTextureImage1DEXT (GLuint texture, GLenum target, GLint level,
 			 GLenum internalformat, GLint x, GLint y,
 			 GLsizei width, GLint border)
 {
-	SWITCH_METRICS_OP (METRICS_OP_COPY_TEX_IMAGE);
+	SAVE_THEN_SWITCH_METRICS_OP (METRICS_OP_COPY_TEX_IMAGE);
 
 	GLWRAP_DEFER (glCopyTextureImage1DEXT, texture, target, level,
 		      internalformat, x, y, width, border);
+
+	RESTORE_METRICS_OP ();
 }
 
 void
@@ -602,20 +702,24 @@ glCopyTextureImage2DEXT (GLuint texture, GLenum target, GLint level,
 			 GLenum internalformat, GLint x, GLint y, GLsizei width,
 			 GLsizei height, GLint border)
 {
-	SWITCH_METRICS_OP (METRICS_OP_COPY_TEX_IMAGE);
+	SAVE_THEN_SWITCH_METRICS_OP (METRICS_OP_COPY_TEX_IMAGE);
 
 	GLWRAP_DEFER (glCopyTextureImage2DEXT, texture, target,
 		      level, internalformat, x, y, width, height, border);
+
+	RESTORE_METRICS_OP ();
 }
 
 void
 glCopyTextureSubImage1DEXT (GLuint texture, GLenum target, GLint level,
 			    GLint xoffset, GLint x, GLint y, GLsizei width)
 {
-	SWITCH_METRICS_OP (METRICS_OP_COPY_TEX_IMAGE);
+	SAVE_THEN_SWITCH_METRICS_OP (METRICS_OP_COPY_TEX_IMAGE);
 
 	GLWRAP_DEFER (glCopyTextureSubImage1DEXT, texture, target, level,
 		      xoffset, x, y, width);
+
+	RESTORE_METRICS_OP ();
 }
 
 void
@@ -623,10 +727,12 @@ glCopyTextureSubImage2DEXT (GLuint texture, GLenum target, GLint level,
 			    GLint xoffset, GLint yoffset, GLint x, GLint y,
 			    GLsizei width, GLsizei height)
 {
-	SWITCH_METRICS_OP (METRICS_OP_COPY_TEX_IMAGE);
+	SAVE_THEN_SWITCH_METRICS_OP (METRICS_OP_COPY_TEX_IMAGE);
 
 	GLWRAP_DEFER (glCopyTextureSubImage2DEXT, texture, target, level,
 		      xoffset, yoffset, x, y, width, height);
+
+	RESTORE_METRICS_OP ();
 }
 
 void
@@ -634,10 +740,12 @@ glCopyTextureSubImage3DEXT (GLuint texture, GLenum target, GLint level,
 			    GLint xoffset, GLint yoffset, GLint zoffset,
 			    GLint x, GLint y, GLsizei width, GLsizei height)
 {
-	SWITCH_METRICS_OP (METRICS_OP_COPY_TEX_IMAGE);
+	SAVE_THEN_SWITCH_METRICS_OP (METRICS_OP_COPY_TEX_IMAGE);
 
 	GLWRAP_DEFER (glCopyTextureSubImage3DEXT, texture, target, level,
 		      xoffset, yoffset, zoffset, x, y, width, height);
+
+	RESTORE_METRICS_OP ();
 }
 
 void
@@ -645,10 +753,12 @@ glCopyMultiTexImage1DEXT (GLenum texunit, GLenum target, GLint level,
 			  GLenum internalformat, GLint x, GLint y,
 			  GLsizei width, GLint border)
 {
-	SWITCH_METRICS_OP (METRICS_OP_COPY_TEX_IMAGE);
+	SAVE_THEN_SWITCH_METRICS_OP (METRICS_OP_COPY_TEX_IMAGE);
 
 	GLWRAP_DEFER (glCopyMultiTexImage1DEXT, texunit, target, level,
 		      internalformat, x, y, width, border);
+
+	RESTORE_METRICS_OP ();
 }
 
 void
@@ -656,20 +766,24 @@ glCopyMultiTexImage2DEXT (GLenum texunit, GLenum target, GLint level,
 			  GLenum internalformat, GLint x, GLint y,
 			  GLsizei width, GLsizei height, GLint border)
 {
-	SWITCH_METRICS_OP (METRICS_OP_COPY_TEX_IMAGE);
+	SAVE_THEN_SWITCH_METRICS_OP (METRICS_OP_COPY_TEX_IMAGE);
 
 	GLWRAP_DEFER (glCopyMultiTexImage2DEXT, texunit, target, level,
 		      internalformat, x, y, width, height, border);
+
+	RESTORE_METRICS_OP ();
 }
 
 void
 glCopyMultiTexSubImage1DEXT (GLenum texunit, GLenum target, GLint level,
 			     GLint xoffset, GLint x, GLint y, GLsizei width)
 {
-	SWITCH_METRICS_OP (METRICS_OP_COPY_TEX_IMAGE);
+	SAVE_THEN_SWITCH_METRICS_OP (METRICS_OP_COPY_TEX_IMAGE);
 
 	GLWRAP_DEFER (glCopyMultiTexSubImage1DEXT, texunit, target, level,
 		      xoffset, x, y, width);
+
+	RESTORE_METRICS_OP ();
 }
 
 void
@@ -677,10 +791,12 @@ glCopyMultiTexSubImage2DEXT (GLenum texunit, GLenum target, GLint level,
 			     GLint xoffset, GLint yoffset, GLint x, GLint y,
 			     GLsizei width, GLsizei height)
 {
-	SWITCH_METRICS_OP (METRICS_OP_COPY_TEX_IMAGE);
+	SAVE_THEN_SWITCH_METRICS_OP (METRICS_OP_COPY_TEX_IMAGE);
 
 	GLWRAP_DEFER (glCopyMultiTexSubImage2DEXT, texunit, target, level,
 		      xoffset, yoffset, x, y, width, height);
+
+	RESTORE_METRICS_OP ();
 }
 
 void
@@ -688,10 +804,12 @@ glCopyMultiTexSubImage3DEXT (GLenum texunit, GLenum target, GLint level,
 			     GLint xoffset, GLint yoffset, GLint zoffset,
 			     GLint x, GLint y, GLsizei width, GLsizei height)
 {
-	SWITCH_METRICS_OP (METRICS_OP_COPY_TEX_IMAGE);
+	SAVE_THEN_SWITCH_METRICS_OP (METRICS_OP_COPY_TEX_IMAGE);
 
 	GLWRAP_DEFER (glCopyMultiTexSubImage3DEXT, texunit, target, level,
 		      xoffset, yoffset, zoffset, x, y, width, height);
+
+	RESTORE_METRICS_OP ();
 }
 
 /* METRICS_OP_DRAW_PIXELS */
@@ -699,9 +817,11 @@ void
 glDrawPixels (GLsizei width, GLsizei height, GLenum format, GLenum type,
 	      const GLvoid *pixels)
 {
-	SWITCH_METRICS_OP (METRICS_OP_DRAW_PIXELS);
+	SAVE_THEN_SWITCH_METRICS_OP (METRICS_OP_DRAW_PIXELS);
 
 	GLWRAP_DEFER (glDrawPixels, width, height, format, type, pixels);
+
+	RESTORE_METRICS_OP ();
 }
 
 /* METRICS_OP_GET_TEX_IMAGE */
@@ -710,74 +830,90 @@ void
 glGetCompressedMultiTexImageEXT (GLenum texunit, GLenum target,
 				 GLint lod, GLvoid *img)
 {
-	SWITCH_METRICS_OP (METRICS_OP_GET_TEX_IMAGE);
+	SAVE_THEN_SWITCH_METRICS_OP (METRICS_OP_GET_TEX_IMAGE);
 
 	GLWRAP_DEFER (glGetCompressedMultiTexImageEXT, texunit,
 		      target, lod, img);
+
+	RESTORE_METRICS_OP ();
 }
 
 void
 glGetCompressedTexImage (GLenum target, GLint level, GLvoid *img)
 {
-	SWITCH_METRICS_OP (METRICS_OP_GET_TEX_IMAGE);
+	SAVE_THEN_SWITCH_METRICS_OP (METRICS_OP_GET_TEX_IMAGE);
 
 	GLWRAP_DEFER (glGetCompressedTexImage, target, level, img);
+
+	RESTORE_METRICS_OP ();
 }
 
 void
 glGetCompressedTexImageARB (GLenum target, GLint level, GLvoid *img)
 {
-	SWITCH_METRICS_OP (METRICS_OP_GET_TEX_IMAGE);
+	SAVE_THEN_SWITCH_METRICS_OP (METRICS_OP_GET_TEX_IMAGE);
 
 	GLWRAP_DEFER (glGetCompressedTexImageARB, target, level, img);
+
+	RESTORE_METRICS_OP ();
 }
 
 void
 glGetCompressedTextureImageEXT (GLuint texture, GLenum target,
 				GLint lod, GLvoid *img)
 {
-	SWITCH_METRICS_OP (METRICS_OP_GET_TEX_IMAGE);
+	SAVE_THEN_SWITCH_METRICS_OP (METRICS_OP_GET_TEX_IMAGE);
 
 	GLWRAP_DEFER (glGetCompressedTextureImageEXT, texture,
 		      target, lod, img);
+
+	RESTORE_METRICS_OP ();
 }
 
 void
 glGetMultiTexImageEXT (GLenum texunit, GLenum target, GLint level,
 		       GLenum format, GLenum type, GLvoid *pixels)
 {
-	SWITCH_METRICS_OP (METRICS_OP_GET_TEX_IMAGE);
+	SAVE_THEN_SWITCH_METRICS_OP (METRICS_OP_GET_TEX_IMAGE);
 
 	GLWRAP_DEFER (glGetMultiTexImageEXT, texunit,
 		      target, level, format, type, pixels);
+
+	RESTORE_METRICS_OP ();
 }
 
 void
 glGetnCompressedTexImageARB (GLenum target, GLint lod,
 			     GLsizei bufSize, GLvoid *img)
 {
-	SWITCH_METRICS_OP (METRICS_OP_GET_TEX_IMAGE);
+	SAVE_THEN_SWITCH_METRICS_OP (METRICS_OP_GET_TEX_IMAGE);
 
 	GLWRAP_DEFER (glGetnCompressedTexImageARB, target, lod, bufSize, img);
+
+	RESTORE_METRICS_OP ();
 }
 
 void
 glGetnTexImageARB (GLenum target, GLint level, GLenum format,
 		   GLenum type, GLsizei bufSize, GLvoid *img)
 {
-	SWITCH_METRICS_OP (METRICS_OP_GET_TEX_IMAGE);
+	SAVE_THEN_SWITCH_METRICS_OP (METRICS_OP_GET_TEX_IMAGE);
 
 	GLWRAP_DEFER (glGetnTexImageARB, target, level,
 		      format, type, bufSize, img);
+
+	RESTORE_METRICS_OP ();
 }
 
 void
 glGetTexImage (GLenum target, GLint level, GLenum format, GLenum type,
 	       GLvoid *pixels )
 {
-	SWITCH_METRICS_OP (METRICS_OP_GET_TEX_IMAGE);
+	SAVE_THEN_SWITCH_METRICS_OP (METRICS_OP_GET_TEX_IMAGE);
 
 	GLWRAP_DEFER (glGetTexImage, target, level, format, type, pixels);
+
+	RESTORE_METRICS_OP ();
 }
 
 /* METRICS_OP_READ_PIXELS */
@@ -785,19 +921,23 @@ void
 glReadPixels (GLint x, GLint y, GLsizei width, GLsizei height,
 	      GLenum format, GLenum type, GLvoid *pixels )
 {
-	SWITCH_METRICS_OP (METRICS_OP_READ_PIXELS);
+	SAVE_THEN_SWITCH_METRICS_OP (METRICS_OP_READ_PIXELS);
 
 	GLWRAP_DEFER (glReadPixels, x, y, width, height, format, type, pixels);
+
+	RESTORE_METRICS_OP ();
 }
 
 void
 glReadnPixelsARB (GLint x, GLint y, GLsizei width, GLsizei height,
 		  GLenum format, GLenum type, GLsizei bufSize, GLvoid *data)
 {
-	SWITCH_METRICS_OP (METRICS_OP_READ_PIXELS);
+	SAVE_THEN_SWITCH_METRICS_OP (METRICS_OP_READ_PIXELS);
 
 	GLWRAP_DEFER (glReadnPixelsARB, x, y, width, height,
 		      format, type, bufSize, data);
+
+	RESTORE_METRICS_OP ();
 }
 
 /* METRICS_OP_TEX_IMAGE */
@@ -806,10 +946,12 @@ glTexImage1D (GLenum target, GLint level, GLint internalFormat,
 	      GLsizei width, GLint border, GLenum format, GLenum type,
 	      const GLvoid *pixels)
 {
-	SWITCH_METRICS_OP (METRICS_OP_TEX_IMAGE);
+	SAVE_THEN_SWITCH_METRICS_OP (METRICS_OP_TEX_IMAGE);
 
 	GLWRAP_DEFER (glTexImage1D, target, level, internalFormat, width,
 		      border, format, type, pixels);
+
+	RESTORE_METRICS_OP ();
 }
 
 void
@@ -817,10 +959,12 @@ glTexImage2D (GLenum target, GLint level, GLint internalFormat,
 	      GLsizei width, GLsizei height, GLint border, GLenum format,
 	      GLenum type, const GLvoid *pixels )
 {
-	SWITCH_METRICS_OP (METRICS_OP_TEX_IMAGE);
+	SAVE_THEN_SWITCH_METRICS_OP (METRICS_OP_TEX_IMAGE);
 
 	GLWRAP_DEFER (glTexImage2D, target, level, internalFormat,
 		      width, height, border, format, type, pixels);
+
+	RESTORE_METRICS_OP ();
 }
 
 
@@ -829,10 +973,12 @@ glTexImage2DMultisample (GLenum target, GLsizei samples,
 			 GLint internalformat, GLsizei width, GLsizei height,
 			 GLboolean fixedsamplelocations)
 {
-	SWITCH_METRICS_OP (METRICS_OP_TEX_IMAGE);
+	SAVE_THEN_SWITCH_METRICS_OP (METRICS_OP_TEX_IMAGE);
 
 	GLWRAP_DEFER (glTexImage2DMultisample, target, samples,
 		      internalformat, width, height, fixedsamplelocations);
+
+	RESTORE_METRICS_OP ();
 }
 
 void
@@ -841,11 +987,13 @@ glTexImage2DMultisampleCoverageNV (GLenum target, GLsizei coverageSamples,
 				   GLsizei width, GLsizei height,
 				   GLboolean fixedSampleLocations)
 {
-	SWITCH_METRICS_OP (METRICS_OP_TEX_IMAGE);
+	SAVE_THEN_SWITCH_METRICS_OP (METRICS_OP_TEX_IMAGE);
 
 	GLWRAP_DEFER (glTexImage2DMultisampleCoverageNV, target,
 		      coverageSamples, colorSamples, internalFormat,
 		      width, height, fixedSampleLocations);
+
+	RESTORE_METRICS_OP ();
 }
 
 void
@@ -853,10 +1001,12 @@ glTexImage3D (GLenum target, GLint level, GLint internalformat,
 	      GLsizei width, GLsizei height, GLsizei depth, GLint border,
 	      GLenum format, GLenum type, const GLvoid *pixels)
 {
-	SWITCH_METRICS_OP (METRICS_OP_TEX_IMAGE);
+	SAVE_THEN_SWITCH_METRICS_OP (METRICS_OP_TEX_IMAGE);
 
 	GLWRAP_DEFER (glTexImage3D, target, level, internalformat,
 		      width, height, depth, border, format, type, pixels);
+
+	RESTORE_METRICS_OP ();
 }
 
 void
@@ -864,10 +1014,12 @@ glTexImage3DEXT (GLenum target, GLint level, GLenum internalformat,
 		 GLsizei width, GLsizei height, GLsizei depth, GLint border,
 		 GLenum format, GLenum type, const GLvoid *pixels)
 {
-	SWITCH_METRICS_OP (METRICS_OP_TEX_IMAGE);
+	SAVE_THEN_SWITCH_METRICS_OP (METRICS_OP_TEX_IMAGE);
 
 	GLWRAP_DEFER (glTexImage3DEXT, target, level, internalformat,
 		      width, height, depth, border, format, type, pixels);
+
+	RESTORE_METRICS_OP ();
 }
 
 void
@@ -875,11 +1027,13 @@ glTexImage3DMultisample (GLenum target, GLsizei samples, GLint internalformat,
 			 GLsizei width, GLsizei height, GLsizei depth,
 			 GLboolean fixedsamplelocations)
 {
-	SWITCH_METRICS_OP (METRICS_OP_TEX_IMAGE);
+	SAVE_THEN_SWITCH_METRICS_OP (METRICS_OP_TEX_IMAGE);
 
 	GLWRAP_DEFER (glTexImage3DMultisample, target, samples,
 		      internalformat, width, height, depth,
 		      fixedsamplelocations);
+
+	RESTORE_METRICS_OP ();
 }
 
 void
@@ -888,11 +1042,13 @@ glTexImage3DMultisampleCoverageNV (GLenum target, GLsizei coverageSamples,
 				   GLsizei width, GLsizei height, GLsizei depth,
 				   GLboolean fixedSampleLocations)
 {
-	SWITCH_METRICS_OP (METRICS_OP_TEX_IMAGE);
+	SAVE_THEN_SWITCH_METRICS_OP (METRICS_OP_TEX_IMAGE);
 
 	GLWRAP_DEFER (glTexImage3DMultisampleCoverageNV, target,
 		      coverageSamples, colorSamples, internalFormat,
 		      width, height, depth, fixedSampleLocations);
+
+	RESTORE_METRICS_OP ();
 }
 
 void
@@ -901,11 +1057,13 @@ glTexImage4DSGIS (GLenum target, GLint level, GLenum internalformat,
 		  GLsizei size4d, GLint border, GLenum format,
 		  GLenum type, const GLvoid *pixels)
 {
-	SWITCH_METRICS_OP (METRICS_OP_TEX_IMAGE);
+	SAVE_THEN_SWITCH_METRICS_OP (METRICS_OP_TEX_IMAGE);
 
 	GLWRAP_DEFER (glTexImage4DSGIS, target, level,
 		      internalformat, width, height, depth,
 		      size4d, border, format, type, pixels);
+
+	RESTORE_METRICS_OP ();
 }
 
 void
@@ -913,10 +1071,12 @@ glTexSubImage1D (GLenum target, GLint level, GLint xoffset,
 		 GLsizei width, GLenum format, GLenum type,
 		 const GLvoid *pixels)
 {
-	SWITCH_METRICS_OP (METRICS_OP_TEX_IMAGE);
+	SAVE_THEN_SWITCH_METRICS_OP (METRICS_OP_TEX_IMAGE);
 
 	GLWRAP_DEFER (glTexSubImage1D, target, level, xoffset,
 		      width, format, type, pixels);
+
+	RESTORE_METRICS_OP ();
 }
 
 void
@@ -924,10 +1084,12 @@ glTexSubImage1DEXT (GLenum target, GLint level, GLint xoffset,
 		    GLsizei width, GLenum format, GLenum type,
 		    const GLvoid *pixels)
 {
-	SWITCH_METRICS_OP (METRICS_OP_TEX_IMAGE);
+	SAVE_THEN_SWITCH_METRICS_OP (METRICS_OP_TEX_IMAGE);
 
 	GLWRAP_DEFER (glTexSubImage1DEXT, target, level, xoffset,
 		      width, format, type, pixels);
+
+	RESTORE_METRICS_OP ();
 }
 
 void
@@ -935,10 +1097,12 @@ glTexSubImage2D (GLenum target, GLint level, GLint xoffset, GLint yoffset,
 		 GLsizei width, GLsizei height, GLenum format, GLenum type,
 		 const GLvoid *pixels)
 {
-	SWITCH_METRICS_OP (METRICS_OP_TEX_IMAGE);
+	SAVE_THEN_SWITCH_METRICS_OP (METRICS_OP_TEX_IMAGE);
 
 	GLWRAP_DEFER (glTexSubImage2D, target, level, xoffset, yoffset,
 		      width, height, format, type, pixels);
+
+	RESTORE_METRICS_OP ();
 }
 
 void
@@ -946,10 +1110,12 @@ glTexSubImage2DEXT (GLenum target, GLint level, GLint xoffset, GLint yoffset,
 		    GLsizei width, GLsizei height, GLenum format, GLenum type,
 		    const GLvoid *pixels)
 {
-	SWITCH_METRICS_OP (METRICS_OP_TEX_IMAGE);
+	SAVE_THEN_SWITCH_METRICS_OP (METRICS_OP_TEX_IMAGE);
 
 	GLWRAP_DEFER (glTexSubImage2DEXT, target, level, xoffset, yoffset,
 		      width, height, format, type, pixels);
+
+	RESTORE_METRICS_OP ();
 }
 
 void
@@ -957,10 +1123,12 @@ glTexSubImage3D (GLenum target, GLint level, GLint xoffset, GLint yoffset,
 		 GLint zoffset, GLsizei width, GLsizei height, GLsizei depth,
 		 GLenum format, GLenum type, const GLvoid *pixels)
 {
-	SWITCH_METRICS_OP (METRICS_OP_TEX_IMAGE);
+	SAVE_THEN_SWITCH_METRICS_OP (METRICS_OP_TEX_IMAGE);
 
 	GLWRAP_DEFER (glTexSubImage3D, target, level, xoffset, yoffset,
 		      zoffset, width, height, depth, format, type, pixels);
+
+	RESTORE_METRICS_OP ();
 }
 
 void
@@ -968,10 +1136,12 @@ glTexSubImage3DEXT (GLenum target, GLint level, GLint xoffset, GLint yoffset,
 		    GLint zoffset, GLsizei width, GLsizei height, GLsizei depth,
 		    GLenum format, GLenum type, const GLvoid *pixels)
 {
-	SWITCH_METRICS_OP (METRICS_OP_TEX_IMAGE);
+	SAVE_THEN_SWITCH_METRICS_OP (METRICS_OP_TEX_IMAGE);
 
 	GLWRAP_DEFER (glTexSubImage3DEXT, target, level, xoffset, yoffset,
 		      zoffset, width, height, depth, format, type, pixels);
+
+	RESTORE_METRICS_OP ();
 }
 
 void
@@ -980,11 +1150,13 @@ glTexSubImage4DSGIS (GLenum target, GLint level, GLint xoffset, GLint yoffset,
 		     GLsizei height, GLsizei depth, GLsizei size4d,
 		     GLenum format, GLenum type, const GLvoid *pixels)
 {
-	SWITCH_METRICS_OP (METRICS_OP_TEX_IMAGE);
+	SAVE_THEN_SWITCH_METRICS_OP (METRICS_OP_TEX_IMAGE);
 
 	GLWRAP_DEFER (glTexSubImage4DSGIS, target, level, xoffset,
 		      yoffset, zoffset, woffset, width, height,
 		      depth, size4d, format, type, pixels);
+
+	RESTORE_METRICS_OP ();
 }
 
 void
@@ -993,10 +1165,12 @@ glCompressedMultiTexImage1DEXT (GLenum texunit, GLenum target, GLint level,
 				GLint border, GLsizei imageSize,
 				const GLvoid *bits)
 {
-	SWITCH_METRICS_OP (METRICS_OP_TEX_IMAGE);
+	SAVE_THEN_SWITCH_METRICS_OP (METRICS_OP_TEX_IMAGE);
 
 	GLWRAP_DEFER (glCompressedMultiTexImage1DEXT, texunit, target,
 		      level, internalformat, width, border, imageSize, bits);
+
+	RESTORE_METRICS_OP ();
 }
 
 void
@@ -1005,10 +1179,12 @@ glCompressedMultiTexImage2DEXT (GLenum texunit, GLenum target, GLint level,
 				GLsizei height, GLint border,
 				GLsizei imageSize, const GLvoid *bits)
 {
-	SWITCH_METRICS_OP (METRICS_OP_TEX_IMAGE);
+	SAVE_THEN_SWITCH_METRICS_OP (METRICS_OP_TEX_IMAGE);
 
 	GLWRAP_DEFER (glCompressedMultiTexImage2DEXT, texunit, target, level,
 		      internalformat, width, height, border, imageSize, bits);
+
+	RESTORE_METRICS_OP ();
 }
 
 void
@@ -1017,11 +1193,13 @@ glCompressedMultiTexImage3DEXT (GLenum texunit, GLenum target, GLint level,
 				GLsizei height, GLsizei depth, GLint border,
 				GLsizei imageSize, const GLvoid *bits)
 {
-	SWITCH_METRICS_OP (METRICS_OP_TEX_IMAGE);
+	SAVE_THEN_SWITCH_METRICS_OP (METRICS_OP_TEX_IMAGE);
 
 	GLWRAP_DEFER (glCompressedMultiTexImage3DEXT, texunit, target,
 		      level, internalformat, width, height, depth,
 		      border, imageSize, bits);
+
+	RESTORE_METRICS_OP ();
 }
 
 void
@@ -1029,10 +1207,12 @@ glCompressedMultiTexSubImage1DEXT (GLenum texunit, GLenum target, GLint level,
 				   GLint xoffset, GLsizei width, GLenum format,
 				   GLsizei imageSize, const GLvoid *bits)
 {
-	SWITCH_METRICS_OP (METRICS_OP_TEX_IMAGE);
+	SAVE_THEN_SWITCH_METRICS_OP (METRICS_OP_TEX_IMAGE);
 
 	GLWRAP_DEFER (glCompressedMultiTexSubImage1DEXT, texunit, target,
 		      level, xoffset, width, format, imageSize, bits);
+
+	RESTORE_METRICS_OP ();
 }
 
 void
@@ -1041,10 +1221,12 @@ glCompressedMultiTexSubImage2DEXT (GLenum texunit, GLenum target, GLint level,
 				   GLsizei height, GLenum format,
 				   GLsizei imageSize, const GLvoid *bits)
 {
-	SWITCH_METRICS_OP (METRICS_OP_TEX_IMAGE);
+	SAVE_THEN_SWITCH_METRICS_OP (METRICS_OP_TEX_IMAGE);
 
 	GLWRAP_DEFER (glCompressedMultiTexSubImage2DEXT, texunit, target, level,
 		      xoffset, yoffset, width, height, format, imageSize, bits);
+
+	RESTORE_METRICS_OP ();
 }
 
 void
@@ -1054,11 +1236,13 @@ glCompressedMultiTexSubImage3DEXT (GLenum texunit, GLenum target, GLint level,
 				   GLenum format, GLsizei imageSize,
 				   const GLvoid *bits)
 {
-	SWITCH_METRICS_OP (METRICS_OP_TEX_IMAGE);
+	SAVE_THEN_SWITCH_METRICS_OP (METRICS_OP_TEX_IMAGE);
 
 	GLWRAP_DEFER (glCompressedMultiTexSubImage3DEXT, texunit, target,
 		      level, xoffset, yoffset, zoffset, width, height,
 		      depth, format, imageSize, bits);
+
+	RESTORE_METRICS_OP ();
 }
 
 void
@@ -1066,10 +1250,12 @@ glCompressedTexImage1D (GLenum target, GLint level, GLenum internalformat,
 			GLsizei width, GLint border, GLsizei imageSize,
 			const GLvoid *data)
 {
-	SWITCH_METRICS_OP (METRICS_OP_TEX_IMAGE);
+	SAVE_THEN_SWITCH_METRICS_OP (METRICS_OP_TEX_IMAGE);
 
 	GLWRAP_DEFER (glCompressedTexImage1D, target, level,
 		      internalformat, width, border, imageSize, data);
+
+	RESTORE_METRICS_OP ();
 }
 
 void
@@ -1077,10 +1263,12 @@ glCompressedTexImage1DARB (GLenum target, GLint level, GLenum internalformat,
 			   GLsizei width, GLint border, GLsizei imageSize,
 			   const GLvoid *data)
 {
-	SWITCH_METRICS_OP (METRICS_OP_TEX_IMAGE);
+	SAVE_THEN_SWITCH_METRICS_OP (METRICS_OP_TEX_IMAGE);
 
 	GLWRAP_DEFER (glCompressedTexImage1DARB, target, level, internalformat,
 		      width, border, imageSize, data);
+
+	RESTORE_METRICS_OP ();
 }
 
 void
@@ -1088,10 +1276,12 @@ glCompressedTexImage2D (GLenum target, GLint level, GLenum internalformat,
 			GLsizei width, GLsizei height, GLint border,
 			GLsizei imageSize, const GLvoid *data)
 {
-	SWITCH_METRICS_OP (METRICS_OP_TEX_IMAGE);
+	SAVE_THEN_SWITCH_METRICS_OP (METRICS_OP_TEX_IMAGE);
 
 	GLWRAP_DEFER (glCompressedTexImage2D, target, level, internalformat,
 		      width, height, border, imageSize, data);
+
+	RESTORE_METRICS_OP ();
 }
 
 void
@@ -1099,10 +1289,12 @@ glCompressedTexImage2DARB (GLenum target, GLint level, GLenum internalformat,
 			   GLsizei width, GLsizei height, GLint border,
 			   GLsizei imageSize, const GLvoid *data)
 {
-	SWITCH_METRICS_OP (METRICS_OP_TEX_IMAGE);
+	SAVE_THEN_SWITCH_METRICS_OP (METRICS_OP_TEX_IMAGE);
 
 	GLWRAP_DEFER (glCompressedTexImage2DARB, target, level, internalformat,
 		      width, height, border, imageSize, data);
+
+	RESTORE_METRICS_OP ();
 }
 
 void
@@ -1110,10 +1302,12 @@ glCompressedTexImage3D (GLenum target, GLint level, GLenum internalformat,
 			GLsizei width, GLsizei height, GLsizei depth,
 			GLint border, GLsizei imageSize, const GLvoid *data)
 {
-	SWITCH_METRICS_OP (METRICS_OP_TEX_IMAGE);
+	SAVE_THEN_SWITCH_METRICS_OP (METRICS_OP_TEX_IMAGE);
 
 	GLWRAP_DEFER (glCompressedTexImage3D, target, level, internalformat,
 		      width, height, depth, border, imageSize, data);
+
+	RESTORE_METRICS_OP ();
 }
 
 void
@@ -1121,10 +1315,12 @@ glCompressedTexImage3DARB (GLenum target, GLint level, GLenum internalformat,
 			   GLsizei width, GLsizei height, GLsizei depth,
 			   GLint border, GLsizei imageSize, const GLvoid *data)
 {
-	SWITCH_METRICS_OP (METRICS_OP_TEX_IMAGE);
+	SAVE_THEN_SWITCH_METRICS_OP (METRICS_OP_TEX_IMAGE);
 
 	GLWRAP_DEFER (glCompressedTexImage3DARB, target, level, internalformat,
 		      width, height, depth, border, imageSize, data);
+
+	RESTORE_METRICS_OP ();
 }
 
 void
@@ -1132,10 +1328,12 @@ glCompressedTexSubImage1D (GLenum target, GLint level, GLint xoffset,
 			   GLsizei width, GLenum format, GLsizei imageSize,
 			   const GLvoid *data)
 {
-	SWITCH_METRICS_OP (METRICS_OP_TEX_IMAGE);
+	SAVE_THEN_SWITCH_METRICS_OP (METRICS_OP_TEX_IMAGE);
 
 	GLWRAP_DEFER (glCompressedTexSubImage1D, target, level, xoffset,
 		      width, format, imageSize, data);
+
+	RESTORE_METRICS_OP ();
 }
 
 void
@@ -1143,10 +1341,12 @@ glCompressedTexSubImage1DARB (GLenum target, GLint level, GLint xoffset,
 			      GLsizei width, GLenum format, GLsizei imageSize,
 			      const GLvoid *data)
 {
-	SWITCH_METRICS_OP (METRICS_OP_TEX_IMAGE);
+	SAVE_THEN_SWITCH_METRICS_OP (METRICS_OP_TEX_IMAGE);
 
 	GLWRAP_DEFER (glCompressedTexSubImage1DARB, target, level, xoffset,
 		      width, format, imageSize, data);
+
+	RESTORE_METRICS_OP ();
 }
 
 void
@@ -1154,10 +1354,12 @@ glCompressedTexSubImage2D (GLenum target, GLint level, GLint xoffset,
 			   GLint yoffset, GLsizei width, GLsizei height,
 			   GLenum format, GLsizei imageSize, const GLvoid *data)
 {
-	SWITCH_METRICS_OP (METRICS_OP_TEX_IMAGE);
+	SAVE_THEN_SWITCH_METRICS_OP (METRICS_OP_TEX_IMAGE);
 
 	GLWRAP_DEFER (glCompressedTexSubImage2D, target, level, xoffset,
 		      yoffset, width, height, format, imageSize, data);
+
+	RESTORE_METRICS_OP ();
 }
 
 void
@@ -1166,10 +1368,12 @@ glCompressedTexSubImage2DARB (GLenum target, GLint level, GLint xoffset,
 			      GLenum format, GLsizei imageSize,
 			      const GLvoid *data)
 {
-	SWITCH_METRICS_OP (METRICS_OP_TEX_IMAGE);
+	SAVE_THEN_SWITCH_METRICS_OP (METRICS_OP_TEX_IMAGE);
 
 	GLWRAP_DEFER (glCompressedTexSubImage2DARB, target, level, xoffset,
 		      yoffset, width, height, format, imageSize, data);
+
+	RESTORE_METRICS_OP ();
 }
 
 void
@@ -1178,11 +1382,13 @@ glCompressedTexSubImage3D (GLenum target, GLint level, GLint xoffset,
 			   GLsizei height, GLsizei depth, GLenum format,
 			   GLsizei imageSize, const GLvoid *data)
 {
-	SWITCH_METRICS_OP (METRICS_OP_TEX_IMAGE);
+	SAVE_THEN_SWITCH_METRICS_OP (METRICS_OP_TEX_IMAGE);
 
 	GLWRAP_DEFER (glCompressedTexSubImage3D, target, level, xoffset,
 		      yoffset, zoffset, width, height, depth, format,
 		      imageSize, data);
+
+	RESTORE_METRICS_OP ();
 }
 
 void
@@ -1191,11 +1397,13 @@ glCompressedTexSubImage3DARB (GLenum target, GLint level, GLint xoffset,
 			      GLsizei height, GLsizei depth, GLenum format,
 			      GLsizei imageSize, const GLvoid *data)
 {
-	SWITCH_METRICS_OP (METRICS_OP_TEX_IMAGE);
+	SAVE_THEN_SWITCH_METRICS_OP (METRICS_OP_TEX_IMAGE);
 
 	GLWRAP_DEFER (glCompressedTexSubImage3DARB, target, level, xoffset,
 		      yoffset, zoffset, width, height, depth, format,
 		      imageSize, data);
+
+	RESTORE_METRICS_OP ();
 }
 
 void
@@ -1204,10 +1412,12 @@ glCompressedTextureImage1DEXT (GLuint texture, GLenum target, GLint level,
 			       GLint border, GLsizei imageSize,
 			       const GLvoid *bits)
 {
-	SWITCH_METRICS_OP (METRICS_OP_TEX_IMAGE);
+	SAVE_THEN_SWITCH_METRICS_OP (METRICS_OP_TEX_IMAGE);
 
 	GLWRAP_DEFER (glCompressedTextureImage1DEXT, texture, target, level,
 		      internalformat, width, border, imageSize, bits);
+
+	RESTORE_METRICS_OP ();
 }
 
 void
@@ -1216,10 +1426,12 @@ glCompressedTextureImage2DEXT (GLuint texture, GLenum target, GLint level,
 			       GLsizei height, GLint border,
 			       GLsizei imageSize, const GLvoid *bits)
 {
-	SWITCH_METRICS_OP (METRICS_OP_TEX_IMAGE);
+	SAVE_THEN_SWITCH_METRICS_OP (METRICS_OP_TEX_IMAGE);
 
 	GLWRAP_DEFER (glCompressedTextureImage2DEXT, texture, target, level,
 		      internalformat, width, height, border, imageSize, bits);
+
+	RESTORE_METRICS_OP ();
 }
 
 void
@@ -1228,11 +1440,13 @@ glCompressedTextureImage3DEXT (GLuint texture, GLenum target, GLint level,
 			       GLsizei height, GLsizei depth, GLint border,
 			       GLsizei imageSize, const GLvoid *bits)
 {
-	SWITCH_METRICS_OP (METRICS_OP_TEX_IMAGE);
+	SAVE_THEN_SWITCH_METRICS_OP (METRICS_OP_TEX_IMAGE);
 
 	GLWRAP_DEFER (glCompressedTextureImage3DEXT, texture, target,
 		      level, internalformat, width, height, depth,
 		      border, imageSize, bits);
+
+	RESTORE_METRICS_OP ();
 }
 
 void
@@ -1240,10 +1454,12 @@ glCompressedTextureSubImage1DEXT (GLuint texture, GLenum target, GLint level,
 				  GLint xoffset, GLsizei width, GLenum format,
 				  GLsizei imageSize, const GLvoid *bits)
 {
-	SWITCH_METRICS_OP (METRICS_OP_TEX_IMAGE);
+	SAVE_THEN_SWITCH_METRICS_OP (METRICS_OP_TEX_IMAGE);
 
 	GLWRAP_DEFER (glCompressedTextureSubImage1DEXT, texture, target,
 		      level, xoffset, width, format, imageSize, bits);
+
+	RESTORE_METRICS_OP ();
 }
 
 void
@@ -1252,10 +1468,12 @@ glCompressedTextureSubImage2DEXT (GLuint texture, GLenum target, GLint level,
 				  GLsizei height, GLenum format,
 				  GLsizei imageSize, const GLvoid *bits)
 {
-	SWITCH_METRICS_OP (METRICS_OP_TEX_IMAGE);
+	SAVE_THEN_SWITCH_METRICS_OP (METRICS_OP_TEX_IMAGE);
 
 	GLWRAP_DEFER (glCompressedTextureSubImage2DEXT, texture, target, level,
 		      xoffset, yoffset, width, height, format, imageSize, bits);
+
+	RESTORE_METRICS_OP ();
 }
 
 void
@@ -1265,11 +1483,13 @@ glCompressedTextureSubImage3DEXT (GLuint texture, GLenum target, GLint level,
 				  GLenum format, GLsizei imageSize,
 				  const GLvoid *bits)
 {
-	SWITCH_METRICS_OP (METRICS_OP_TEX_IMAGE);
+	SAVE_THEN_SWITCH_METRICS_OP (METRICS_OP_TEX_IMAGE);
 
 	GLWRAP_DEFER (glCompressedTextureSubImage3DEXT, texture, target,
 		      level, xoffset, yoffset, zoffset, width, height,
 		      depth, format, imageSize, bits);
+
+	RESTORE_METRICS_OP ();
 }
 
 void
@@ -1277,10 +1497,12 @@ glMultiTexImage1DEXT (GLenum texunit, GLenum target, GLint level,
 		      GLenum internalformat, GLsizei width, GLint border,
 		      GLenum format, GLenum type, const GLvoid *pixels)
 {
-	SWITCH_METRICS_OP (METRICS_OP_TEX_IMAGE);
+	SAVE_THEN_SWITCH_METRICS_OP (METRICS_OP_TEX_IMAGE);
 
 	GLWRAP_DEFER (glMultiTexImage1DEXT, texunit, target, level,
 		      internalformat, width, border, format, type, pixels);
+
+	RESTORE_METRICS_OP ();
 }
 
 void
@@ -1289,11 +1511,13 @@ glMultiTexImage2DEXT (GLenum texunit, GLenum target, GLint level,
 		      GLint border, GLenum format, GLenum type,
 		      const GLvoid *pixels)
 {
-	SWITCH_METRICS_OP (METRICS_OP_TEX_IMAGE);
+	SAVE_THEN_SWITCH_METRICS_OP (METRICS_OP_TEX_IMAGE);
 
 	GLWRAP_DEFER (glMultiTexImage2DEXT, texunit, target, level,
 		      internalformat, width, height, border, format,
 		      type, pixels);
+
+	RESTORE_METRICS_OP ();
 }
 
 void
@@ -1302,11 +1526,13 @@ glMultiTexImage3DEXT (GLenum texunit, GLenum target, GLint level,
 		      GLsizei depth, GLint border, GLenum format,
 		      GLenum type, const GLvoid *pixels)
 {
-	SWITCH_METRICS_OP (METRICS_OP_TEX_IMAGE);
+	SAVE_THEN_SWITCH_METRICS_OP (METRICS_OP_TEX_IMAGE);
 
 	GLWRAP_DEFER (glMultiTexImage3DEXT, texunit, target, level,
 		      internalformat, width, height, depth, border,
 		      format, type, pixels);
+
+	RESTORE_METRICS_OP ();
 }
 
 void
@@ -1314,10 +1540,12 @@ glMultiTexSubImage1DEXT (GLenum texunit, GLenum target, GLint level,
 			 GLint xoffset, GLsizei width, GLenum format,
 			 GLenum type, const GLvoid *pixels)
 {
-	SWITCH_METRICS_OP (METRICS_OP_TEX_IMAGE);
+	SAVE_THEN_SWITCH_METRICS_OP (METRICS_OP_TEX_IMAGE);
 
 	GLWRAP_DEFER (glMultiTexSubImage1DEXT, texunit, target, level,
 		      xoffset, width, format, type, pixels);
+
+	RESTORE_METRICS_OP ();
 }
 
 void
@@ -1326,10 +1554,12 @@ glMultiTexSubImage2DEXT (GLenum texunit, GLenum target, GLint level,
 			 GLsizei height, GLenum format, GLenum type,
 			 const GLvoid *pixels)
 {
-	SWITCH_METRICS_OP (METRICS_OP_TEX_IMAGE);
+	SAVE_THEN_SWITCH_METRICS_OP (METRICS_OP_TEX_IMAGE);
 
 	GLWRAP_DEFER (glMultiTexSubImage2DEXT, texunit, target, level, xoffset,
 		      yoffset, width, height, format, type, pixels);
+
+	RESTORE_METRICS_OP ();
 }
 
 void
@@ -1338,9 +1568,11 @@ glMultiTexSubImage3DEXT (GLenum texunit, GLenum target, GLint level,
 			 GLsizei width, GLsizei height, GLsizei depth,
 			 GLenum format, GLenum type, const GLvoid *pixels)
 {
-	SWITCH_METRICS_OP (METRICS_OP_TEX_IMAGE);
+	SAVE_THEN_SWITCH_METRICS_OP (METRICS_OP_TEX_IMAGE);
 
 	GLWRAP_DEFER (glMultiTexSubImage3DEXT, texunit, target, level,
 		      xoffset, yoffset, zoffset, width, height, depth,
 		      format, type, pixels);
+
+	RESTORE_METRICS_OP ();
 }

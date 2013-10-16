@@ -77,6 +77,12 @@ metrics_counter_stop (void);
 void
 metrics_set_current_op (metrics_op_t op);
 
+/* Return the current metrics_op_t value, (the value most-recently-set
+ * with a call to metrics_set_current_op).
+ */
+metrics_op_t
+metrics_get_current_op (void);
+
 /* Should be called at the end of every function wrapper for a
  * function that ends a frame, (glXSwapBuffers and similar).
  *
