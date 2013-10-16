@@ -33,28 +33,29 @@
 typedef struct counter
 {
 	unsigned id;
-	unsigned program;
+
+	metrics_op_t op;
 	struct counter *next;
 } counter_t;
 
-typedef struct program_metrics
+typedef struct op_metrics
 {
 	/* This happens to also be the index into the
-	 * ctx->program_metrics array currently
+	 * ctx->op_metrics array currently
 	 */
-	unsigned id;
+	metrics_op_t op;
 	double time_ns;
-} program_metrics_t;
+} op_metrics_t;
 
 typedef struct context
 {
-	unsigned int program;
+	metrics_op_t op;
 
 	counter_t *counter_head;
 	counter_t *counter_tail;
 
-	unsigned num_program_metrics;
-	program_metrics_t *program_metrics;
+	unsigned num_op_metrics;
+	op_metrics_t *op_metrics;
 } context_t;
 
 /* FIXME: Need a map from integers to context objects and track the
@@ -64,6 +65,51 @@ context_t current_context;
 
 int frames;
 int verbose;
+
+static const char *
+metrics_op_string (metrics_op_t op)
+{
+	if (op >= METRICS_OP_SHADER)
+		return "Shader program";
+
+	switch (op)
+	{
+	case METRICS_OP_ACCUM:
+		return "glAccum*(+)";
+	case METRICS_OP_BUFFER_DATA:
+		return "glBufferData(+)";
+	case METRICS_OP_BUFFER_SUB_DATA:
+		return "glCopyBufferSubData*";
+	case METRICS_OP_BITMAP:
+		return "glBitmap*";
+	case METRICS_OP_BLIT_FRAMEBUFFER:
+		return "glBlitFramebuffer*";
+	case METRICS_OP_CLEAR:
+		return "glClear(+)";
+	case METRICS_OP_CLEAR_BUFFER_DATA:
+		return "glCearBufferData(+)";
+	case METRICS_OP_CLEAR_TEX_IMAGE:
+		return "glClearTexImage(+)";
+	case METRICS_OP_COPY_PIXELS:
+		return "glCopyPixels";
+	case METRICS_OP_COPY_TEX_IMAGE:
+		return "glCopyTexImage(+)";
+	case METRICS_OP_DRAW_PIXELS:
+		return "glDrawPixels";
+	case METRICS_OP_GET_TEX_IMAGE:
+		return "glGetTexImage(+)";
+	case METRICS_OP_READ_PIXELS:
+		return "glReadPixels*";
+	case METRICS_OP_TEX_IMAGE:
+		return "glTexImage*(+)";
+	default:
+		fprintf (stderr, "Internal error: "
+			 "Unknown metrics op value: %d\n", op);
+		exit (1);
+	}
+
+	return "";
+}
 
 void
 metrics_counter_start (void)
@@ -78,7 +124,7 @@ metrics_counter_start (void)
 
 	glGenQueries (1, &counter->id);
 
-	counter->program = current_context.program;
+	counter->op = current_context.op;
 	counter->next = NULL;
 
 	if (current_context.counter_tail) {
@@ -99,29 +145,29 @@ metrics_counter_stop (void)
 }
 
 void
-metrics_set_current_program (unsigned program)
+metrics_set_current_op (metrics_op_t op)
 {
-	current_context.program = program;
+	current_context.op = op;
 }
 
 static void
-accumulate_program_time (unsigned program_id, unsigned time_ns)
+accumulate_program_time (metrics_op_t op, unsigned time_ns)
 {
 	context_t *ctx = &current_context;
 	unsigned i;
 
-	if (program_id >= ctx->num_program_metrics) {
-		ctx->program_metrics = realloc (ctx->program_metrics,
-						(program_id + 1) * sizeof (program_metrics_t));
-		for (i = ctx->num_program_metrics; i < program_id + 1; i++) {
-			ctx->program_metrics[i].id = i;
-			ctx->program_metrics[i].time_ns = 0.0;
+	if (op >= ctx->num_op_metrics) {
+		ctx->op_metrics = realloc (ctx->op_metrics,
+					   (op + 1) * sizeof (op_metrics_t));
+		for (i = ctx->num_op_metrics; i < op + 1; i++) {
+			ctx->op_metrics[i].op = i;
+			ctx->op_metrics[i].time_ns = 0.0;
 		}
 
-		ctx->num_program_metrics = program_id + 1;
+		ctx->num_op_metrics = op + 1;
 	}
 
-	ctx->program_metrics[program_id].time_ns += time_ns;
+	ctx->op_metrics[op].time_ns += time_ns;
 }
 
 static int
@@ -129,7 +175,7 @@ time_compare(const void *in_a, const void *in_b, void *arg)
 {
 	int a = *(const int *)in_a;
 	int b = *(const int *)in_b;
-	struct program_metrics *metrics = arg;
+	struct op_metrics *metrics = arg;
 
 	if (metrics[a].time_ns < metrics[b].time_ns)
 		return -1;
@@ -142,24 +188,24 @@ static void
 print_program_metrics (void)
 {
 	context_t *ctx = &current_context;
-	unsigned i;
-	int *sorted; /* Sorted indices into the ctx->program_metrics */
+	unsigned i, j;
+	int *sorted; /* Sorted indices into the ctx->op_metrics */
 	double total = 0;
 
-	/* Make a sorted list of the programs by time used, and figure
-	 * out to total so we can print percentages.
+	/* Make a sorted list of the operations by time used, and figure
+	 * out the total so we can print percentages.
 	 */
-	sorted = calloc(ctx->num_program_metrics, sizeof(*sorted));
-	for (i = 0; i < ctx->num_program_metrics; i++) {
+	sorted = calloc(ctx->num_op_metrics, sizeof(*sorted));
+	for (i = 0; i < ctx->num_op_metrics; i++) {
 		sorted[i] = i;
-		total += ctx->program_metrics[i].time_ns;
+		total += ctx->op_metrics[i].time_ns;
 	}
-	qsort_r(sorted, ctx->num_program_metrics, sizeof(*sorted),
-		time_compare, ctx->program_metrics);
+	qsort_r(sorted, ctx->num_op_metrics, sizeof(*sorted),
+		time_compare, ctx->op_metrics);
 
-	for (i = 0; i < ctx->num_program_metrics; i++) {
-		struct program_metrics *metric =
-			&ctx->program_metrics[sorted[i]];
+	for (i = 0; i < ctx->num_op_metrics; i++) {
+		const char *op_string;
+		op_metrics_t *metric =&ctx->op_metrics[sorted[i]];
 
 		/* Since we sparsely fill the array based on program
 		 * id, many "programs" have no time.
@@ -167,8 +213,18 @@ print_program_metrics (void)
 		if (metric->time_ns == 0.0)
 			continue;
 
-		printf ("Program %d:\t%7.2f ms (% 2.1f%%)\n",
-			metric->id, metric->time_ns / 1e6,
+		op_string = metrics_op_string (metric->op);
+
+		printf ("%s", op_string);
+		if (metric->op >= METRICS_OP_SHADER) {
+			printf (" %d:", metric->op - METRICS_OP_SHADER);
+		} else {
+			printf (":");
+			for (j = strlen (op_string); j < 20; j++)
+				printf (" ");
+		}
+		printf ("\t%7.2f ms (% 2.1f%%)\n",
+			metric->time_ns / 1e6,
 			metric->time_ns / total * 100);
 	}
 }
@@ -215,7 +271,7 @@ metrics_end_frame (void)
 
 		glGetQueryObjectuiv (counter->id, GL_QUERY_RESULT, &elapsed);
 
-		accumulate_program_time (counter->program, elapsed);
+		accumulate_program_time (counter->op, elapsed);
 
 		current_context.counter_head = counter->next;
 		if (current_context.counter_head == NULL)
