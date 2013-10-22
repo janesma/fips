@@ -392,12 +392,48 @@ time_compare(const void *in_a, const void *in_b, void *arg)
 }
 
 static void
+print_op_metrics (op_metrics_t *metric, double total)
+{
+	const char *op_string;
+	unsigned i;
+
+	/* Since we sparsely fill the array based on program
+	 * id, many "programs" have no time.
+	 */
+	if (metric->time_ns == 0.0)
+		return;
+
+	op_string = metrics_op_string (metric->op);
+
+	printf ("%s", op_string);
+	if (metric->op >= METRICS_OP_SHADER) {
+		printf (" %d:", metric->op - METRICS_OP_SHADER);
+	} else {
+		printf (":");
+		for (i = strlen (op_string); i < 20; i++)
+			printf (" ");
+	}
+
+	printf ("\t%7.2f ms (% 2.1f%%)",
+		metric->time_ns / 1e6,
+		metric->time_ns / total * 100);
+
+	printf ("[");
+	for (i = 0; i < metric->num_counters; i++) {
+		if (metric->counters[i] == 0.0)
+			continue;
+		printf ("%d: %.2f ms ", i, metric->counters[i] / 1e6);
+	}
+	printf ("]\n");
+}
+
+static void
 print_program_metrics (void)
 {
 	context_t *ctx = &current_context;
 	int *sorted; /* Sorted indices into the ctx->op_metrics */
 	double total = 0;
-	unsigned i, j;
+	unsigned i;
 
 	/* Make a sorted list of the operations by time used, and figure
 	 * out the total so we can print percentages.
@@ -410,37 +446,8 @@ print_program_metrics (void)
 	qsort_r(sorted, ctx->num_op_metrics, sizeof(*sorted),
 		time_compare, ctx->op_metrics);
 
-	for (i = 0; i < ctx->num_op_metrics; i++) {
-		const char *op_string;
-		op_metrics_t *metric =&ctx->op_metrics[sorted[i]];
-
-		/* Since we sparsely fill the array based on program
-		 * id, many "programs" have no time.
-		 */
-		if (metric->time_ns == 0.0)
-			continue;
-
-		op_string = metrics_op_string (metric->op);
-
-		printf ("%s", op_string);
-		if (metric->op >= METRICS_OP_SHADER) {
-			printf (" %d:", metric->op - METRICS_OP_SHADER);
-		} else {
-			printf (":");
-			for (j = strlen (op_string); j < 20; j++)
-				printf (" ");
-		}
-		printf ("\t%7.2f ms (% 2.1f%%)",
-			metric->time_ns / 1e6,
-			metric->time_ns / total * 100);
-		printf ("[");
-		for (j = 0; j < metric->num_counters; j++) {
-			if (metric->counters[j] == 0.0)
-				continue;
-			printf ("%d: %.2f ms ", j, metric->counters[j] / 1e6);
-		}
-		printf ("]\n");
-	}
+	for (i = 0; i < ctx->num_op_metrics; i++)
+		print_op_metrics (&ctx->op_metrics[sorted[i]], total);
 }
 
 /* Called at program exit */
