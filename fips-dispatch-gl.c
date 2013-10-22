@@ -138,19 +138,19 @@ PFNGLGETPERFMONITORCOUNTERSAMDPROC fips_dispatch_glGetPerfMonitorCountersAMD =
 	stub_glGetPerfMonitorCountersAMD;
 
 static void
-stub_glGetPerfMonitorGroupsStringAMD (GLuint group, GLsizei bufSize,
-				      GLsizei *length, GLchar *groupString)
+stub_glGetPerfMonitorGroupStringAMD (GLuint group, GLsizei bufSize,
+				     GLsizei *length, GLchar *groupString)
 {
 	check_initialized ();
-	resolve (fips_dispatch_glGetPerfMonitorGroupsStringAMD,
-		 "glGetPerfMonitorGroupsStringAMD");
-	fips_dispatch_glGetPerfMonitorGroupsStringAMD (group, bufSize, length,
-						       groupString);
+	resolve (fips_dispatch_glGetPerfMonitorGroupStringAMD,
+		 "glGetPerfMonitorGroupStringAMD");
+	fips_dispatch_glGetPerfMonitorGroupStringAMD (group, bufSize, length,
+						      groupString);
 }
 
 PFNGLGETPERFMONITORGROUPSTRINGAMDPROC
-fips_dispatch_glGetPerfMonitorGroupsStringAMD =
-	stub_glGetPerfMonitorGroupsStringAMD;
+fips_dispatch_glGetPerfMonitorGroupStringAMD =
+	stub_glGetPerfMonitorGroupStringAMD;
 
 static void
 stub_glGetPerfMonitorCounterStringAMD (GLuint group, GLuint counter,
