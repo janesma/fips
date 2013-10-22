@@ -113,7 +113,7 @@ glwrap_lookup (char *name)
 	ret = dlwrap_real_dlsym (gl_handle, name);
 
 	if (ret == NULL) {
-		fprintf (stderr, "Error: glwrap_lookup failed to dlsym %s\n",
+		fprintf (stderr, "fips: Error: glwrap_lookup failed to dlsym %s\n",
 			 name);
 		exit (1);
 	}

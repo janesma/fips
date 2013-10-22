@@ -77,7 +77,7 @@ main (int argc, char *argv[])
 		case '?':
 			break;
 		default:
-			fprintf(stderr, "Internal error: "
+			fprintf(stderr, "fips: Internal error: "
 				"unexpected getopt value: %d\n", opt);
 			exit (1);
 		}

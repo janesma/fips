@@ -86,7 +86,7 @@ get_bin_name (void *ctx)
 
 	name_len = readlink (link, name, name_len - 1);
 	if (name_len < 0) {
-		fprintf (stderr, "Failed to readlink %s: %s\n", link,
+		fprintf (stderr, "fips: Error: Failed to readlink %s: %s\n", link,
 			 strerror (errno));
 		exit (1);
 	}
@@ -176,31 +176,31 @@ elf_bits (const char *program)
 
 	fd = open (absolute_program, O_RDONLY, 0);
 	if (fd < 0) {
-		fprintf (stderr, "Failed to open %s: %s\n", absolute_program,
+		fprintf (stderr, "fips: Failed to open %s: %s\n", absolute_program,
 			 strerror (errno));
 		exit (1);
 	}
 
 	if (elf_version (EV_CURRENT ) == EV_NONE) {
-		fprintf (stderr, "Failed to initialize elf library: %s\n",
+		fprintf (stderr, "fips: Failed to initialize elf library: %s\n",
 			 elf_errmsg (-1));
 		exit (1);
 	}
 
 	elf = elf_begin (fd, ELF_C_READ, NULL);
 	if (elf == NULL) {
-		fprintf (stderr, "Call to elf_begin on %s failed: %s\n",
+		fprintf (stderr, "fips: Call to elf_begin on %s failed: %s\n",
 			 absolute_program, elf_errmsg(-1));
 		exit (1);
 	}
 
 	if (elf_kind (elf) != ELF_K_ELF) {
-		fprintf (stderr, "Not an ELF object: %s\n", absolute_program);
+		fprintf (stderr, "fips: Not an ELF object: %s\n", absolute_program);
 		exit (1);
 	}
 
 	if (gelf_getehdr (elf, &ehdr) == NULL) {
-		fprintf (stderr, "getehdr on %s failed: %s\n",
+		fprintf (stderr, "fips: getehdr on %s failed: %s\n",
 			 absolute_program, elf_errmsg (-1));
 		exit (1);
 	}
@@ -208,7 +208,7 @@ elf_bits (const char *program)
 	class = gelf_getclass (elf);
 
 	if (class == ELFCLASSNONE) {
-		fprintf (stderr, "getclass on %s failed: %s\n",
+		fprintf (stderr, "fips: getclass on %s failed: %s\n",
 			 absolute_program, elf_errmsg (-1));
 		exit (1);
 	}

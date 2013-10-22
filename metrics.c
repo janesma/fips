@@ -179,7 +179,7 @@ metrics_op_string (metrics_op_t op)
 	case METRICS_OP_TEX_IMAGE:
 		return "glTexImage*(+)";
 	default:
-		fprintf (stderr, "Internal error: "
+		fprintf (stderr, "fips: Internal error: "
 			 "Unknown metrics op value: %d\n", op);
 		exit (1);
 	}
