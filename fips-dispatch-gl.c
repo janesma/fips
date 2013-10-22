@@ -41,109 +41,69 @@ unsupported (const char *name)
 	exit (1);
 }
 
-static void
-resolve_glGenQueries (void)
-{
-	fips_dispatch_glGenQueries = fips_dispatch_lookup ("glGenQueries");
+#define resolve(dispatch, name)			\
+	dispatch = fips_dispatch_lookup (name); \
+	if (! dispatch)				\
+		unsupported (name);
 
-	if (! fips_dispatch_glGenQueries)
-		fips_dispatch_glGenQueries = fips_dispatch_lookup ("glGenQueriesARB");
-
-	if (! fips_dispatch_glGenQueries)
-		unsupported ("GenQueries");
-}
+#define resolve2(dispatch, name_a, name_b)		  \
+	dispatch = fips_dispatch_lookup (name_a);	  \
+	if (! dispatch)					  \
+		dispatch = fips_dispatch_lookup (name_b); \
+	if (! dispatch)					  \
+		unsupported (name_a);
 
 static void
 stub_glGenQueries (GLsizei n, GLuint *ids)
 {
 	check_initialized ();
-	resolve_glGenQueries ();
+	resolve2 (fips_dispatch_glGenQueries,
+		  "glGenQueries", "glGenQueriesARB")
 	fips_dispatch_glGenQueries (n, ids);
 }
 
 PFNGLGENQUERIESPROC fips_dispatch_glGenQueries = stub_glGenQueries;
 
 static void
-resolve_glDeleteQueries (void)
-{
-	fips_dispatch_glDeleteQueries = fips_dispatch_lookup ("glDeleteQueries");
-
-	if (! fips_dispatch_glDeleteQueries)
-		fips_dispatch_glDeleteQueries = fips_dispatch_lookup ("glDeleteQueriesARB");
-
-	if (! fips_dispatch_glDeleteQueries)
-		unsupported ("DeleteQueries");
-}
-
-static void
 stub_glDeleteQueries (GLsizei n, const GLuint * ids)
 {
 	check_initialized ();
-	resolve_glDeleteQueries ();
+	resolve2 (fips_dispatch_glDeleteQueries,
+		  "glDeleteQueries", "glDeleteQueriesARB");
 	fips_dispatch_glDeleteQueries (n, ids);
 }
 
 PFNGLDELETEQUERIESPROC fips_dispatch_glDeleteQueries = stub_glDeleteQueries;
 
 static void
-resolve_glBeginQuery (void)
-{
-	fips_dispatch_glBeginQuery = fips_dispatch_lookup ("glBeginQuery");
-
-	if (! fips_dispatch_glBeginQuery)
-		fips_dispatch_glBeginQuery = fips_dispatch_lookup ("glBeginQueryARB");
-
-	if (! fips_dispatch_glBeginQuery)
-		unsupported ("BeginQuery");
-}
-
-static void
 stub_glBeginQuery (GLenum target, GLuint id)
 {
 	check_initialized ();
-	resolve_glBeginQuery ();
+	resolve2 (fips_dispatch_glBeginQuery,
+		  "glBeginQuery", "glBeginQueryARB");
 	fips_dispatch_glBeginQuery (target, id);
 }
 
 PFNGLBEGINQUERYPROC fips_dispatch_glBeginQuery = stub_glBeginQuery;
 
 static void
-resolve_glEndQuery (void)
-{
-	fips_dispatch_glEndQuery = fips_dispatch_lookup ("glEndQuery");
-
-	if (! fips_dispatch_glEndQuery)
-		fips_dispatch_glEndQuery = fips_dispatch_lookup ("glEndQueryARB");
-
-	if (! fips_dispatch_glEndQuery)
-		unsupported ("EndQuery");
-}
-
-static void
 stub_glEndQuery (GLenum target)
 {
 	check_initialized ();
-	resolve_glEndQuery ();
+	resolve2 (fips_dispatch_glEndQuery, "glEndQuery", "glEndQueryARB");
 	fips_dispatch_glEndQuery (target);
 }
 
 PFNGLENDQUERYPROC fips_dispatch_glEndQuery = stub_glEndQuery;
 
 static void
-resolve_glGetQueryObjectuiv (void)
-{
-	fips_dispatch_glGetQueryObjectuiv = (PFNGLGETQUERYOBJECTUIVPROC) fips_dispatch_lookup ("glGetQueryObjectuivARB");
-
-	if (! fips_dispatch_glGetQueryObjectuiv)
-		unsupported ("GetQueryObjectuiv");
-}
-
-static void
 stub_glGetQueryObjectuiv (GLuint id, GLenum pname, GLuint * params)
 {
 	check_initialized ();
-	resolve_glGetQueryObjectuiv ();
+	resolve2 (fips_dispatch_glGetQueryObjectuiv,
+		  "glGetQueryObjectuiv", "glGetQueryObjectuivARB");
 	fips_dispatch_glGetQueryObjectuiv (id, pname, params);
 }
 
-PFNGLGETQUERYOBJECTUIVPROC fips_dispatch_glGetQueryObjectuiv = stub_glGetQueryObjectuiv;
+PFNGLGETQUERYOBJECTUIVPROC fips_dispatch_glGetQueryObjectuiv =
+	stub_glGetQueryObjectuiv;
