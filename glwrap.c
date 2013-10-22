@@ -97,6 +97,8 @@ glwrap_lookup (char *name)
 		const char *path;
 
 		path = getenv ("FIPS_LIBGL");
+		if (! path)
+			path = getenv ("GLAZE_LIBGL");
 		if (path) {
 			gl_handle = dlopen (path, RTLD_LAZY);
 
