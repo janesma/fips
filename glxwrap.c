@@ -88,6 +88,8 @@ glXMakeCurrent (Display *dpy, GLXDrawable drawable, GLXContext ctx)
 
 	GLWRAP_DEFER_WITH_RETURN (ret, glXMakeCurrent, dpy, drawable, ctx);
 
+	metrics_info_init ();
+
 	metrics_set_current_op (METRICS_OP_SHADER + 0);
 	metrics_counter_start ();
 
@@ -102,6 +104,8 @@ glXMakeContextCurrent (Display *dpy, GLXDrawable drawable, GLXDrawable read, GLX
 	fips_dispatch_init (FIPS_API_GLX);
 
 	GLWRAP_DEFER_WITH_RETURN (ret, glXMakeContextCurrent, dpy, drawable, read, ctx);
+
+	metrics_info_init ();
 
 	metrics_set_current_op (METRICS_OP_SHADER + 0);
 	metrics_counter_start ();

@@ -112,6 +112,8 @@ eglMakeCurrent (EGLDisplay display, EGLSurface draw, EGLSurface read,
 
 	EGLWRAP_DEFER_WITH_RETURN (ret, eglMakeCurrent, display, draw, read, context);
 
+	metrics_info_init ();
+
 	metrics_set_current_op (METRICS_OP_SHADER + 0);
 	metrics_counter_start ();
 

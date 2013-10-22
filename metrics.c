@@ -23,7 +23,7 @@
 
 #include <stdio.h>
 #include <stdlib.h>
-
+#include <assert.h>
 #include <sys/time.h>
 
 #include "fips-dispatch-gl.h"
@@ -31,13 +31,24 @@
 #include "metrics.h"
 #include "xmalloc.h"
 
-typedef struct counter
+/* Timer query */
+typedef struct timer_query
 {
 	unsigned id;
 
 	metrics_op_t op;
-	struct counter *next;
-} counter_t;
+	struct timer_query *next;
+} timer_query_t;
+
+/* Performance-monitor query */
+typedef struct monitor
+{
+	unsigned id;
+
+	metrics_op_t op;
+	struct monitor *next;
+} monitor_t;
+
 
 typedef struct op_metrics
 {
@@ -46,14 +57,37 @@ typedef struct op_metrics
 	 */
 	metrics_op_t op;
 	double time_ns;
+
+	double *counters;
+	unsigned num_counters;
 } op_metrics_t;
+
+typedef struct counter_group_info
+{
+	GLuint id;
+	GLint num_counters;
+	GLint max_active_counters;
+	GLuint *counters;
+} counter_group_info_t;
+
+typedef struct metrics_info
+{
+	int num_groups;
+	int max_counters_per_group;
+	counter_group_info_t *groups;
+} metrics_info_t;
 
 typedef struct context
 {
+	metrics_info_t metrics_info;
+
 	metrics_op_t op;
 
-	counter_t *counter_head;
-	counter_t *counter_tail;
+	timer_query_t *timer_head;
+	timer_query_t *timer_tail;
+
+	monitor_t *monitor_head;
+	monitor_t *monitor_tail;
 
 	unsigned num_op_metrics;
 	op_metrics_t *op_metrics;
@@ -66,6 +100,47 @@ context_t current_context;
 
 int frames;
 int verbose;
+
+void
+metrics_info_init (void)
+{
+	int i;
+	GLuint *group_ids;
+	metrics_info_t *metrics_info = &current_context.metrics_info;
+
+	glGetPerfMonitorGroupsAMD (&metrics_info->num_groups, 0, NULL);
+
+	group_ids = xmalloc (metrics_info->num_groups * sizeof (GLuint));
+
+	glGetPerfMonitorGroupsAMD (NULL, metrics_info->num_groups, group_ids);
+
+	metrics_info->max_counters_per_group = 0;
+
+	metrics_info->groups = xmalloc (metrics_info->num_groups * sizeof (counter_group_info_t));
+
+	for (i = 0; i < metrics_info->num_groups; i++)
+	{
+		counter_group_info_t *group;
+
+		group = &metrics_info->groups[i];
+
+		group->id = group_ids[i];
+
+		glGetPerfMonitorCountersAMD (group->id, &group->num_counters,
+					     &group->max_active_counters, 0, NULL);
+
+		group->counters = xmalloc (group->num_counters * sizeof (GLuint));
+
+		glGetPerfMonitorCountersAMD (group->id, NULL, NULL,
+					     group->num_counters,
+					     group->counters);
+
+		if (group->num_counters > metrics_info->max_counters_per_group)
+			metrics_info->max_counters_per_group = group->num_counters;
+	}
+
+	free (group_ids);
+}
 
 static const char *
 metrics_op_string (metrics_op_t op)
@@ -115,30 +190,78 @@ metrics_op_string (metrics_op_t op)
 void
 metrics_counter_start (void)
 {
-	counter_t *counter;
+	context_t *ctx = &current_context;
+	timer_query_t *timer;
+	monitor_t *monitor;
+	int i;
 
-	counter = xmalloc (sizeof(counter_t));
+	/* Create new timer query, add to list */
+	timer = xmalloc (sizeof (timer_query_t));
 
-	glGenQueries (1, &counter->id);
+	timer->op = ctx->op;
+	timer->next = NULL;
 
-	counter->op = current_context.op;
-	counter->next = NULL;
-
-	if (current_context.counter_tail) {
-		current_context.counter_tail->next = counter;
-		current_context.counter_tail = counter;
+	if (ctx->timer_tail) {
+		ctx->timer_tail->next = timer;
+		ctx->timer_tail = timer;
 	} else {
-		current_context.counter_tail = counter;
-		current_context.counter_head = counter;
+		ctx->timer_tail = timer;
+		ctx->timer_head = timer;
 	}
 
-	glBeginQuery (GL_TIME_ELAPSED, counter->id);
+	/* Create a new performance-monitor query */
+	monitor = xmalloc (sizeof (monitor_t));
+
+	monitor->op = ctx->op;
+	monitor->next = NULL;
+
+	if (ctx->monitor_tail) {
+		ctx->monitor_tail->next = monitor;
+		ctx->monitor_tail = monitor;
+	} else {
+		ctx->monitor_tail = monitor;
+		ctx->monitor_head = monitor;
+	}
+
+	/* Initialize the timer_query and monitor objects */
+	glGenQueries (1, &timer->id);
+
+	glGenPerfMonitorsAMD (1, &monitor->id);
+
+	for (i = 0; i < ctx->metrics_info.num_groups; i++)
+	{
+		counter_group_info_t *group;
+		int num_counters;
+
+		group = &ctx->metrics_info.groups[i];
+
+		num_counters = group->num_counters;
+		if (group->max_active_counters < group->num_counters)
+		{
+			fprintf (stderr, "Warning: Only monitoring %d/%d counters from group %d\n",
+				 group->max_active_counters,
+				 group->num_counters, i);
+			num_counters = group->max_active_counters;
+
+		}
+
+		glSelectPerfMonitorCountersAMD(monitor->id,
+					       GL_TRUE, group->id,
+					       num_counters,
+					       group->counters);
+	}
+
+	/* Start the queries */
+	glBeginQuery (GL_TIME_ELAPSED, timer->id);
+
+	glBeginPerfMonitorAMD (monitor->id);
 }
 
 void
 metrics_counter_stop (void)
 {
 	glEndQuery (GL_TIME_ELAPSED);
+	glEndPerfMonitorAMD (current_context.monitor_tail->id);
 }
 
 void
@@ -154,23 +277,104 @@ metrics_get_current_op (void)
 }
 
 static void
-accumulate_program_time (metrics_op_t op, unsigned time_ns)
+op_metrics_init (context_t *ctx, op_metrics_t *metrics, metrics_op_t op)
 {
-	context_t *ctx = &current_context;
+	metrics_info_t *info = &ctx->metrics_info;
 	unsigned i;
 
-	if (op >= ctx->num_op_metrics) {
+	metrics->op = op;
+	metrics->time_ns = 0.0;
+
+	metrics->num_counters = info->num_groups * info->max_counters_per_group;
+	metrics->counters = xmalloc (sizeof(double) * metrics->num_counters);
+
+	for (i = 0; i < metrics->num_counters; i++)
+		metrics->counters[i] = 0.0;
+}
+
+static op_metrics_t *
+ctx_get_op_metrics (context_t *ctx, metrics_op_t op)
+{
+	unsigned i;
+
+	if (op >= ctx->num_op_metrics)
+	{
 		ctx->op_metrics = realloc (ctx->op_metrics,
 					   (op + 1) * sizeof (op_metrics_t));
-		for (i = ctx->num_op_metrics; i < op + 1; i++) {
-			ctx->op_metrics[i].op = i;
-			ctx->op_metrics[i].time_ns = 0.0;
-		}
+		for (i = ctx->num_op_metrics; i < op + 1; i++)
+			op_metrics_init (ctx, &ctx->op_metrics[i], i);
 
 		ctx->num_op_metrics = op + 1;
 	}
 
-	ctx->op_metrics[op].time_ns += time_ns;
+	return &ctx->op_metrics[op];
+}
+
+static void
+accumulate_program_metrics (metrics_op_t op, GLuint *result, GLuint size)
+{
+#define CONSUME(var)							\
+	if (p + sizeof(var) > ((unsigned char *) result) + size)	\
+	{								\
+		fprintf (stderr, "Unexpected end-of-buffer while "	\
+			 "parsing results\n");				\
+		break;							\
+	}								\
+	(var) = *((typeof(var) *) p);					\
+	p += sizeof(var);
+
+	context_t *ctx = &current_context;
+	unsigned char *p = (unsigned char *) result;
+
+	while (p < ((unsigned char *) result) + size)
+	{
+		GLuint group_id, counter_id, counter_type;
+		uint32_t value;
+		unsigned i;
+
+		CONSUME (group_id);
+		CONSUME (counter_id);
+
+		glGetPerfMonitorCounterInfoAMD (group_id, counter_id,
+						GL_COUNTER_TYPE_AMD,
+						&counter_type);
+
+		/* We assume that all peformance counters are made
+		 * available as uint32 values. This code can easily be
+		 * extended as needed. */
+		if (counter_type != GL_UNSIGNED_INT) {
+			fprintf (stderr, "Warning: Non-uint counter value. Ignoring remainder of results\n");
+			break;
+		}
+
+		CONSUME (value);
+
+		i = (group_id * ctx->metrics_info.max_counters_per_group +
+		     counter_id);
+
+		assert (i < ctx->op_metrics[op].num_counters);
+
+		/* FIXME: While I'm still occasionally getting bogus
+		 * numbers from the performance counters, I'm simply
+		 * going to discard anything larger than half the
+		 * range, (something that looks like a negative signed
+		 * quantity).
+		 */
+		if (((int32_t) value) < 0)
+			fprintf (stderr, ".");
+		else
+			ctx->op_metrics[op].counters[i] += value;
+	}
+}
+
+static void
+accumulate_program_time (metrics_op_t op, unsigned time_ns)
+{
+	op_metrics_t *metrics;
+
+	metrics = ctx_get_op_metrics (&current_context, op);
+
+	metrics->time_ns += time_ns;
 }
 
 static int
@@ -191,9 +395,9 @@ static void
 print_program_metrics (void)
 {
 	context_t *ctx = &current_context;
-	unsigned i, j;
 	int *sorted; /* Sorted indices into the ctx->op_metrics */
 	double total = 0;
+	unsigned i, j;
 
 	/* Make a sorted list of the operations by time used, and figure
 	 * out the total so we can print percentages.
@@ -226,9 +430,16 @@ print_program_metrics (void)
 			for (j = strlen (op_string); j < 20; j++)
 				printf (" ");
 		}
-		printf ("\t%7.2f ms (% 2.1f%%)\n",
+		printf ("\t%7.2f ms (% 2.1f%%)",
 			metric->time_ns / 1e6,
 			metric->time_ns / total * 100);
+		printf ("[");
+		for (j = 0; j < metric->num_counters; j++) {
+			if (metric->counters[j] == 0.0)
+				continue;
+			printf ("%d: %.2f ms ", j, metric->counters[j] / 1e6);
+		}
+		printf ("]\n");
 	}
 }
 
@@ -261,29 +472,68 @@ metrics_end_frame (void)
 	frames++;
 	gettimeofday (&tv_now, NULL);
 
-	/* Consume all counters that are ready. */
-	counter_t *counter = current_context.counter_head;
+	/* Consume all timer queries that are ready. */
+	timer_query_t *timer = current_context.timer_head;
 
-	while (counter) {
+	while (timer) {
 		GLuint available, elapsed;
 
-		glGetQueryObjectuiv (counter->id, GL_QUERY_RESULT_AVAILABLE,
-				     &available);
+		glGetQueryObjectuiv (timer->id,
+				     GL_QUERY_RESULT_AVAILABLE, &available);
 		if (! available)
 			break;
 
-		glGetQueryObjectuiv (counter->id, GL_QUERY_RESULT, &elapsed);
+		glGetQueryObjectuiv (timer->id,
+				     GL_QUERY_RESULT, &elapsed);
 
-		accumulate_program_time (counter->op, elapsed);
+		accumulate_program_time (timer->op, elapsed);
 
-		current_context.counter_head = counter->next;
-		if (current_context.counter_head == NULL)
-			current_context.counter_tail = NULL;
+		current_context.timer_head = timer->next;
+		if (current_context.timer_head == NULL)
+			current_context.timer_tail = NULL;
 
-		glDeleteQueries (1, &counter->id);
+		glDeleteQueries (1, &timer->id);
 
-		free (counter);
-		counter = current_context.counter_head;
+		free (timer);
+		timer = current_context.timer_head;
+	}
+
+	/* And similarly for all performance monitors that are ready. */
+	monitor_t *monitor = current_context.monitor_head;
+
+	while (monitor) {
+		GLuint available, result_size, *result;
+		GLint bytes_written;
+
+		glGetPerfMonitorCounterDataAMD (monitor->id,
+						GL_PERFMON_RESULT_AVAILABLE_AMD,
+						sizeof (available), &available,
+						NULL);
+		if (! available)
+			break;
+
+		glGetPerfMonitorCounterDataAMD (monitor->id,
+						GL_PERFMON_RESULT_SIZE_AMD,
+						sizeof (result_size),
+						&result_size, NULL);
+
+		result = xmalloc (result_size);
+
+		glGetPerfMonitorCounterDataAMD (monitor->id,
+						GL_PERFMON_RESULT_AMD,
+						result_size, result,
+						&bytes_written);
+
+		accumulate_program_metrics (monitor->op, result, result_size);
+
+		current_context.monitor_head = monitor->next;
+		if (current_context.monitor_head == NULL)
+			current_context.monitor_tail = NULL;
+
+		glDeletePerfMonitorsAMD (1, &monitor->id);
+
+		free (monitor);
+		monitor = current_context.monitor_head;
 	}
 
 	if (frames % 60 == 0) {

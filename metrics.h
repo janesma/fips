@@ -50,6 +50,15 @@ typedef enum
 	METRICS_OP_SHADER
 } metrics_op_t;
 
+/* Initialize metrics info
+ *
+ * This queries the names and ranges for all available performance counters.
+ *
+ * This should be called once before any other metrics functions.
+ */
+void
+metrics_info_init (void);
+
 /* Start accumulating GPU time.
  *
  * The time accumulated will be accounted against the
