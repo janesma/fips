@@ -76,7 +76,8 @@ distclean: clean
 
 fips_srcs = \
 	execute.c \
-	fips.c
+	fips.c \
+	xmalloc.c
 
 fips_modules = $(fips_srcs:.c=.o)
 
@@ -94,7 +95,8 @@ libfips_srcs = \
 	fips-dispatch-gl.c \
 	glwrap.c \
 	glxwrap.c \
-	metrics.c
+	metrics.c \
+	xmalloc.c
 
 ifeq ($(HAVE_EGL),Yes)
 libfips_srcs += eglwrap.c

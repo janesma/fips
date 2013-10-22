@@ -29,6 +29,7 @@
 #include "fips-dispatch-gl.h"
 
 #include "metrics.h"
+#include "xmalloc.h"
 
 typedef struct counter
 {
@@ -116,11 +117,7 @@ metrics_counter_start (void)
 {
 	counter_t *counter;
 
-	counter = malloc (sizeof(counter_t));
-	if (counter == NULL) {
-		fprintf (stderr, "Out of memory\n");
-		exit (1);
-	}
+	counter = xmalloc (sizeof(counter_t));
 
 	glGenQueries (1, &counter->id);
 

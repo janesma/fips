@@ -36,6 +36,7 @@
 #include <gelf.h>
 
 #include "execute.h"
+#include "xmalloc.h"
 
 /* Terminate a string representing a filename at the final '/' to
  * eliminate the final filename component, (leaving only the directory
@@ -294,11 +295,7 @@ execute_with_fips_preload (int argc, char * const argv[])
 	char **execvp_args;
 	int i;
 
-	execvp_args = malloc((argc + 1) * sizeof(char *));
-	if (execvp_args == NULL) {
-		fprintf (stderr, "Out of memory,\n");
-		return 1;
-	}
+	execvp_args = xmalloc((argc + 1) * sizeof(char *));
 
 	for (i = 0; i < argc; i++) {
 		execvp_args[i] = argv[i];
