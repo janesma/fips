@@ -35,6 +35,21 @@
 #include <stdint.h>
 #include <stddef.h>
 
+#define GL_FALSE 0
+#define GL_TRUE	 1
+
+#define GL_BYTE					0x1400
+#define GL_UNSIGNED_BYTE			0x1401
+#define GL_SHORT				0x1402
+#define GL_UNSIGNED_SHORT			0x1403
+#define GL_INT					0x1404
+#define GL_UNSIGNED_INT				0x1405
+#define GL_FLOAT				0x1406
+#define GL_2_BYTES				0x1407
+#define GL_3_BYTES				0x1408
+#define GL_4_BYTES				0x1409
+#define GL_DOUBLE				0x140A
+
 typedef unsigned int GLenum;
 typedef unsigned int GLbitfield;
 typedef unsigned int GLuint;
@@ -69,6 +84,24 @@ typedef void (*PFNGLBEGINQUERYPROC)(GLenum, GLuint);
 typedef void (*PFNGLENDQUERYPROC)(GLenum);
 typedef void (*PFNGLGETQUERYOBJECTUIVPROC)(GLuint, GLenum, GLuint *);
 
+typedef void (*PFNGLGETPERFMONITORGROUPSAMDPROC)(GLint *, GLsizei, GLuint *);
+typedef void (*PFNGLGETPERFMONITORCOUNTERSAMDPROC)(GLuint, GLint *, GLint *,
+						   GLsizei, GLuint *);
+typedef void (*PFNGLGETPERFMONITORGROUPSTRINGAMDPROC)(GLuint, GLsizei,
+						      GLsizei *, GLchar *);
+typedef void (*PFNGLGETPERFMONITORCOUNTERSTRINGAMDPROC)(GLuint, GLuint,
+					      GLsizei, GLsizei *, GLchar *);
+typedef void (*PFNGLGETPERFMONITORCOUNTERINFOAMDPROC)(GLuint, GLuint,
+						      GLenum, GLvoid *);
+typedef void (*PFNGLGENPERFMONITORSAMDPROC)(GLsizei, GLuint *);
+typedef void (*PFNGLDELETEPERFMONITORSAMDPROC)(GLsizei, GLuint *);
+typedef void (*PFNGLSELECTPERFMONITORCOUNTERSAMDPROC)(GLuint, GLboolean,
+						      GLuint, GLint, GLuint *);
+typedef void (*PFNGLBEGINPERFMONITORAMDPROC)(GLuint);
+typedef void (*PFNGLENDPERFMONITORAMDPROC)(GLuint);
+typedef void (*PFNGLGETPERFMONITORCOUNTERDATAAMDPROC)(GLuint, GLenum,
+						      GLsizei, GLuint *, GLint *);
+
 #define GL_QUERY_RESULT 0x8866
 #define GL_QUERY_RESULT_AVAILABLE 0x8867
 #define GL_TIME_ELAPSED 0x88BF
@@ -87,5 +120,46 @@ extern PFNGLENDQUERYPROC fips_dispatch_glEndQuery;
 
 extern PFNGLGETQUERYOBJECTUIVPROC fips_dispatch_glGetQueryObjectuiv;
 #define glGetQueryObjectuiv fips_dispatch_glGetQueryObjectuiv
+
+#define GL_COUNTER_TYPE_AMD               0x8BC0
+#define GL_COUNTER_RANGE_AMD              0x8BC1
+#define GL_UNSIGNED_INT64_AMD             0x8BC2
+#define GL_PERCENTAGE_AMD                 0x8BC3
+#define GL_PERFMON_RESULT_AVAILABLE_AMD   0x8BC4
+#define GL_PERFMON_RESULT_SIZE_AMD        0x8BC5
+#define GL_PERFMON_RESULT_AMD             0x8BC6
+
+extern PFNGLGETPERFMONITORGROUPSAMDPROC fips_dispatch_glGetPerfMonitorGroupsAMD;
+#define glGetPerfMonitorGroupsAMD fips_dispatch_glGetPerfMonitorGroupsAMD
+
+extern PFNGLGETPERFMONITORCOUNTERSAMDPROC fips_dispatch_glGetPerfMonitorCountersAMD;
+#define glGetPerfMonitorCountersAMD fips_dispatch_glGetPerfMonitorCountersAMD
+
+extern PFNGLGETPERFMONITORGROUPSTRINGAMDPROC fips_dispatch_glGetPerfMonitorGroupsStringAMD;
+#define glGetPerfMonitorGroupsStringAMD fips_dispatch_glGetPerfMonitorGroupsStringAMD
+
+extern PFNGLGETPERFMONITORCOUNTERSTRINGAMDPROC fips_dispatch_glGetPerfMonitorCounterStringAMD;
+#define glGetPerfMonitorCounterStringAMD fips_dispatch_glGetPerfMonitorCounterStringAMD
+
+extern PFNGLGETPERFMONITORCOUNTERINFOAMDPROC fips_dispatch_glGetPerfMonitorCounterInfoAMD;
+#define glGetPerfMonitorCounterInfoAMD fips_dispatch_glGetPerfMonitorCounterInfoAMD
+
+extern PFNGLGENPERFMONITORSAMDPROC fips_dispatch_glGenPerfMonitorsAMD;
+#define glGenPerfMonitorsAMD fips_dispatch_glGenPerfMonitorsAMD
+
+extern PFNGLDELETEPERFMONITORSAMDPROC fips_dispatch_glDeletePerfMonitorsAMD;
+#define glDeletePerfMonitorsAMD fips_dispatch_glDeletePerfMonitorsAMD
+
+extern PFNGLSELECTPERFMONITORCOUNTERSAMDPROC fips_dispatch_glSelectPerfMonitorCountersAMD;
+#define glSelectPerfMonitorCountersAMD fips_dispatch_glSelectPerfMonitorCountersAMD
+
+extern PFNGLBEGINPERFMONITORAMDPROC fips_dispatch_glBeginPerfMonitorAMD;
+#define glBeginPerfMonitorAMD fips_dispatch_glBeginPerfMonitorAMD
+
+extern PFNGLENDPERFMONITORAMDPROC fips_dispatch_glEndPerfMonitorAMD;
+#define glEndPerfMonitorAMD fips_dispatch_glEndPerfMonitorAMD
+
+extern PFNGLGETPERFMONITORCOUNTERDATAAMDPROC fips_dispatch_glGetPerfMonitorCounterDataAMD;
+#define glGetPerfMonitorCounterDataAMD fips_dispatch_glGetPerfMonitorCounterDataAMD
 
 #endif /* FIPS_DISPATCH_GL_H */

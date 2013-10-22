@@ -107,3 +107,153 @@ stub_glGetQueryObjectuiv (GLuint id, GLenum pname, GLuint * params)
 
 PFNGLGETQUERYOBJECTUIVPROC fips_dispatch_glGetQueryObjectuiv =
 	stub_glGetQueryObjectuiv;
+
+static void
+stub_glGetPerfMonitorGroupsAMD (GLint *numGroups, GLsizei groupsSize,
+				GLuint *groups)
+{
+	check_initialized ();
+	resolve (fips_dispatch_glGetPerfMonitorGroupsAMD,
+		 "glGetPerfMonitorGroupsAMD");
+	fips_dispatch_glGetPerfMonitorGroupsAMD (numGroups, groupsSize, groups);
+}
+
+PFNGLGETPERFMONITORGROUPSAMDPROC fips_dispatch_glGetPerfMonitorGroupsAMD =
+	stub_glGetPerfMonitorGroupsAMD;
+
+static void
+stub_glGetPerfMonitorCountersAMD (GLuint group, GLint *numCounters,
+				  GLint *maxActiveCounters,
+				  GLsizei counterSize, GLuint *counters)
+{
+	check_initialized ();
+	resolve (fips_dispatch_glGetPerfMonitorCountersAMD,
+		 "glGetPerfMonitorCountersAMD");
+	fips_dispatch_glGetPerfMonitorCountersAMD (group, numCounters,
+						   maxActiveCounters,
+						   counterSize, counters);
+}
+
+PFNGLGETPERFMONITORCOUNTERSAMDPROC fips_dispatch_glGetPerfMonitorCountersAMD =
+	stub_glGetPerfMonitorCountersAMD;
+
+static void
+stub_glGetPerfMonitorGroupsStringAMD (GLuint group, GLsizei bufSize,
+				      GLsizei *length, GLchar *groupString)
+{
+	check_initialized ();
+	resolve (fips_dispatch_glGetPerfMonitorGroupsStringAMD,
+		 "glGetPerfMonitorGroupsStringAMD");
+	fips_dispatch_glGetPerfMonitorGroupsStringAMD (group, bufSize, length,
+						       groupString);
+}
+
+PFNGLGETPERFMONITORGROUPSTRINGAMDPROC
+fips_dispatch_glGetPerfMonitorGroupsStringAMD =
+	stub_glGetPerfMonitorGroupsStringAMD;
+
+static void
+stub_glGetPerfMonitorCounterStringAMD (GLuint group, GLuint counter,
+				       GLsizei bufSize, GLsizei *length,
+				       GLchar *counterString)
+{
+	check_initialized ();
+	resolve (fips_dispatch_glGetPerfMonitorCounterStringAMD,
+		 "glGetPerfMonitorCounterStringAMD");
+	fips_dispatch_glGetPerfMonitorCounterStringAMD (group, counter,
+							bufSize, length,
+							counterString);
+}
+
+PFNGLGETPERFMONITORCOUNTERSTRINGAMDPROC
+fips_dispatch_glGetPerfMonitorCounterStringAMD =
+	stub_glGetPerfMonitorCounterStringAMD;
+
+static void
+stub_glGetPerfMonitorCounterInfoAMD (GLuint group, GLuint counter, GLenum pname, GLvoid *data)
+{
+	check_initialized ();
+	resolve (fips_dispatch_glGetPerfMonitorCounterInfoAMD,
+		 "glGetPerfMonitorCounterInfoAMD");
+	fips_dispatch_glGetPerfMonitorCounterInfoAMD (group, counter,
+						      pname, data);
+}
+
+PFNGLGETPERFMONITORCOUNTERINFOAMDPROC
+fips_dispatch_glGetPerfMonitorCounterInfoAMD =
+	stub_glGetPerfMonitorCounterInfoAMD;
+
+static void
+stub_glGenPerfMonitorsAMD (GLsizei n, GLuint *monitors)
+{
+	check_initialized ();
+	resolve (fips_dispatch_glGenPerfMonitorsAMD, "glGenPerfMonitorsAMD");
+	fips_dispatch_glGenPerfMonitorsAMD (n, monitors);
+}
+
+PFNGLGENPERFMONITORSAMDPROC fips_dispatch_glGenPerfMonitorsAMD =
+	stub_glGenPerfMonitorsAMD;
+
+static void
+stub_glDeletePerfMonitorsAMD (GLsizei n, GLuint *monitors)
+{
+	check_initialized ();
+	resolve (fips_dispatch_glDeletePerfMonitorsAMD,
+		 "glDeletePerfMonitorsAMD");
+	fips_dispatch_glDeletePerfMonitorsAMD (n, monitors);
+}
+
+PFNGLDELETEPERFMONITORSAMDPROC fips_dispatch_glDeletePerfMonitorsAMD =
+	stub_glDeletePerfMonitorsAMD;
+
+static void
+stub_glSelectPerfMonitorCountersAMD (GLuint monitor, GLboolean enable,
+				     GLuint group, GLint numCounters,
+				     GLuint *counterList)
+{
+	check_initialized ();
+	resolve (fips_dispatch_glSelectPerfMonitorCountersAMD,
+		 "glSelectPerfMonitorCountersAMD");
+	fips_dispatch_glSelectPerfMonitorCountersAMD (monitor, enable, group,
+						      numCounters, counterList);
+}
+
+PFNGLSELECTPERFMONITORCOUNTERSAMDPROC
+fips_dispatch_glSelectPerfMonitorCountersAMD =
+	stub_glSelectPerfMonitorCountersAMD;
+
+static void
+stub_glBeginPerfMonitorAMD (GLuint monitor)
+{
+	check_initialized ();
+	resolve (fips_dispatch_glBeginPerfMonitorAMD, "glBeginPerfMonitorAMD");
+	fips_dispatch_glBeginPerfMonitorAMD (monitor);
+}
+
+PFNGLBEGINPERFMONITORAMDPROC fips_dispatch_glBeginPerfMonitorAMD =
+	stub_glBeginPerfMonitorAMD;
+
+static void
+stub_glEndPerfMonitorAMD (GLuint monitor)
+{
+	check_initialized ();
+	resolve (fips_dispatch_glEndPerfMonitorAMD, "glEndPerfMonitorAMD");
+	fips_dispatch_glEndPerfMonitorAMD (monitor);
+}
+
+PFNGLENDPERFMONITORAMDPROC fips_dispatch_glEndPerfMonitorAMD =
+	stub_glEndPerfMonitorAMD;
+
+static void
+stub_glGetPerfMonitorCounterDataAMD (GLuint monitor, GLenum pname, GLsizei dataSize, GLuint *data, GLint *bytesWritten)
+{
+	check_initialized ();
+	resolve (fips_dispatch_glGetPerfMonitorCounterDataAMD,
+		 "glGetPerfMonitorCounterDataAMD");
+	fips_dispatch_glGetPerfMonitorCounterDataAMD (monitor, pname, dataSize,
+						      data, bytesWritten);
+}
+
+PFNGLGETPERFMONITORCOUNTERDATAAMDPROC
+fips_dispatch_glGetPerfMonitorCounterDataAMD =
+	stub_glGetPerfMonitorCounterDataAMD;
