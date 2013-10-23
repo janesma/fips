@@ -192,25 +192,25 @@ metrics_info_init (void)
 {
 	unsigned i;
 	GLuint *group_ids;
-	metrics_info_t *metrics_info = &current_context.metrics_info;
+	metrics_info_t *info = &current_context.metrics_info;
 
-	if (metrics_info->initialized)
-		metrics_info_fini (metrics_info);
+	if (info->initialized)
+		metrics_info_fini (info);
 
-	glGetPerfMonitorGroupsAMD ((int *) &metrics_info->num_groups, 0, NULL);
+	glGetPerfMonitorGroupsAMD ((int *) &info->num_groups, 0, NULL);
 
-	group_ids = xmalloc (metrics_info->num_groups * sizeof (GLuint));
+	group_ids = xmalloc (info->num_groups * sizeof (GLuint));
 
-	glGetPerfMonitorGroupsAMD (NULL, metrics_info->num_groups, group_ids);
+	glGetPerfMonitorGroupsAMD (NULL, info->num_groups, group_ids);
 
-	metrics_info->groups = xmalloc (metrics_info->num_groups * sizeof (metrics_group_info_t));
+	info->groups = xmalloc (info->num_groups * sizeof (metrics_group_info_t));
 
-	for (i = 0; i < metrics_info->num_groups; i++)
-		metrics_group_info_init (&metrics_info->groups[i], group_ids[i]);
+	for (i = 0; i < info->num_groups; i++)
+		metrics_group_info_init (&info->groups[i], group_ids[i]);
 
 	free (group_ids);
 
-	metrics_info->initialized = 1;
+	info->initialized = 1;
 }
 
 static void
