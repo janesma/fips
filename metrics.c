@@ -58,23 +58,27 @@ typedef struct op_metrics
 	metrics_op_t op;
 	double time_ns;
 
-	double *counters;
-	unsigned num_counters;
+	double **counters;
 } op_metrics_t;
 
-typedef struct counter_group_info
+typedef struct metrics_group_info
 {
 	GLuint id;
-	GLint num_counters;
-	GLint max_active_counters;
+	char *name;
+
+	GLuint num_counters;
+	GLuint max_active_counters;
+
 	GLuint *counters;
-} counter_group_info_t;
+	char **counter_names;
+	GLuint *counter_types;
+
+} metrics_group_info_t;
 
 typedef struct metrics_info
 {
-	int num_groups;
-	int max_counters_per_group;
-	counter_group_info_t *groups;
+	unsigned num_groups;
+	metrics_group_info_t *groups;
 } metrics_info_t;
 
 typedef struct context
@@ -101,43 +105,85 @@ context_t current_context;
 int frames;
 int verbose;
 
+static void
+metrics_group_info_init (metrics_group_info_t *group, GLuint id)
+{
+	GLsizei length;
+	unsigned i;
+
+	group->id = id;
+
+	/* Get name */
+	glGetPerfMonitorGroupStringAMD (id, 0, &length, NULL);
+
+	group->name = xmalloc (length + 1);
+
+	glGetPerfMonitorGroupStringAMD (id, length + 1, NULL, group->name);
+
+	/* Get number of counters */
+	group->num_counters = 0;
+	group->max_active_counters = 0;
+	glGetPerfMonitorCountersAMD (group->id,
+				     (int *) &group->num_counters,
+				     (int *) &group->max_active_counters,
+				     0, NULL);
+
+	/* Get counter numbers */
+	group->counters = xmalloc (group->num_counters * sizeof (GLuint));
+
+	glGetPerfMonitorCountersAMD (group->id, NULL, NULL,
+				     group->num_counters,
+				     group->counters);
+
+	/* Get counter names */
+	group->counter_names = xmalloc (group->num_counters * sizeof (char *));
+	group->counter_types = xmalloc (group->num_counters * sizeof (GLuint));
+
+	for (i = 0; i < group->num_counters; i++) {
+		glGetPerfMonitorCounterInfoAMD (group->id,
+						group->counters[i],
+						GL_COUNTER_TYPE_AMD,
+						&group->counter_types[i]);
+
+		/* We assume that all peformance counters are made
+		 * available as uint32 values. The code calling
+		 * CONSUME in accumulate_program_metrics will need to
+		 * be extended to accomodate other counter values. */
+		if (group->counter_types[i] != GL_UNSIGNED_INT) {
+			fprintf (stderr, "fips: Internal error: No support for non-uint counter values\n");
+			exit (1);
+		}
+
+		glGetPerfMonitorCounterStringAMD (group->id,
+						  group->counters[i],
+						  0, &length, NULL);
+
+		group->counter_names[i] = xmalloc (length + 1);
+
+		glGetPerfMonitorCounterStringAMD (group->id,
+						  group->counters[i],
+						  length + 1, NULL,
+						  group->counter_names[i]);
+	}
+}
+
 void
 metrics_info_init (void)
 {
-	int i;
+	unsigned i;
 	GLuint *group_ids;
 	metrics_info_t *metrics_info = &current_context.metrics_info;
 
-	glGetPerfMonitorGroupsAMD (&metrics_info->num_groups, 0, NULL);
+	glGetPerfMonitorGroupsAMD ((int *) &metrics_info->num_groups, 0, NULL);
 
 	group_ids = xmalloc (metrics_info->num_groups * sizeof (GLuint));
 
 	glGetPerfMonitorGroupsAMD (NULL, metrics_info->num_groups, group_ids);
 
-	metrics_info->max_counters_per_group = 0;
-
-	metrics_info->groups = xmalloc (metrics_info->num_groups * sizeof (counter_group_info_t));
+	metrics_info->groups = xmalloc (metrics_info->num_groups * sizeof (metrics_group_info_t));
 
 	for (i = 0; i < metrics_info->num_groups; i++)
-	{
-		counter_group_info_t *group;
-
-		group = &metrics_info->groups[i];
-
-		group->id = group_ids[i];
-
-		glGetPerfMonitorCountersAMD (group->id, &group->num_counters,
-					     &group->max_active_counters, 0, NULL);
-
-		group->counters = xmalloc (group->num_counters * sizeof (GLuint));
-
-		glGetPerfMonitorCountersAMD (group->id, NULL, NULL,
-					     group->num_counters,
-					     group->counters);
-
-		if (group->num_counters > metrics_info->max_counters_per_group)
-			metrics_info->max_counters_per_group = group->num_counters;
-	}
+		metrics_group_info_init (&metrics_info->groups[i], i);
 
 	free (group_ids);
 }
@@ -193,7 +239,7 @@ metrics_counter_start (void)
 	context_t *ctx = &current_context;
 	timer_query_t *timer;
 	monitor_t *monitor;
-	int i;
+	unsigned i;
 
 	/* Create new timer query, add to list */
 	timer = xmalloc (sizeof (timer_query_t));
@@ -230,7 +276,7 @@ metrics_counter_start (void)
 
 	for (i = 0; i < ctx->metrics_info.num_groups; i++)
 	{
-		counter_group_info_t *group;
+		metrics_group_info_t *group;
 		int num_counters;
 
 		group = &ctx->metrics_info.groups[i];
@@ -280,16 +326,19 @@ static void
 op_metrics_init (context_t *ctx, op_metrics_t *metrics, metrics_op_t op)
 {
 	metrics_info_t *info = &ctx->metrics_info;
-	unsigned i;
+	unsigned i, j;
 
 	metrics->op = op;
 	metrics->time_ns = 0.0;
 
-	metrics->num_counters = info->num_groups * info->max_counters_per_group;
-	metrics->counters = xmalloc (sizeof(double) * metrics->num_counters);
+	metrics->counters = xmalloc (sizeof(double *) * info->num_groups);
 
-	for (i = 0; i < metrics->num_counters; i++)
-		metrics->counters[i] = 0.0;
+	for (i = 0; i < info->num_groups; i++) {
+		metrics->counters[i] = xmalloc (sizeof (double) *
+						info->groups[i].num_counters);
+		for (j = 0; j < info->groups[i].num_counters; j++)
+			metrics->counters[i][j] = 0.0;
+	}
 }
 
 static op_metrics_t *
@@ -328,42 +377,26 @@ accumulate_program_metrics (metrics_op_t op, GLuint *result, GLuint size)
 
 	while (p < ((unsigned char *) result) + size)
 	{
-		GLuint group_id, counter_id, counter_type;
+		GLuint group_id, counter_id, counter_index;
+		metrics_group_info_t *group;
 		uint32_t value;
 		unsigned i;
 
 		CONSUME (group_id);
 		CONSUME (counter_id);
-
-		glGetPerfMonitorCounterInfoAMD (group_id, counter_id,
-						GL_COUNTER_TYPE_AMD,
-						&counter_type);
-
-		/* We assume that all peformance counters are made
-		 * available as uint32 values. This code can easily be
-		 * extended as needed. */
-		if (counter_type != GL_UNSIGNED_INT) {
-			fprintf (stderr, "Warning: Non-uint counter value. Ignoring remainder of results\n");
-			break;
-		}
-
 		CONSUME (value);
 
-		i = (group_id * ctx->metrics_info.max_counters_per_group +
-		     counter_id);
+		assert (group_id < ctx->metrics_info.num_groups);
+		group = &ctx->metrics_info.groups[group_id];
 
-		assert (i < ctx->op_metrics[op].num_counters);
+		for (i = 0; i < group->num_counters; i++) {
+			if (group->counters[i] == counter_id)
+				break;
+		}
+		counter_index = i;
+		assert (counter_index < group->num_counters);
 
-		/* FIXME: While I'm still occasionally getting bogus
-		 * numbers from the performance counters, I'm simply
-		 * going to discard anything larger than half the
-		 * range, (something that looks like a negative signed
-		 * quantity).
-		 */
-		if (((int32_t) value) < 0)
-			fprintf (stderr, ".");
-		else
-			ctx->op_metrics[op].counters[i] += value;
+		ctx->op_metrics[op].counters[group_id][counter_index] += value;
 	}
 }
 
@@ -392,10 +425,13 @@ time_compare(const void *in_a, const void *in_b, void *arg)
 }
 
 static void
-print_op_metrics (op_metrics_t *metric, double total)
+print_op_metrics (context_t *ctx, op_metrics_t *metric, double total)
 {
+	metrics_info_t *info = &ctx->metrics_info;
+	metrics_group_info_t *group;
 	const char *op_string;
-	unsigned i;
+	unsigned i, group_id, counter;
+	double value;
 
 	/* Since we sparsely fill the array based on program
 	 * id, many "programs" have no time.
@@ -419,10 +455,15 @@ print_op_metrics (op_metrics_t *metric, double total)
 		metric->time_ns / total * 100);
 
 	printf ("[");
-	for (i = 0; i < metric->num_counters; i++) {
-		if (metric->counters[i] == 0.0)
-			continue;
-		printf ("%d: %.2f ms ", i, metric->counters[i] / 1e6);
+	for (group_id = 0; group_id < info->num_groups; group_id++) {
+		group = &info->groups[group_id];
+		for (counter = 0; counter < group->num_counters; counter++) {
+			value = metric->counters[group_id][counter];
+			if (value == 0.0)
+				continue;
+			printf ("%s: %.2f ", group->counter_names[counter],
+				value / 1e6);
+		}
 	}
 	printf ("]\n");
 }
@@ -447,7 +488,7 @@ print_program_metrics (void)
 		time_compare, ctx->op_metrics);
 
 	for (i = 0; i < ctx->num_op_metrics; i++)
-		print_op_metrics (&ctx->op_metrics[sorted[i]], total);
+		print_op_metrics (ctx, &ctx->op_metrics[sorted[i]], total);
 }
 
 /* Called at program exit */
