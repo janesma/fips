@@ -489,6 +489,8 @@ print_program_metrics (void)
 
 	for (i = 0; i < ctx->num_op_metrics; i++)
 		print_op_metrics (ctx, &ctx->op_metrics[sorted[i]], total);
+
+	free (sorted);
 }
 
 /* Called at program exit */
@@ -573,6 +575,8 @@ metrics_end_frame (void)
 						&bytes_written);
 
 		accumulate_program_metrics (monitor->op, result, result_size);
+
+		free (result);
 
 		current_context.monitor_head = monitor->next;
 		if (current_context.monitor_head == NULL)
