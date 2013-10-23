@@ -77,6 +77,8 @@ typedef struct metrics_group_info
 
 typedef struct metrics_info
 {
+	int initialized;
+
 	unsigned num_groups;
 	metrics_group_info_t *groups;
 } metrics_info_t;
@@ -167,12 +169,33 @@ metrics_group_info_init (metrics_group_info_t *group, GLuint id)
 	}
 }
 
+static void
+metrics_group_info_fini (metrics_group_info_t *group)
+{
+	unsigned i;
+
+	for (i = 0; i < group->num_counters; i++)
+		free (group->counter_names[i]);
+
+	free (group->counter_types);
+	free (group->counter_names);
+	free (group->counters);
+
+	free (group->name);
+}
+
+static void
+metrics_info_fini (metrics_info_t *info);
+
 void
 metrics_info_init (void)
 {
 	unsigned i;
 	GLuint *group_ids;
 	metrics_info_t *metrics_info = &current_context.metrics_info;
+
+	if (metrics_info->initialized)
+		metrics_info_fini (metrics_info);
 
 	glGetPerfMonitorGroupsAMD ((int *) &metrics_info->num_groups, 0, NULL);
 
@@ -186,6 +209,19 @@ metrics_info_init (void)
 		metrics_group_info_init (&metrics_info->groups[i], i);
 
 	free (group_ids);
+
+	metrics_info->initialized = 1;
+}
+
+static void
+metrics_info_fini (metrics_info_t *info)
+{
+	unsigned i;
+
+	for (i = 0; i < info->num_groups; i++)
+		metrics_group_info_fini (&info->groups[i]);
+
+	free (info->groups);
 }
 
 static const char *
@@ -499,6 +535,8 @@ metrics_exit (void)
 {
 	if (verbose)
 		printf ("fips: terminating\n");
+
+	metrics_info_fini (&current_context.metrics_info);
 }
 
 
