@@ -75,12 +75,28 @@ typedef struct metrics_group_info
 
 } metrics_group_info_t;
 
+typedef struct shader_stage_info
+{
+	char *name;
+
+	GLuint active_group_index;
+	GLuint active_counter_index;
+
+	GLuint stall_group_index;
+	GLuint stall_counter_index;
+
+} shader_stage_info_t;
+
 typedef struct metrics_info
 {
 	int initialized;
 
 	unsigned num_groups;
 	metrics_group_info_t *groups;
+
+	unsigned num_shader_stages;
+	shader_stage_info_t *stages;
+
 } metrics_info_t;
 
 typedef struct context
@@ -187,10 +203,74 @@ metrics_group_info_fini (metrics_group_info_t *group)
 static void
 metrics_info_fini (metrics_info_t *info);
 
+/* A helper function, part of metrics_info_init below. */
+
+typedef enum {
+	SHADER_ACTIVE,
+	SHADER_STALL
+} shader_phase_t;
+
+static void
+_add_shader_stage (metrics_info_t *info, const char *name,
+		   GLuint group_index, GLuint counter_index,
+		   shader_phase_t phase)
+{
+	shader_stage_info_t *stage;
+	char *stage_name, *space;
+	unsigned i;
+
+	stage_name = xstrdup (name);
+
+	/* Terminate the stage name at the first space.
+	 *
+	 * This is valid for counter names such as:
+	 *
+	 *	"Vertex Shader Active Time"
+	 * or
+	 *	"Vertex Shader Stall Time - Core Stall"
+	 */
+	space = strchr (stage_name, ' ');
+	if (space)
+		*space = '\0';
+
+	/* Look for an existing stage of the given name. */
+	stage = NULL;
+
+	for (i = 0; i < info->num_shader_stages; i++) {
+		if (strcmp (info->stages[i].name, stage_name) == 0) {
+			stage = &info->stages[i];
+			break;
+		}
+	}
+
+	if (stage == NULL) {
+		info->num_shader_stages++;
+		info->stages = xrealloc (info->stages,
+					 info->num_shader_stages *
+					 sizeof (shader_stage_info_t));
+		stage = &info->stages[info->num_shader_stages - 1];
+		stage->name = xstrdup (stage_name);
+		stage->active_group_index = 0;
+		stage->active_counter_index = 0;
+		stage->stall_group_index = 0;
+		stage->stall_counter_index = 0;
+	}
+
+	if (phase == SHADER_ACTIVE) {
+		stage->active_group_index = group_index;
+		stage->active_counter_index = counter_index;
+	} else {
+		stage->stall_group_index = group_index;
+		stage->stall_counter_index = counter_index;
+	}
+
+	free (stage_name);
+}
+
 void
 metrics_info_init (void)
 {
-	unsigned i;
+	unsigned i, j;
 	GLuint *group_ids;
 	metrics_info_t *info = &current_context.metrics_info;
 
@@ -210,6 +290,28 @@ metrics_info_init (void)
 
 	free (group_ids);
 
+	/* Identify each shader stage (by looking at
+	 * performance-counter names for specific patterns) and
+	 * initialize structures referring to the corresponding
+	 * counter numbers for each stage. */
+	info->num_shader_stages = 0;
+	info->stages = NULL;
+
+	for (i = 0; i < info->num_groups; i++) {
+		metrics_group_info_t *group = &info->groups[i];
+		for (j = 0; j < group->num_counters; j++) {
+			char *name = group->counter_names[j];
+			if (strstr (name, "Shader Active Time")) {
+				_add_shader_stage (info, name, i, j,
+						   SHADER_ACTIVE);
+			}
+			if (strstr (name, "Shader Stall Time")) {
+				_add_shader_stage (info, name, i, j,
+						   SHADER_STALL);
+			}
+		}
+	}
+
 	info->initialized = 1;
 }
 
@@ -222,6 +324,11 @@ metrics_info_fini (metrics_info_t *info)
 		metrics_group_info_fini (&info->groups[i]);
 
 	free (info->groups);
+
+	for (i = 0; i < info->num_shader_stages; i++)
+		free (info->stages[i].name);
+
+	free (info->stages);
 }
 
 static const char *
@@ -453,54 +560,95 @@ accumulate_program_time (metrics_op_t op, unsigned time_ns)
 	metrics->time_ns += time_ns;
 }
 
-static int
-time_compare(const void *in_a, const void *in_b, void *arg)
+typedef struct per_stage_metrics
 {
-	int a = *(const int *)in_a;
-	int b = *(const int *)in_b;
-	struct op_metrics *metrics = arg;
+	op_metrics_t *metrics;
+	shader_stage_info_t *stage;
+	double time_ns;
+	double active;
+} per_stage_metrics_t;
 
-	if (metrics[a].time_ns < metrics[b].time_ns)
-		return -1;
-	if (metrics[a].time_ns > metrics[b].time_ns)
-		return 1;
+static int
+_is_shader_stage_counter (metrics_info_t *info,
+			  unsigned group_index,
+			  unsigned counter_index)
+{
+	shader_stage_info_t *stage;
+	unsigned i;
+
+	for (i = 0; i < info->num_shader_stages; i++) {
+		stage = &info->stages[i];
+
+		if (stage->active_group_index == group_index &&
+		    stage->active_counter_index == counter_index)
+		{
+			return 1;
+		}
+
+		if (stage->stall_group_index == group_index &&
+		    stage->stall_counter_index == counter_index)
+		{
+			return 1;
+		}
+	}
+
 	return 0;
 }
 
 static void
-print_op_metrics (context_t *ctx, op_metrics_t *metric, double total)
+print_per_stage_metrics (context_t *ctx,
+			 per_stage_metrics_t *per_stage,
+			 double total)
 {
 	metrics_info_t *info = &ctx->metrics_info;
+	op_metrics_t *metric = per_stage->metrics;
 	metrics_group_info_t *group;
 	const char *op_string;
-	unsigned i, group_index, counter;
+	unsigned group_index, counter;
 	double value;
 
-	/* Since we sparsely fill the array based on program
-	 * id, many "programs" have no time.
-	 */
-	if (metric->time_ns == 0.0)
+	/* Don't print anything for stages with no alloted time. */
+	if (per_stage->time_ns == 0.0)
 		return;
 
 	op_string = metrics_op_string (metric->op);
 
-	printf ("%s", op_string);
-	if (metric->op >= METRICS_OP_SHADER) {
-		printf (" %d:", metric->op - METRICS_OP_SHADER);
-	} else {
-		printf (":");
-		for (i = strlen (op_string); i < 20; i++)
-			printf (" ");
-	}
+	printf ("%21s", op_string);
 
-	printf ("\t%7.2f ms (% 2.1f%%)",
-		metric->time_ns / 1e6,
-		metric->time_ns / total * 100);
+	if (metric->op >= METRICS_OP_SHADER) {
+		printf (" %3d", metric->op - METRICS_OP_SHADER);
+	} else {
+		printf ("    ");
+
+	}
+	printf (" %cS:", per_stage->stage->name[0]);
+
+	printf ("\t%7.2f ms (%4.1f%%)",
+		per_stage->time_ns / 1e6,
+		per_stage->time_ns / total * 100);
+
+	if (per_stage->active)
+		printf (", %4.1f%% active", per_stage->active * 100);
+
+	printf ("\n");
+
+	/* I'm not seeing a lot of value printing the rest of these
+	 * performance counters by default yet. Use --verbose to get
+	 * them for now. */
+	if (! verbose)
+		return;
 
 	printf ("[");
 	for (group_index = 0; group_index < info->num_groups; group_index++) {
 		group = &info->groups[group_index];
 		for (counter = 0; counter < group->num_counters; counter++) {
+
+			/* Don't print this counter value if it's a
+			 * per-stage cycle counter, (which we have
+			 * already accounted for). */
+			if (_is_shader_stage_counter (info, group_index, counter))
+				continue;
+
 			value = metric->counters[group_index][counter];
 			if (value == 0.0)
 				continue;
@@ -511,27 +659,97 @@ print_op_metrics (context_t *ctx, op_metrics_t *metric, double total)
 	printf ("]\n");
 }
 
+static int
+time_compare(const void *in_a, const void *in_b, void *arg unused)
+{
+	const per_stage_metrics_t *a = in_a;
+	const per_stage_metrics_t *b = in_b;
+
+
+	if (a->time_ns < b->time_ns)
+		return -1;
+	if (a->time_ns > b->time_ns)
+		return 1;
+	return 0;
+}
+
 static void
 print_program_metrics (void)
 {
 	context_t *ctx = &current_context;
-	int *sorted; /* Sorted indices into the ctx->op_metrics */
-	double total = 0;
-	unsigned i;
+	metrics_info_t *info = &ctx->metrics_info;
+	unsigned num_shader_stages = info->num_shader_stages;
+	per_stage_metrics_t *sorted, *per_stage;
+	double total_time, op_cycles;
+	op_metrics_t *op;
+	unsigned group_index, counter_index;
+	unsigned i, j, num_sorted;
 
-	/* Make a sorted list of the operations by time used, and figure
-	 * out the total so we can print percentages.
+	/* Make a sorted list of the per-stage operations by time
+	 * used, and figure out the total so we can print percentages.
 	 */
-	sorted = calloc(ctx->num_op_metrics, sizeof(*sorted));
-	for (i = 0; i < ctx->num_op_metrics; i++) {
-		sorted[i] = i;
-		total += ctx->op_metrics[i].time_ns;
-	}
-	qsort_r(sorted, ctx->num_op_metrics, sizeof(*sorted),
-		time_compare, ctx->op_metrics);
+	num_sorted = ctx->num_op_metrics * num_shader_stages;
 
-	for (i = 0; i < ctx->num_op_metrics; i++)
-		print_op_metrics (ctx, &ctx->op_metrics[sorted[i]], total);
+	sorted = xmalloc (sizeof (*sorted) * num_sorted);
+
+	total_time = 0.0;
+
+	for (i = 0; i < ctx->num_op_metrics; i++) {
+
+		op = &ctx->op_metrics[i];
+
+		/* Accumulate total time across all ops. */
+		total_time += op->time_ns;
+
+		/* Also, find total cycles in all stages of this op. */
+		op_cycles = 0.0;
+
+		for (j = 0; j < num_shader_stages; j++) {
+			/* Active cycles */
+			group_index = info->stages[j].active_group_index;
+			counter_index = info->stages[j].active_counter_index;
+			op_cycles += op->counters[group_index][counter_index];
+
+			/* Stall cycles */
+			group_index = info->stages[j].stall_group_index;
+			counter_index = info->stages[j].stall_counter_index;
+			op_cycles += op->counters[group_index][counter_index];
+		}
+
+		for (j = 0; j < num_shader_stages; j++) {
+			double active_cycles, stall_cycles, stage_cycles;
+
+			/* Active cycles */
+			group_index = info->stages[j].active_group_index;
+			counter_index = info->stages[j].active_counter_index;
+			active_cycles = op->counters[group_index][counter_index];
+
+			/* Stall cycles */
+			group_index = info->stages[j].stall_group_index;
+			counter_index = info->stages[j].stall_counter_index;
+			stall_cycles = op->counters[group_index][counter_index];
+
+			stage_cycles = active_cycles + stall_cycles;
+
+			per_stage = &sorted[i * num_shader_stages + j];
+			per_stage->metrics = op;
+			per_stage->stage = &info->stages[j];
+			if (op_cycles)
+				per_stage->time_ns = op->time_ns * (stage_cycles / op_cycles);
+			else
+				per_stage->time_ns = 0.0;
+			if (stage_cycles)
+				per_stage->active = active_cycles / stage_cycles;
+			else
+				per_stage->active = 0.0;
+		}
+	}
+
+	qsort_r (sorted, num_sorted, sizeof (*sorted),
+		 time_compare, ctx->op_metrics);
+
+	for (i = 0; i < num_sorted; i++)
+		print_per_stage_metrics (ctx, &sorted[i], total_time);
 
 	free (sorted);
 }
@@ -560,9 +778,6 @@ metrics_end_frame (void)
 			verbose = 1;
 		initialized = 1;
 	}
-
-	if (verbose)
-		printf ("fips: frame %d complete\n", frames);
 
 	frames++;
 	gettimeofday (&tv_now, NULL);

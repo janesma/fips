@@ -21,6 +21,7 @@
 
 #include <stdio.h>
 #include <stdlib.h>
+#include <string.h>
 
 #include "xmalloc.h"
 
@@ -30,6 +31,38 @@ xmalloc (size_t size)
 	void *ret;
 
 	ret = malloc (size);
+	if (size != 0 && ret == NULL) {
+		fprintf (stderr, "Out of memory\n");
+		exit (1);
+	}
+
+	return ret;
+}
+
+void *
+xrealloc (void *ptr, size_t size)
+{
+	void *ret;
+
+	ret = realloc (ptr, size);
+	if (size != 0 && ret == NULL) {
+		fprintf (stderr, "Out of memory\n");
+		exit (1);
+	}
+
+	return ret;
+}
+
+char *
+xstrdup (const char *s)
+{
+	void *ret;
+
+	if (s == NULL)
+		return NULL;
+
+	ret = strdup (s);
+
 	if (ret == NULL) {
 		fprintf (stderr, "Out of memory\n");
 		exit (1);
@@ -37,3 +70,4 @@ xmalloc (size_t size)
 
 	return ret;
 }
+
