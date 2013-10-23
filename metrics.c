@@ -532,7 +532,7 @@ accumulate_program_metrics (metrics_op_t op, GLuint *result, GLuint size)
 		CONSUME (value);
 
 		for (i = 0; i < info->num_groups; i++) {
-			if (info->groups[i].id == i)
+			if (info->groups[i].id == group_id)
 				break;
 		}
 		group_index = i;
