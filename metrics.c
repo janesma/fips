@@ -163,15 +163,6 @@ metrics_group_info_init (metrics_group_info_t *group, GLuint id)
 						GL_COUNTER_TYPE_AMD,
 						&group->counter_types[i]);
 
-		/* We assume that all peformance counters are made
-		 * available as uint32 values. The code calling
-		 * CONSUME in accumulate_program_metrics will need to
-		 * be extended to accomodate other counter values. */
-		if (group->counter_types[i] != GL_UNSIGNED_INT) {
-			fprintf (stderr, "fips: Internal error: No support for non-uint counter values\n");
-			exit (1);
-		}
-
 		glGetPerfMonitorCounterStringAMD (group->id,
 						  group->counter_ids[i],
 						  0, &length, NULL);
@@ -524,12 +515,11 @@ accumulate_program_metrics (metrics_op_t op, GLuint *result, GLuint size)
 		GLuint group_id, group_index;
 		GLuint counter_id, counter_index;
 		metrics_group_info_t *group;
-		uint32_t value;
+		double value;
 		unsigned i;
 
 		CONSUME (group_id);
 		CONSUME (counter_id);
-		CONSUME (value);
 
 		for (i = 0; i < info->num_groups; i++) {
 			if (info->groups[i].id == group_id)
@@ -545,6 +535,31 @@ accumulate_program_metrics (metrics_op_t op, GLuint *result, GLuint size)
 		}
 		counter_index = i;
 		assert (counter_index < group->num_counters);
+
+		switch (group->counter_types[counter_index])
+		{
+			uint uint_value;
+			uint64_t uint64_value;
+			float float_value;
+		case GL_UNSIGNED_INT:
+			CONSUME (uint_value);
+			value = uint_value;
+			break;
+		case GL_UNSIGNED_INT64_AMD:
+			CONSUME (uint64_value);
+			value = uint64_value;
+			break;
+		case GL_PERCENTAGE_AMD:
+		case GL_FLOAT:
+			CONSUME (float_value);
+			value = float_value;
+			break;
+		default:
+			fprintf (stderr, "fips: Warning: Unknown counter value type (%d)\n",
+				 group->counter_types[counter_index]);
+			value = 0.0;
+			break;
+		}
 
 		ctx->op_metrics[op].counters[group_index][counter_index] += value;
 	}
