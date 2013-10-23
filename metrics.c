@@ -69,7 +69,7 @@ typedef struct metrics_group_info
 	GLuint num_counters;
 	GLuint max_active_counters;
 
-	GLuint *counters;
+	GLuint *counter_ids;
 	char **counter_names;
 	GLuint *counter_types;
 
@@ -131,11 +131,11 @@ metrics_group_info_init (metrics_group_info_t *group, GLuint id)
 				     0, NULL);
 
 	/* Get counter numbers */
-	group->counters = xmalloc (group->num_counters * sizeof (GLuint));
+	group->counter_ids = xmalloc (group->num_counters * sizeof (GLuint));
 
 	glGetPerfMonitorCountersAMD (group->id, NULL, NULL,
 				     group->num_counters,
-				     group->counters);
+				     group->counter_ids);
 
 	/* Get counter names */
 	group->counter_names = xmalloc (group->num_counters * sizeof (char *));
@@ -143,7 +143,7 @@ metrics_group_info_init (metrics_group_info_t *group, GLuint id)
 
 	for (i = 0; i < group->num_counters; i++) {
 		glGetPerfMonitorCounterInfoAMD (group->id,
-						group->counters[i],
+						group->counter_ids[i],
 						GL_COUNTER_TYPE_AMD,
 						&group->counter_types[i]);
 
@@ -157,13 +157,13 @@ metrics_group_info_init (metrics_group_info_t *group, GLuint id)
 		}
 
 		glGetPerfMonitorCounterStringAMD (group->id,
-						  group->counters[i],
+						  group->counter_ids[i],
 						  0, &length, NULL);
 
 		group->counter_names[i] = xmalloc (length + 1);
 
 		glGetPerfMonitorCounterStringAMD (group->id,
-						  group->counters[i],
+						  group->counter_ids[i],
 						  length + 1, NULL,
 						  group->counter_names[i]);
 	}
@@ -179,7 +179,7 @@ metrics_group_info_fini (metrics_group_info_t *group)
 
 	free (group->counter_types);
 	free (group->counter_names);
-	free (group->counters);
+	free (group->counter_ids);
 
 	free (group->name);
 }
@@ -206,7 +206,7 @@ metrics_info_init (void)
 	metrics_info->groups = xmalloc (metrics_info->num_groups * sizeof (metrics_group_info_t));
 
 	for (i = 0; i < metrics_info->num_groups; i++)
-		metrics_group_info_init (&metrics_info->groups[i], i);
+		metrics_group_info_init (&metrics_info->groups[i], group_ids[i]);
 
 	free (group_ids);
 
@@ -330,7 +330,7 @@ metrics_counter_start (void)
 		glSelectPerfMonitorCountersAMD(monitor->id,
 					       GL_TRUE, group->id,
 					       num_counters,
-					       group->counters);
+					       group->counter_ids);
 	}
 
 	/* Start the queries */
@@ -409,11 +409,13 @@ accumulate_program_metrics (metrics_op_t op, GLuint *result, GLuint size)
 	p += sizeof(var);
 
 	context_t *ctx = &current_context;
+	metrics_info_t *info = &ctx->metrics_info;
 	unsigned char *p = (unsigned char *) result;
 
 	while (p < ((unsigned char *) result) + size)
 	{
-		GLuint group_id, counter_id, counter_index;
+		GLuint group_id, group_index;
+		GLuint counter_id, counter_index;
 		metrics_group_info_t *group;
 		uint32_t value;
 		unsigned i;
@@ -422,17 +424,22 @@ accumulate_program_metrics (metrics_op_t op, GLuint *result, GLuint size)
 		CONSUME (counter_id);
 		CONSUME (value);
 
-		assert (group_id < ctx->metrics_info.num_groups);
-		group = &ctx->metrics_info.groups[group_id];
+		for (i = 0; i < info->num_groups; i++) {
+			if (info->groups[i].id == i)
+				break;
+		}
+		group_index = i;
+		assert (group_index < info->num_groups);
+		group = &info->groups[group_index];
 
 		for (i = 0; i < group->num_counters; i++) {
-			if (group->counters[i] == counter_id)
+			if (group->counter_ids[i] == counter_id)
 				break;
 		}
 		counter_index = i;
 		assert (counter_index < group->num_counters);
 
-		ctx->op_metrics[op].counters[group_id][counter_index] += value;
+		ctx->op_metrics[op].counters[group_index][counter_index] += value;
 	}
 }
 
@@ -466,7 +473,7 @@ print_op_metrics (context_t *ctx, op_metrics_t *metric, double total)
 	metrics_info_t *info = &ctx->metrics_info;
 	metrics_group_info_t *group;
 	const char *op_string;
-	unsigned i, group_id, counter;
+	unsigned i, group_index, counter;
 	double value;
 
 	/* Since we sparsely fill the array based on program
@@ -491,10 +498,10 @@ print_op_metrics (context_t *ctx, op_metrics_t *metric, double total)
 		metric->time_ns / total * 100);
 
 	printf ("[");
-	for (group_id = 0; group_id < info->num_groups; group_id++) {
-		group = &info->groups[group_id];
+	for (group_index = 0; group_index < info->num_groups; group_index++) {
+		group = &info->groups[group_index];
 		for (counter = 0; counter < group->num_counters; counter++) {
-			value = metric->counters[group_id][counter];
+			value = metric->counters[group_index][counter];
 			if (value == 0.0)
 				continue;
 			printf ("%s: %.2f ", group->counter_names[counter],
