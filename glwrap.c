@@ -47,6 +47,21 @@
 
 #include "metrics.h"
 
+/* As of glext.h version 20131008 some types changed.
+ *
+ * I have no idea why some internalFormats changed from GLenum to
+ * GLint while others changed from GLint to GLenum.
+ *
+ * But, in order to compile with either version, we track these.
+ */
+#if GL_GLEXT_VERSION >= 20131008
+#define GLint_or_enum GLenum
+#define GLenum_or_int GLint
+#else
+#define GLint_or_enum GLint
+#define GLenum_or_int GLenum
+#endif
+
 static void *gl_handle;
 
 /* Switch metrics operation persistently, (until next SWITCH) */
@@ -972,7 +987,8 @@ glTexImage2D (GLenum target, GLint level, GLint internalFormat,
 
 void
 glTexImage2DMultisample (GLenum target, GLsizei samples,
-			 GLint internalformat, GLsizei width, GLsizei height,
+			 GLint_or_enum internalformat,
+			 GLsizei width, GLsizei height,
 			 GLboolean fixedsamplelocations)
 {
 	SAVE_THEN_SWITCH_METRICS_OP (METRICS_OP_TEX_IMAGE);
@@ -1025,7 +1041,8 @@ glTexImage3DEXT (GLenum target, GLint level, GLenum internalformat,
 }
 
 void
-glTexImage3DMultisample (GLenum target, GLsizei samples, GLint internalformat,
+glTexImage3DMultisample (GLenum target, GLsizei samples,
+			 GLint_or_enum internalformat,
 			 GLsizei width, GLsizei height, GLsizei depth,
 			 GLboolean fixedsamplelocations)
 {
@@ -1496,7 +1513,8 @@ glCompressedTextureSubImage3DEXT (GLuint texture, GLenum target, GLint level,
 
 void
 glMultiTexImage1DEXT (GLenum texunit, GLenum target, GLint level,
-		      GLenum internalformat, GLsizei width, GLint border,
+		      GLenum_or_int internalformat,
+		      GLsizei width, GLint border,
 		      GLenum format, GLenum type, const GLvoid *pixels)
 {
 	SAVE_THEN_SWITCH_METRICS_OP (METRICS_OP_TEX_IMAGE);
@@ -1509,7 +1527,8 @@ glMultiTexImage1DEXT (GLenum texunit, GLenum target, GLint level,
 
 void
 glMultiTexImage2DEXT (GLenum texunit, GLenum target, GLint level,
-		      GLenum internalformat, GLsizei width, GLsizei height,
+		      GLenum_or_int internalformat,
+		      GLsizei width, GLsizei height,
 		      GLint border, GLenum format, GLenum type,
 		      const GLvoid *pixels)
 {
@@ -1524,7 +1543,8 @@ glMultiTexImage2DEXT (GLenum texunit, GLenum target, GLint level,
 
 void
 glMultiTexImage3DEXT (GLenum texunit, GLenum target, GLint level,
-		      GLenum internalformat, GLsizei width, GLsizei height,
+		      GLenum_or_int internalformat,
+		      GLsizei width, GLsizei height,
 		      GLsizei depth, GLint border, GLenum format,
 		      GLenum type, const GLvoid *pixels)
 {
