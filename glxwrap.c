@@ -84,6 +84,8 @@ glXMakeCurrent (Display *dpy, GLXDrawable drawable, GLXContext ctx)
 {
 	Bool ret;
 
+	metrics_info_fini ();
+
 	fips_dispatch_init (FIPS_API_GLX);
 
 	GLWRAP_DEFER_WITH_RETURN (ret, glXMakeCurrent, dpy, drawable, ctx);
@@ -100,6 +102,8 @@ Bool
 glXMakeContextCurrent (Display *dpy, GLXDrawable drawable, GLXDrawable read, GLXContext ctx)
 {
 	Bool ret;
+
+	metrics_info_fini ();
 
 	fips_dispatch_init (FIPS_API_GLX);
 

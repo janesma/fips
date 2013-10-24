@@ -191,9 +191,6 @@ metrics_group_info_fini (metrics_group_info_t *group)
 	free (group->name);
 }
 
-static void
-metrics_info_fini (metrics_info_t *info);
-
 /* A helper function, part of metrics_info_init below. */
 
 typedef enum {
@@ -265,9 +262,6 @@ metrics_info_init (void)
 	GLuint *group_ids;
 	metrics_info_t *info = &current_context.metrics_info;
 
-	if (info->initialized)
-		metrics_info_fini (info);
-
 	glGetPerfMonitorGroupsAMD ((int *) &info->num_groups, 0, NULL);
 
 	group_ids = xmalloc (info->num_groups * sizeof (GLuint));
@@ -306,20 +300,50 @@ metrics_info_init (void)
 	info->initialized = 1;
 }
 
-static void
-metrics_info_fini (metrics_info_t *info)
+void
+metrics_info_fini (void)
 {
+	metrics_info_t *info = &current_context.metrics_info;
 	unsigned i;
+	timer_query_t *timer, *timer_next;
+	monitor_t *monitor, *monitor_next;
+
+	if (! info->initialized)
+		return;
+
+	for (timer = current_context.timer_head;
+	     timer;
+	     timer = timer_next)
+	{
+		timer_next = timer->next;
+		free (timer);
+	}
+	current_context.timer_head = NULL;
+	current_context.timer_tail = NULL;
+
+	for (monitor = current_context.monitor_head;
+	     monitor;
+	     monitor = monitor_next)
+	{
+		monitor_next = monitor->next;
+		free (monitor);
+	}
+	current_context.monitor_head = NULL;
+	current_context.monitor_tail = NULL;
 
 	for (i = 0; i < info->num_groups; i++)
 		metrics_group_info_fini (&info->groups[i]);
 
 	free (info->groups);
+	info->groups = NULL;
 
 	for (i = 0; i < info->num_shader_stages; i++)
 		free (info->stages[i].name);
 
 	free (info->stages);
+	info->stages = NULL;
+
+	info->initialized = 0;
 }
 
 static const char *
@@ -776,7 +800,7 @@ metrics_exit (void)
 	if (verbose)
 		printf ("fips: terminating\n");
 
-	metrics_info_fini (&current_context.metrics_info);
+	metrics_info_fini ();
 }
 
 

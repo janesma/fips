@@ -108,6 +108,8 @@ eglMakeCurrent (EGLDisplay display, EGLSurface draw, EGLSurface read,
 {
 	EGLBoolean ret;
 
+	metrics_info_fini ();
+
 	fips_dispatch_init (FIPS_API_EGL);
 
 	EGLWRAP_DEFER_WITH_RETURN (ret, eglMakeCurrent, display, draw, read, context);

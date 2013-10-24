@@ -59,6 +59,14 @@ typedef enum
 void
 metrics_info_init (void);
 
+/* Finalize metrics info state.
+ *
+ * The function should be called just before setting a new, current,
+ * OpenGL context.
+ */
+void
+metrics_info_fini (void);
+
 /* Start accumulating GPU time.
  *
  * The time accumulated will be accounted against the
