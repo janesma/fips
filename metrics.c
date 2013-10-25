@@ -532,6 +532,7 @@ accumulate_program_metrics (metrics_op_t op, GLuint *result, GLuint size)
 
 	context_t *ctx = &current_context;
 	metrics_info_t *info = &ctx->metrics_info;
+	op_metrics_t *metrics = ctx_get_op_metrics (ctx, op);
 	unsigned char *p = (unsigned char *) result;
 
 	while (p < ((unsigned char *) result) + size)
@@ -585,7 +586,7 @@ accumulate_program_metrics (metrics_op_t op, GLuint *result, GLuint size)
 			break;
 		}
 
-		ctx->op_metrics[op].counters[group_index][counter_index] += value;
+		metrics->counters[group_index][counter_index] += value;
 	}
 }
 
