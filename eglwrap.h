@@ -1,4 +1,4 @@
-/* Copyright © 2012, Intel Corporation
+/* Copyright © 2013, Intel Corporation
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -19,43 +19,11 @@
  * THE SOFTWARE.
  */
 
-#include "fips-dispatch.h"
+#ifndef EGLWRAP_H
+#define EGLWRAP_H
 
-#define GL_GLEXT_PROTOTYPES
-#include <GL/gl.h>
-#include <GL/glx.h>
-
-#include <EGL/egl.h>
-
-#include "glwrap.h"
-#include "eglwrap.h"
-
-bool fips_dispatch_initialized;
-fips_api_t fips_dispatch_api;
-
-void
-fips_dispatch_init (fips_api_t api)
-{
-	fips_dispatch_api = api;
-
-	fips_dispatch_initialized = true;
-}
-
-typedef void (*generic_function_pointer)(void);
-
+/* Lookup a function named 'name' in the underlying, real, libEGL.so.1 */
 void *
-fips_dispatch_lookup (const char *name)
-{
-	static PFNGLXGETPROCADDRESSPROC glx_gpa = NULL;
-	static generic_function_pointer (*egl_gpa)(const char *name) = NULL;
-	
-	if (fips_dispatch_api == FIPS_API_GLX) {
-		if (glx_gpa == NULL)
-			glx_gpa = glwrap_lookup ("glXGetProcAddressARB");
-		return glx_gpa ((const GLubyte *)name);
-	} else {
-		if (egl_gpa == NULL)
-			egl_gpa = eglwrap_lookup ("eglGetProcAddress");
-		return egl_gpa (name);
-	}
-}
+eglwrap_lookup (char *name);
+
+#endif

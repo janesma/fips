@@ -25,6 +25,7 @@
 
 #include <EGL/egl.h>
 
+#include "eglwrap.h"
 #include "dlwrap.h"
 #include "metrics.h"
 
@@ -53,7 +54,7 @@
  * eglSwapBufers, eglGetProcAddress, and eglMakeCurrent), exist only
  * in libEGL.so.1.
  */
-static void *
+void *
 eglwrap_lookup (char *name)
 {
 	const char *libegl_filename = "libEGL.so.1";
