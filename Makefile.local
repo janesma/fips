@@ -90,6 +90,7 @@ LIBRARY_LINK_FLAGS = -shared -Wl,--version-script=libfips.sym
 extra_cflags += -I$(srcdir) -fPIC
 
 libfips_srcs = \
+	context.c \
 	dlwrap.c \
 	fips-dispatch.c \
 	fips-dispatch-gl.c \

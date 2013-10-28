@@ -25,6 +25,7 @@
 
 #include <EGL/egl.h>
 
+#include "context.h"
 #include "eglwrap.h"
 #include "dlwrap.h"
 #include "metrics.h"
@@ -109,16 +110,11 @@ eglMakeCurrent (EGLDisplay display, EGLSurface draw, EGLSurface read,
 {
 	EGLBoolean ret;
 
-	metrics_info_fini ();
-
-	fips_dispatch_init (FIPS_API_EGL);
+	context_leave ();
 
 	EGLWRAP_DEFER_WITH_RETURN (ret, eglMakeCurrent, display, draw, read, context);
 
-	metrics_info_init ();
-
-	metrics_set_current_op (METRICS_OP_SHADER + 0);
-	metrics_counter_start ();
+	context_enter (FIPS_API_EGL, context);
 
 	return ret;
 }
