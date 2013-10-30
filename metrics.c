@@ -332,6 +332,8 @@ metrics_info_fini (void)
 		return;
 
 	if (ctx->timer_begun_id) {
+		glEndQuery (GL_TIME_ELAPSED);
+		glDeleteQueries (1, &ctx->timer_begun_id);
 		ctx->timer_begun_id = 0;
 	}
 
@@ -339,6 +341,7 @@ metrics_info_fini (void)
 	     timer;
 	     timer = timer_next)
 	{
+		glDeleteQueries (1, &timer->id);
 		timer_next = timer->next;
 		free (timer);
 	}
@@ -346,6 +349,8 @@ metrics_info_fini (void)
 	ctx->timer_tail = NULL;
 
 	if (ctx->monitor_begun_id) {
+		glEndPerfMonitorAMD (ctx->monitor_begun_id);
+		glDeletePerfMonitorsAMD (1, &ctx->monitor_begun_id);
 		ctx->monitor_begun_id = 0;
 	}
 
@@ -353,6 +358,7 @@ metrics_info_fini (void)
 	     monitor;
 	     monitor = monitor_next)
 	{
+		glDeletePerfMonitorsAMD (1, &monitor->id);
 		monitor_next = monitor->next;
 		free (monitor);
 	}
