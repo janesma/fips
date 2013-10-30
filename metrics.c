@@ -331,6 +331,8 @@ metrics_info_fini (void)
 	if (! info->initialized)
 		return;
 
+	metrics_collect_available ();
+
 	if (ctx->timer_begun_id) {
 		glEndQuery (GL_TIME_ELAPSED);
 		glDeleteQueries (1, &ctx->timer_begun_id);
