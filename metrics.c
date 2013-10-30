@@ -105,11 +105,25 @@ typedef struct context
 
 	metrics_op_t op;
 
+	/* GL_TIME_ELAPSED query for which glEndQuery has not yet
+	 * been called. */
+	unsigned timer_begun_id;
+
+	/* GL_TIME_ELAPSED queries for which glEndQuery has been
+	 * called, (but results have not yet been queried). */
 	timer_query_t *timer_head;
 	timer_query_t *timer_tail;
 
+	/* Performance monitor for which glEndPerfMonitorAMD has not
+	 * yet been called. */
+	unsigned monitor_begun_id;
+
+	/* Performance monitors for which glEndPerfMonitorAMD has
+	 * been called, (but results have not yet been queried). */
 	monitor_t *monitor_head;
 	monitor_t *monitor_tail;
+
+	int monitors_in_flight;
 
 	unsigned num_op_metrics;
 	op_metrics_t *op_metrics;
@@ -122,6 +136,11 @@ context_t current_context;
 
 int frames;
 int verbose;
+
+#define MAX_MONITORS_IN_FLIGHT 1000
+
+void
+metrics_collect_available (void);
 
 static void
 metrics_group_info_init (metrics_group_info_t *group, GLuint id)
@@ -312,6 +331,10 @@ metrics_info_fini (void)
 	if (! info->initialized)
 		return;
 
+	if (ctx->timer_begun_id) {
+		ctx->timer_begun_id = 0;
+	}
+
 	for (timer = ctx->timer_head;
 	     timer;
 	     timer = timer_next)
@@ -322,6 +345,10 @@ metrics_info_fini (void)
 	ctx->timer_head = NULL;
 	ctx->timer_tail = NULL;
 
+	if (ctx->monitor_begun_id) {
+		ctx->monitor_begun_id = 0;
+	}
+
 	for (monitor = ctx->monitor_head;
 	     monitor;
 	     monitor = monitor_next)
@@ -331,6 +358,8 @@ metrics_info_fini (void)
 	}
 	ctx->monitor_head = NULL;
 	ctx->monitor_tail = NULL;
+
+	current_context.monitors_in_flight = 0;
 
 	for (i = 0; i < info->num_groups; i++)
 		metrics_group_info_fini (&info->groups[i]);
@@ -396,42 +425,12 @@ void
 metrics_counter_start (void)
 {
 	context_t *ctx = &current_context;
-	timer_query_t *timer;
-	monitor_t *monitor;
 	unsigned i;
 
-	/* Create new timer query, add to list */
-	timer = xmalloc (sizeof (timer_query_t));
-
-	timer->op = ctx->op;
-	timer->next = NULL;
-
-	if (ctx->timer_tail) {
-		ctx->timer_tail->next = timer;
-		ctx->timer_tail = timer;
-	} else {
-		ctx->timer_tail = timer;
-		ctx->timer_head = timer;
-	}
-
-	/* Create a new performance-monitor query */
-	monitor = xmalloc (sizeof (monitor_t));
-
-	monitor->op = ctx->op;
-	monitor->next = NULL;
-
-	if (ctx->monitor_tail) {
-		ctx->monitor_tail->next = monitor;
-		ctx->monitor_tail = monitor;
-	} else {
-		ctx->monitor_tail = monitor;
-		ctx->monitor_head = monitor;
-	}
-
 	/* Initialize the timer_query and monitor objects */
-	glGenQueries (1, &timer->id);
+	glGenQueries (1, &ctx->timer_begun_id);
 
-	glGenPerfMonitorsAMD (1, &monitor->id);
+	glGenPerfMonitorsAMD (1, &ctx->monitor_begun_id);
 
 	for (i = 0; i < ctx->metrics_info.num_groups; i++)
 	{
@@ -450,23 +449,69 @@ metrics_counter_start (void)
 
 		}
 
-		glSelectPerfMonitorCountersAMD(monitor->id,
+		glSelectPerfMonitorCountersAMD(ctx->monitor_begun_id,
 					       GL_TRUE, group->id,
 					       num_counters,
 					       group->counter_ids);
 	}
 
 	/* Start the queries */
-	glBeginQuery (GL_TIME_ELAPSED, timer->id);
+	glBeginQuery (GL_TIME_ELAPSED, ctx->timer_begun_id);
 
-	glBeginPerfMonitorAMD (monitor->id);
+	glBeginPerfMonitorAMD (ctx->monitor_begun_id);
 }
 
 void
 metrics_counter_stop (void)
 {
+	context_t *ctx = &current_context;
+	timer_query_t *timer;
+	monitor_t *monitor;
+
+	/* Stop the current timer and monitor. */
 	glEndQuery (GL_TIME_ELAPSED);
-	glEndPerfMonitorAMD (current_context.monitor_tail->id);
+	glEndPerfMonitorAMD (ctx->monitor_begun_id);
+
+	/* Add these IDs to our lists of outstanding queries and
+	 * monitors so the results can be collected later. */
+	timer = xmalloc (sizeof (timer_query_t));
+
+	timer->op = ctx->op;
+	timer->id = ctx->timer_begun_id;
+	timer->next = NULL;
+
+	if (ctx->timer_tail) {
+		ctx->timer_tail->next = timer;
+		ctx->timer_tail = timer;
+	} else {
+		ctx->timer_tail = timer;
+		ctx->timer_head = timer;
+	}
+
+	/* Create a new performance-monitor query */
+	monitor = xmalloc (sizeof (monitor_t));
+
+	monitor->op = ctx->op;
+	monitor->id = ctx->monitor_begun_id;
+	monitor->next = NULL;
+
+	if (ctx->monitor_tail) {
+		ctx->monitor_tail->next = monitor;
+		ctx->monitor_tail = monitor;
+	} else {
+		ctx->monitor_tail = monitor;
+		ctx->monitor_head = monitor;
+	}
+
+	ctx->monitors_in_flight++;
+
+	/* Avoid being a resource hog and collect outstanding results
+	 * once we have sent off a large number of
+	 * queries. (Presumably, many of the outstanding queries are
+	 * available by now.)
+	 */
+	if (ctx->monitors_in_flight > MAX_MONITORS_IN_FLIGHT)
+		metrics_collect_available ();
 }
 
 void
@@ -824,24 +869,10 @@ metrics_exit (void)
 	metrics_info_fini ();
 }
 
-
 void
-metrics_end_frame (void)
+metrics_collect_available (void)
 {
 	context_t *ctx = &current_context;
-	static int initialized = 0;
-	static struct timeval tv_start, tv_now;
-
-	if (! initialized) {
-		gettimeofday (&tv_start, NULL);
-		atexit (metrics_exit);
-		if (getenv ("FIPS_VERBOSE"))
-			verbose = 1;
-		initialized = 1;
-	}
-
-	frames++;
-	gettimeofday (&tv_now, NULL);
 
 	/* Consume all timer queries that are ready. */
 	timer_query_t *timer = ctx->timer_head;
@@ -906,11 +937,36 @@ metrics_end_frame (void)
 		glDeletePerfMonitorsAMD (1, &monitor->id);
 
 		free (monitor);
+
+		ctx->monitors_in_flight--;
+
 		monitor = ctx->monitor_head;
 	}
+}
+
+
+void
+metrics_end_frame (void)
+{
+	static int initialized = 0;
+	static struct timeval tv_start, tv_now;
+
+	if (! initialized) {
+		gettimeofday (&tv_start, NULL);
+		atexit (metrics_exit);
+		if (getenv ("FIPS_VERBOSE"))
+			verbose = 1;
+		initialized = 1;
+	}
+
+	frames++;
+
+	metrics_collect_available ();
 
 	if (frames % 15 == 0) {
 		double fps;
+
+		gettimeofday (&tv_now, NULL);
 
 		fps = (double) frames / (tv_now.tv_sec - tv_start.tv_sec +
 					 (tv_now.tv_usec - tv_start.tv_usec) / 1.0e6);
