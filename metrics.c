@@ -303,7 +303,8 @@ metrics_info_init (void)
 void
 metrics_info_fini (void)
 {
-	metrics_info_t *info = &current_context.metrics_info;
+	context_t *ctx = &current_context;
+	metrics_info_t *info = &ctx->metrics_info;
 	unsigned i;
 	timer_query_t *timer, *timer_next;
 	monitor_t *monitor, *monitor_next;
@@ -311,25 +312,25 @@ metrics_info_fini (void)
 	if (! info->initialized)
 		return;
 
-	for (timer = current_context.timer_head;
+	for (timer = ctx->timer_head;
 	     timer;
 	     timer = timer_next)
 	{
 		timer_next = timer->next;
 		free (timer);
 	}
-	current_context.timer_head = NULL;
-	current_context.timer_tail = NULL;
+	ctx->timer_head = NULL;
+	ctx->timer_tail = NULL;
 
-	for (monitor = current_context.monitor_head;
+	for (monitor = ctx->monitor_head;
 	     monitor;
 	     monitor = monitor_next)
 	{
 		monitor_next = monitor->next;
 		free (monitor);
 	}
-	current_context.monitor_head = NULL;
-	current_context.monitor_tail = NULL;
+	ctx->monitor_head = NULL;
+	ctx->monitor_tail = NULL;
 
 	for (i = 0; i < info->num_groups; i++)
 		metrics_group_info_fini (&info->groups[i]);
@@ -808,6 +809,7 @@ metrics_exit (void)
 void
 metrics_end_frame (void)
 {
+	context_t *ctx = &current_context;
 	static int initialized = 0;
 	static struct timeval tv_start, tv_now;
 
@@ -823,7 +825,7 @@ metrics_end_frame (void)
 	gettimeofday (&tv_now, NULL);
 
 	/* Consume all timer queries that are ready. */
-	timer_query_t *timer = current_context.timer_head;
+	timer_query_t *timer = ctx->timer_head;
 
 	while (timer) {
 		GLuint available, elapsed;
@@ -838,18 +840,18 @@ metrics_end_frame (void)
 
 		accumulate_program_time (timer->op, elapsed);
 
-		current_context.timer_head = timer->next;
-		if (current_context.timer_head == NULL)
-			current_context.timer_tail = NULL;
+		ctx->timer_head = timer->next;
+		if (ctx->timer_head == NULL)
+			ctx->timer_tail = NULL;
 
 		glDeleteQueries (1, &timer->id);
 
 		free (timer);
-		timer = current_context.timer_head;
+		timer = ctx->timer_head;
 	}
 
 	/* And similarly for all performance monitors that are ready. */
-	monitor_t *monitor = current_context.monitor_head;
+	monitor_t *monitor = ctx->monitor_head;
 
 	while (monitor) {
 		GLuint available, result_size, *result;
@@ -878,14 +880,14 @@ metrics_end_frame (void)
 
 		free (result);
 
-		current_context.monitor_head = monitor->next;
-		if (current_context.monitor_head == NULL)
-			current_context.monitor_tail = NULL;
+		ctx->monitor_head = monitor->next;
+		if (ctx->monitor_head == NULL)
+			ctx->monitor_tail = NULL;
 
 		glDeletePerfMonitorsAMD (1, &monitor->id);
 
 		free (monitor);
-		monitor = current_context.monitor_head;
+		monitor = ctx->monitor_head;
 	}
 
 	if (frames % 60 == 0) {
