@@ -662,7 +662,11 @@ print_per_stage_metrics (context_t *ctx,
 		printf ("    ");
 
 	}
-	printf (" %cS:", per_stage->stage->name[0]);
+
+	if (per_stage->stage)
+		printf (" %cS:", per_stage->stage->name[0]);
+	else
+		printf ("   :");
 
 	printf ("\t%7.2f ms (%4.1f%%)",
 		per_stage->time_ns / 1e6,
@@ -774,15 +778,30 @@ print_program_metrics (void)
 
 			per_stage = &sorted[i * num_shader_stages + j];
 			per_stage->metrics = op;
-			per_stage->stage = &info->stages[j];
-			if (op_cycles)
+
+			if (op_cycles) {
+				per_stage->stage = &info->stages[j];
 				per_stage->time_ns = op->time_ns * (stage_cycles / op_cycles);
-			else
-				per_stage->time_ns = 0.0;
-			if (stage_cycles)
+			} else {
+				/* If we don't have any per-stage cycle counts
+				 * for this operation, then use the first
+				 * stage as a placeholder for all the time,
+				 * but NULL-ify the stage info so that the
+				 * report doesn't lie about this time being
+				 * from any particular stage. */
+				per_stage->stage = NULL;
+				if (j == 0) {
+					per_stage->time_ns = op->time_ns;
+				} else {
+					per_stage->time_ns = 0.0;
+				}
+			}
+
+			if (stage_cycles) {
 				per_stage->active = active_cycles / stage_cycles;
-			else
+			} else {
 				per_stage->active = 0.0;
+			}
 		}
 	}
 
