@@ -909,7 +909,7 @@ metrics_end_frame (void)
 		monitor = ctx->monitor_head;
 	}
 
-	if (frames % 60 == 0) {
+	if (frames % 15 == 0) {
 		double fps;
 
 		fps = (double) frames / (tv_now.tv_sec - tv_start.tv_sec +
