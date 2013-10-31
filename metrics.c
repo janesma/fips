@@ -865,14 +865,52 @@ print_program_metrics (void)
 	free (sorted);
 }
 
-/* Called at program exit */
+/* Called at program exit.
+ *
+ * This is similar to metrics_info_fini, but only frees any used
+ * memory. Notably, it does not call any OpenGL functions, (since the
+ * OpenGL context no longer exists at program exit).
+ */
 static void
 metrics_exit (void)
 {
+	context_t *ctx = &current_context;
+	metrics_info_t *info = &ctx->metrics_info;
+	unsigned i;
+	timer_query_t *timer, *timer_next;
+	monitor_t *monitor, *monitor_next;
+
 	if (verbose)
 		printf ("fips: terminating\n");
 
-	metrics_info_fini ();
+	if (! info->initialized)
+		return;
+
+	for (timer = ctx->timer_head;
+	     timer;
+	     timer = timer_next)
+	{
+		timer_next = timer->next;
+		free (timer);
+	}
+
+	for (monitor = ctx->monitor_head;
+	     monitor;
+	     monitor = monitor_next)
+	{
+		monitor_next = monitor->next;
+		free (monitor);
+	}
+
+	for (i = 0; i < info->num_groups; i++)
+		metrics_group_info_fini (&info->groups[i]);
+
+	free (info->groups);
+
+	for (i = 0; i < info->num_shader_stages; i++)
+		free (info->stages[i].name);
+
+	free (info->stages);
 }
 
 void
