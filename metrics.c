@@ -579,7 +579,10 @@ print_program_metrics (metrics_t *metrics)
 	/* Make a sorted list of the per-stage operations by time
 	 * used, and figure out the total so we can print percentages.
 	 */
-	num_sorted = metrics->num_op_metrics * num_shader_stages;
+	if (num_shader_stages)
+		num_sorted = metrics->num_op_metrics * num_shader_stages;
+	else
+		num_sorted = metrics->num_op_metrics;
 
 	sorted = xmalloc (sizeof (*sorted) * num_sorted);
 
@@ -594,6 +597,14 @@ print_program_metrics (metrics_t *metrics)
 
 		/* Also, find total cycles in all stages of this op. */
 		op_cycles = 0.0;
+
+		if (num_shader_stages == 0) {
+			per_stage = &sorted[i];
+			per_stage->metrics = op;
+			per_stage->stage = NULL;
+			per_stage->time_ns = op->time_ns;
+			per_stage->active = 0.0;
+		}
 
 		for (j = 0; j < num_shader_stages; j++) {
 			/* Active cycles */
