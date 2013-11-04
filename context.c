@@ -23,6 +23,15 @@
 #include "metrics.h"
 #include "xmalloc.h"
 
+typedef struct context
+{
+	/* Pointer to the system's context ID, (such as a GLXContext) */
+	void *system_id;
+
+	metrics_info_t metrics_info;
+	metrics_t *metrics;
+} context_t;
+
 context_t *current_context;
 
 static context_t *

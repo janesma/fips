@@ -27,15 +27,6 @@
 
 #include "fips-dispatch.h"
 
-typedef struct context
-{
-	/* Pointer to the system's context ID, (such as a GLXContext) */
-	void *system_id;
-
-	metrics_info_t metrics_info;
-	metrics_t *metrics;
-} context_t;
-
 /* Indicate that a new context has come into use.
  *
  * Here, 'system_context_id' is a pointer to a system context (such as
