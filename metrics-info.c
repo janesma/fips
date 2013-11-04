@@ -156,10 +156,22 @@ _add_shader_stage (metrics_info_t *info, const char *name,
 }
 
 void
-metrics_info_init (metrics_info_t *info)
+metrics_info_init (metrics_info_t *info, bool have_perfmon)
 {
 	unsigned i, j;
 	GLuint *group_ids;
+
+	info->have_perfmon = have_perfmon;
+
+	if (! have_perfmon) {
+		info->groups = NULL;
+		info->num_groups = 0;
+		info->num_shader_stages = 0;
+		info->stages = NULL;
+		info->initialized = 1;
+
+		return;
+	}
 
 	glGetPerfMonitorGroupsAMD ((int *) &info->num_groups, 0, NULL);
 

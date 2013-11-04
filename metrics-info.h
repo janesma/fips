@@ -54,6 +54,8 @@ typedef struct metrics_info
 {
 	int initialized;
 
+	bool have_perfmon;
+
 	unsigned num_groups;
 	metrics_group_info_t *groups;
 
@@ -67,9 +69,13 @@ typedef struct metrics_info
  * This queries the names and ranges for all available performance counters.
  *
  * This should be called before any other metrics functions.
+ *
+ * The Boolean have_perfmon must be set to correctly indicate whether
+ * the current OpenGL context has the AMD_performance_monitor
+ * extension.
  */
 void
-metrics_info_init (metrics_info_t *info);
+metrics_info_init (metrics_info_t *info, bool have_perfmon);
 
 /* Finalize metrics info state.
  *

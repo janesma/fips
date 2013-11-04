@@ -153,22 +153,26 @@ metrics_fini (metrics_t *metrics)
 	metrics->timer_head = NULL;
 	metrics->timer_tail = NULL;
 
-	if (metrics->monitor_begun_id) {
-		glEndPerfMonitorAMD (metrics->monitor_begun_id);
-		glDeletePerfMonitorsAMD (1, &metrics->monitor_begun_id);
-		metrics->monitor_begun_id = 0;
-	}
+	if (metrics->info->have_perfmon) {
 
-	for (monitor = metrics->monitor_head;
-	     monitor;
-	     monitor = monitor_next)
-	{
-		glDeletePerfMonitorsAMD (1, &monitor->id);
-		monitor_next = monitor->next;
-		free (monitor);
+		if (metrics->monitor_begun_id) {
+			glEndPerfMonitorAMD (metrics->monitor_begun_id);
+			glDeletePerfMonitorsAMD (1, &metrics->monitor_begun_id);
+			metrics->monitor_begun_id = 0;
+		}
+
+		for (monitor = metrics->monitor_head;
+		     monitor;
+		     monitor = monitor_next)
+		{
+			glDeletePerfMonitorsAMD (1, &monitor->id);
+			monitor_next = monitor->next;
+			free (monitor);
+		}
+		metrics->monitor_head = NULL;
+		metrics->monitor_tail = NULL;
+
 	}
-	metrics->monitor_head = NULL;
-	metrics->monitor_tail = NULL;
 
 	metrics->monitors_in_flight = 0;
 }
@@ -231,9 +235,18 @@ metrics_counter_start (metrics_t *metrics)
 {
 	unsigned i;
 
-	/* Initialize the timer_query and monitor objects */
+	/* Initialize the timer_query object. */
 	glGenQueries (1, &metrics->timer_begun_id);
 
+	/* Most everything else in this function is
+	 * performance-monitor related. If we don't have that
+	 * extension, just start the timer query and be done. */
+	if (! metrics->info->have_perfmon) {
+		glBeginQuery (GL_TIME_ELAPSED, metrics->timer_begun_id);
+		return;
+	}
+
+	/* Initialize the performance-monitor object */
 	glGenPerfMonitorsAMD (1, &metrics->monitor_begun_id);
 
 	for (i = 0; i < metrics->info->num_groups; i++)
@@ -273,7 +286,9 @@ metrics_counter_stop (metrics_t *metrics)
 
 	/* Stop the current timer and monitor. */
 	glEndQuery (GL_TIME_ELAPSED);
-	glEndPerfMonitorAMD (metrics->monitor_begun_id);
+
+	if (metrics->info->have_perfmon)
+		glEndPerfMonitorAMD (metrics->monitor_begun_id);
 
 	/* Add these IDs to our lists of outstanding queries and
 	 * monitors so the results can be collected later. */
@@ -291,19 +306,21 @@ metrics_counter_stop (metrics_t *metrics)
 		metrics->timer_head = timer;
 	}
 
-	/* Create a new performance-monitor query */
-	monitor = xmalloc (sizeof (monitor_t));
+	if (metrics->info->have_perfmon) {
+		/* Create a new performance-monitor query */
+		monitor = xmalloc (sizeof (monitor_t));
 
-	monitor->op = metrics->op;
-	monitor->id = metrics->monitor_begun_id;
-	monitor->next = NULL;
+		monitor->op = metrics->op;
+		monitor->id = metrics->monitor_begun_id;
+		monitor->next = NULL;
 
-	if (metrics->monitor_tail) {
-		metrics->monitor_tail->next = monitor;
-		metrics->monitor_tail = monitor;
-	} else {
-		metrics->monitor_tail = monitor;
-		metrics->monitor_head = monitor;
+		if (metrics->monitor_tail) {
+			metrics->monitor_tail->next = monitor;
+			metrics->monitor_tail = monitor;
+		} else {
+			metrics->monitor_tail = monitor;
+			metrics->monitor_head = monitor;
+		}
 	}
 
 	metrics->monitors_in_flight++;
@@ -699,6 +716,9 @@ metrics_collect_available (metrics_t *metrics)
 		free (timer);
 		timer = metrics->timer_head;
 	}
+
+	if (! metrics->info->have_perfmon)
+		return;
 
 	/* And similarly for all performance monitors that are ready. */
 	monitor_t *monitor = metrics->monitor_head;

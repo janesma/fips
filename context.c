@@ -28,11 +28,17 @@ typedef struct context
 	/* Pointer to the system's context ID, (such as a GLXContext) */
 	void *system_id;
 
+	/* Does this context have the AMD_performance_monitor extension? */
+	bool have_perfmon;
+
 	metrics_info_t metrics_info;
 	metrics_t *metrics;
 } context_t;
 
 context_t *current_context;
+
+static bool
+check_extension (const char *extension);
 
 static context_t *
 context_create (fips_api_t api, void *system_context_id)
@@ -45,7 +51,9 @@ context_create (fips_api_t api, void *system_context_id)
 
 	fips_dispatch_init (api);
 
-	metrics_info_init (&ctx->metrics_info);
+	ctx->have_perfmon = check_extension ("AMD_performance_monitor");
+
+	metrics_info_init (&ctx->metrics_info, ctx->have_perfmon);
 	ctx->metrics = metrics_create (&ctx->metrics_info);
 
 	return ctx;
@@ -114,4 +122,23 @@ void
 context_end_frame (void)
 {
 	return metrics_end_frame (current_context->metrics);
+}
+
+/* Is the given extension available? */
+static bool
+check_extension (const char *extension)
+{
+	int i, num_extensions;
+	const char *available;
+
+	glGetIntegerv (GL_NUM_EXTENSIONS, &num_extensions);
+
+	for (i = 0; i < num_extensions; i++) {
+		available = (char *) glGetStringi (GL_EXTENSIONS, i);
+		if (strcmp (extension, available) == 0) {
+			return true;
+		}
+	}
+
+	return false;
 }
