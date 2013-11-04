@@ -38,6 +38,63 @@ int verbose;
 
 #define MAX_MONITORS_IN_FLIGHT 1000
 
+/* Timer query */
+typedef struct timer_query
+{
+	unsigned id;
+
+	metrics_op_t op;
+	struct timer_query *next;
+} timer_query_t;
+
+/* Performance-monitor query */
+typedef struct monitor
+{
+	unsigned id;
+
+	metrics_op_t op;
+	struct monitor *next;
+} monitor_t;
+
+typedef struct op_metrics
+{
+	/* This happens to also be the index into the
+	 * ctx->op_metrics array currently
+	 */
+	metrics_op_t op;
+	double time_ns;
+
+	double **counters;
+} op_metrics_t;
+
+struct metrics
+{
+	metrics_op_t op;
+
+	/* GL_TIME_ELAPSED query for which glEndQuery has not yet
+	 * been called. */
+	unsigned timer_begun_id;
+
+	/* GL_TIME_ELAPSED queries for which glEndQuery has been
+	 * called, (but results have not yet been queried). */
+	timer_query_t *timer_head;
+	timer_query_t *timer_tail;
+
+	/* Performance monitor for which glEndPerfMonitorAMD has not
+	 * yet been called. */
+	unsigned monitor_begun_id;
+
+	/* Performance monitors for which glEndPerfMonitorAMD has
+	 * been called, (but results have not yet been queried). */
+	monitor_t *monitor_head;
+	monitor_t *monitor_tail;
+
+	int monitors_in_flight;
+
+	unsigned num_op_metrics;
+	op_metrics_t *op_metrics;
+};
+
 static const char *
 metrics_op_string (metrics_op_t op)
 {
@@ -87,7 +144,7 @@ void
 metrics_counter_start (void)
 {
 	context_t *ctx = context_get_current ();
-	metrics_t *metrics = &ctx->metrics;
+	metrics_t *metrics = ctx->metrics;
 	unsigned i;
 
 	/* Initialize the timer_query and monitor objects */
@@ -128,7 +185,7 @@ void
 metrics_counter_stop (void)
 {
 	context_t *ctx = context_get_current ();
-	metrics_t *metrics = &ctx->metrics;
+	metrics_t *metrics = ctx->metrics;
 	timer_query_t *timer;
 	monitor_t *monitor;
 
@@ -182,7 +239,7 @@ void
 metrics_set_current_op (metrics_op_t op)
 {
 	context_t *ctx = context_get_current ();
-	metrics_t *metrics = &ctx->metrics;
+	metrics_t *metrics = ctx->metrics;
 
 	metrics->op = op;
 }
@@ -191,7 +248,7 @@ metrics_op_t
 metrics_get_current_op (void)
 {
 	context_t *ctx = context_get_current ();
-	metrics_t *metrics = &ctx->metrics;
+	metrics_t *metrics = ctx->metrics;
 
 	return metrics->op;
 }
@@ -218,7 +275,7 @@ op_metrics_init (context_t *ctx, op_metrics_t *metrics, metrics_op_t op)
 static op_metrics_t *
 ctx_get_op_metrics (context_t *ctx, metrics_op_t op)
 {
-	metrics_t *metrics = &ctx->metrics;
+	metrics_t *metrics = ctx->metrics;
 	unsigned i;
 
 	if (op >= metrics->num_op_metrics)
@@ -439,7 +496,7 @@ static void
 print_program_metrics (void)
 {
 	context_t *ctx = context_get_current ();
-	metrics_t *metrics = &ctx->metrics;
+	metrics_t *metrics = ctx->metrics;
 	metrics_info_t *info = &ctx->metrics_info;
 	unsigned num_shader_stages = info->num_shader_stages;
 	per_stage_metrics_t *sorted, *per_stage;
@@ -542,7 +599,7 @@ static void
 metrics_exit (void)
 {
 	context_t *ctx = context_get_current ();
-	metrics_t *metrics = &ctx->metrics;
+	metrics_t *metrics = ctx->metrics;
 	metrics_info_t *info = &ctx->metrics_info;
 	unsigned i, j;
 	timer_query_t *timer, *timer_next;
@@ -595,7 +652,7 @@ void
 metrics_collect_available (void)
 {
 	context_t *ctx = context_get_current ();
-	metrics_t *metrics = &ctx->metrics;
+	metrics_t *metrics = ctx->metrics;
 
 	/* Consume all timer queries that are ready. */
 	timer_query_t *timer = metrics->timer_head;
@@ -700,9 +757,13 @@ metrics_end_frame (void)
 	}
 }
 
-void
-metrics_init (metrics_t *metrics)
+metrics_t *
+metrics_create (void)
 {
+	metrics_t *metrics;
+
+	metrics = xmalloc (sizeof (metrics_t));
+
 	metrics->op = 0;
 
 	metrics->timer_begun_id = 0;
@@ -719,6 +780,8 @@ metrics_init (metrics_t *metrics)
 
 	metrics->num_op_metrics = 0;
 	metrics->op_metrics = NULL;
+
+	return metrics;
 }
 
 void
@@ -727,12 +790,7 @@ metrics_fini (metrics_t *metrics)
 	timer_query_t *timer, *timer_next;
 	monitor_t *monitor, *monitor_next;
 
-	/* Since these metrics are going away, let's first collect
-	 * whatever results might already be available. */
-	metrics_collect_available ();
-
-	/* If, after collection, any queries are still outstanding,
-	 * just give up and clean them up. */
+	/* Discard and cleanup any outstanding queries. */
 	if (metrics->timer_begun_id) {
 		glEndQuery (GL_TIME_ELAPSED);
 		glDeleteQueries (1, &metrics->timer_begun_id);
@@ -768,5 +826,12 @@ metrics_fini (metrics_t *metrics)
 	metrics->monitor_tail = NULL;
 
 	metrics->monitors_in_flight = 0;
+}
 
+void
+metrics_destroy (metrics_t *metrics)
+{
+	metrics_fini (metrics);
+
+	free (metrics);
 }

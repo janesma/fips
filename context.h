@@ -33,7 +33,7 @@ typedef struct context
 	void *system_id;
 
 	metrics_info_t metrics_info;
-	metrics_t metrics;
+	metrics_t *metrics;
 } context_t;
 
 /* Indicate that a new context has come into use.
