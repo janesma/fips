@@ -97,6 +97,7 @@ libfips_srcs = \
 	glwrap.c \
 	glxwrap.c \
 	metrics.c \
+	metrics-info.c \
 	xmalloc.c
 
 ifeq ($(HAVE_EGL),Yes)

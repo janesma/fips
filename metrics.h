@@ -50,23 +50,6 @@ typedef enum
 	METRICS_OP_SHADER
 } metrics_op_t;
 
-/* Initialize metrics info
- *
- * This queries the names and ranges for all available performance counters.
- *
- * This should be called once before any other metrics functions.
- */
-void
-metrics_info_init (void);
-
-/* Finalize metrics info state.
- *
- * The function should be called just before setting a new, current,
- * OpenGL context.
- */
-void
-metrics_info_fini (void);
-
 /* Start accumulating GPU time.
  *
  * The time accumulated will be accounted against the
@@ -108,5 +91,19 @@ metrics_get_current_op (void);
  */
 void
 metrics_end_frame (void);
+
+/* Process outstanding metrics requests, accumulating results.
+ *
+ * This function is called automatically by metrics_end_frame.
+ *
+ * During a frame, it may be important to call this function to avoid
+ * too many oustanding timer/performance-monitor queries. At the same
+ * time, it's important not to call this function too frequently,
+ * since collection of metrics information will result in flushes of
+ * the OpenGL pipeline which can interfere with the behavior being
+ * measured.
+ */
+void
+metrics_collect_available (void);
 
 #endif

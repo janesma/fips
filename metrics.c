@@ -29,360 +29,14 @@
 #include "fips-dispatch-gl.h"
 
 #include "metrics.h"
+#include "context.h"
+#include "metrics-info.h"
 #include "xmalloc.h"
-
-/* Timer query */
-typedef struct timer_query
-{
-	unsigned id;
-
-	metrics_op_t op;
-	struct timer_query *next;
-} timer_query_t;
-
-/* Performance-monitor query */
-typedef struct monitor
-{
-	unsigned id;
-
-	metrics_op_t op;
-	struct monitor *next;
-} monitor_t;
-
-
-typedef struct op_metrics
-{
-	/* This happens to also be the index into the
-	 * ctx->op_metrics array currently
-	 */
-	metrics_op_t op;
-	double time_ns;
-
-	double **counters;
-} op_metrics_t;
-
-typedef struct metrics_group_info
-{
-	GLuint id;
-	char *name;
-
-	GLuint num_counters;
-	GLuint max_active_counters;
-
-	GLuint *counter_ids;
-	char **counter_names;
-	GLuint *counter_types;
-
-} metrics_group_info_t;
-
-typedef struct shader_stage_info
-{
-	char *name;
-
-	GLuint active_group_index;
-	GLuint active_counter_index;
-
-	GLuint stall_group_index;
-	GLuint stall_counter_index;
-
-} shader_stage_info_t;
-
-typedef struct metrics_info
-{
-	int initialized;
-
-	unsigned num_groups;
-	metrics_group_info_t *groups;
-
-	unsigned num_shader_stages;
-	shader_stage_info_t *stages;
-
-} metrics_info_t;
-
-typedef struct context
-{
-	metrics_info_t metrics_info;
-
-	metrics_op_t op;
-
-	/* GL_TIME_ELAPSED query for which glEndQuery has not yet
-	 * been called. */
-	unsigned timer_begun_id;
-
-	/* GL_TIME_ELAPSED queries for which glEndQuery has been
-	 * called, (but results have not yet been queried). */
-	timer_query_t *timer_head;
-	timer_query_t *timer_tail;
-
-	/* Performance monitor for which glEndPerfMonitorAMD has not
-	 * yet been called. */
-	unsigned monitor_begun_id;
-
-	/* Performance monitors for which glEndPerfMonitorAMD has
-	 * been called, (but results have not yet been queried). */
-	monitor_t *monitor_head;
-	monitor_t *monitor_tail;
-
-	int monitors_in_flight;
-
-	unsigned num_op_metrics;
-	op_metrics_t *op_metrics;
-} context_t;
-
-/* FIXME: Need a map from integers to context objects and track the
- * current context with glXMakeContextCurrent, eglMakeCurrent, etc. */
-
-context_t current_context;
 
 int frames;
 int verbose;
 
 #define MAX_MONITORS_IN_FLIGHT 1000
-
-void
-metrics_collect_available (void);
-
-static void
-metrics_group_info_init (metrics_group_info_t *group, GLuint id)
-{
-	GLsizei length;
-	unsigned i;
-
-	group->id = id;
-
-	/* Get name */
-	glGetPerfMonitorGroupStringAMD (id, 0, &length, NULL);
-
-	group->name = xmalloc (length + 1);
-
-	glGetPerfMonitorGroupStringAMD (id, length + 1, NULL, group->name);
-
-	/* Get number of counters */
-	group->num_counters = 0;
-	group->max_active_counters = 0;
-	glGetPerfMonitorCountersAMD (group->id,
-				     (int *) &group->num_counters,
-				     (int *) &group->max_active_counters,
-				     0, NULL);
-
-	/* Get counter numbers */
-	group->counter_ids = xmalloc (group->num_counters * sizeof (GLuint));
-
-	glGetPerfMonitorCountersAMD (group->id, NULL, NULL,
-				     group->num_counters,
-				     group->counter_ids);
-
-	/* Get counter names */
-	group->counter_names = xmalloc (group->num_counters * sizeof (char *));
-	group->counter_types = xmalloc (group->num_counters * sizeof (GLuint));
-
-	for (i = 0; i < group->num_counters; i++) {
-		glGetPerfMonitorCounterInfoAMD (group->id,
-						group->counter_ids[i],
-						GL_COUNTER_TYPE_AMD,
-						&group->counter_types[i]);
-
-		glGetPerfMonitorCounterStringAMD (group->id,
-						  group->counter_ids[i],
-						  0, &length, NULL);
-
-		group->counter_names[i] = xmalloc (length + 1);
-
-		glGetPerfMonitorCounterStringAMD (group->id,
-						  group->counter_ids[i],
-						  length + 1, NULL,
-						  group->counter_names[i]);
-	}
-}
-
-static void
-metrics_group_info_fini (metrics_group_info_t *group)
-{
-	unsigned i;
-
-	for (i = 0; i < group->num_counters; i++)
-		free (group->counter_names[i]);
-
-	free (group->counter_types);
-	free (group->counter_names);
-	free (group->counter_ids);
-
-	free (group->name);
-}
-
-/* A helper function, part of metrics_info_init below. */
-
-typedef enum {
-	SHADER_ACTIVE,
-	SHADER_STALL
-} shader_phase_t;
-
-static void
-_add_shader_stage (metrics_info_t *info, const char *name,
-		   GLuint group_index, GLuint counter_index,
-		   shader_phase_t phase)
-{
-	shader_stage_info_t *stage;
-	char *stage_name, *space;
-	unsigned i;
-
-	stage_name = xstrdup (name);
-
-	/* Terminate the stage name at the first space.
-	 *
-	 * This is valid for counter names such as:
-	 *
-	 *	"Vertex Shader Active Time"
-	 * or
-	 *	"Vertex Shader Stall Time - Core Stall"
-	 */
-	space = strchr (stage_name, ' ');
-	if (space)
-		*space = '\0';
-
-	/* Look for an existing stage of the given name. */
-	stage = NULL;
-
-	for (i = 0; i < info->num_shader_stages; i++) {
-		if (strcmp (info->stages[i].name, stage_name) == 0) {
-			stage = &info->stages[i];
-			break;
-		}
-	}
-
-	if (stage == NULL) {
-		info->num_shader_stages++;
-		info->stages = xrealloc (info->stages,
-					 info->num_shader_stages *
-					 sizeof (shader_stage_info_t));
-		stage = &info->stages[info->num_shader_stages - 1];
-		stage->name = xstrdup (stage_name);
-		stage->active_group_index = 0;
-		stage->active_counter_index = 0;
-		stage->stall_group_index = 0;
-		stage->stall_counter_index = 0;
-	}
-
-	if (phase == SHADER_ACTIVE) {
-		stage->active_group_index = group_index;
-		stage->active_counter_index = counter_index;
-	} else {
-		stage->stall_group_index = group_index;
-		stage->stall_counter_index = counter_index;
-	}
-
-	free (stage_name);
-}
-
-void
-metrics_info_init (void)
-{
-	unsigned i, j;
-	GLuint *group_ids;
-	metrics_info_t *info = &current_context.metrics_info;
-
-	glGetPerfMonitorGroupsAMD ((int *) &info->num_groups, 0, NULL);
-
-	group_ids = xmalloc (info->num_groups * sizeof (GLuint));
-
-	glGetPerfMonitorGroupsAMD (NULL, info->num_groups, group_ids);
-
-	info->groups = xmalloc (info->num_groups * sizeof (metrics_group_info_t));
-
-	for (i = 0; i < info->num_groups; i++)
-		metrics_group_info_init (&info->groups[i], group_ids[i]);
-
-	free (group_ids);
-
-	/* Identify each shader stage (by looking at
-	 * performance-counter names for specific patterns) and
-	 * initialize structures referring to the corresponding
-	 * counter numbers for each stage. */
-	info->num_shader_stages = 0;
-	info->stages = NULL;
-
-	for (i = 0; i < info->num_groups; i++) {
-		metrics_group_info_t *group = &info->groups[i];
-		for (j = 0; j < group->num_counters; j++) {
-			char *name = group->counter_names[j];
-			if (strstr (name, "Shader Active Time")) {
-				_add_shader_stage (info, name, i, j,
-						   SHADER_ACTIVE);
-			}
-			if (strstr (name, "Shader Stall Time")) {
-				_add_shader_stage (info, name, i, j,
-						   SHADER_STALL);
-			}
-		}
-	}
-
-	info->initialized = 1;
-}
-
-void
-metrics_info_fini (void)
-{
-	context_t *ctx = &current_context;
-	metrics_info_t *info = &ctx->metrics_info;
-	unsigned i;
-	timer_query_t *timer, *timer_next;
-	monitor_t *monitor, *monitor_next;
-
-	if (! info->initialized)
-		return;
-
-	metrics_collect_available ();
-
-	if (ctx->timer_begun_id) {
-		glEndQuery (GL_TIME_ELAPSED);
-		glDeleteQueries (1, &ctx->timer_begun_id);
-		ctx->timer_begun_id = 0;
-	}
-
-	for (timer = ctx->timer_head;
-	     timer;
-	     timer = timer_next)
-	{
-		glDeleteQueries (1, &timer->id);
-		timer_next = timer->next;
-		free (timer);
-	}
-	ctx->timer_head = NULL;
-	ctx->timer_tail = NULL;
-
-	if (ctx->monitor_begun_id) {
-		glEndPerfMonitorAMD (ctx->monitor_begun_id);
-		glDeletePerfMonitorsAMD (1, &ctx->monitor_begun_id);
-		ctx->monitor_begun_id = 0;
-	}
-
-	for (monitor = ctx->monitor_head;
-	     monitor;
-	     monitor = monitor_next)
-	{
-		glDeletePerfMonitorsAMD (1, &monitor->id);
-		monitor_next = monitor->next;
-		free (monitor);
-	}
-	ctx->monitor_head = NULL;
-	ctx->monitor_tail = NULL;
-
-	current_context.monitors_in_flight = 0;
-
-	for (i = 0; i < info->num_groups; i++)
-		metrics_group_info_fini (&info->groups[i]);
-
-	free (info->groups);
-	info->groups = NULL;
-
-	for (i = 0; i < info->num_shader_stages; i++)
-		free (info->stages[i].name);
-
-	free (info->stages);
-	info->stages = NULL;
-
-	info->initialized = 0;
-}
 
 static const char *
 metrics_op_string (metrics_op_t op)
@@ -432,7 +86,7 @@ metrics_op_string (metrics_op_t op)
 void
 metrics_counter_start (void)
 {
-	context_t *ctx = &current_context;
+	context_t *ctx = context_get_current ();
 	unsigned i;
 
 	/* Initialize the timer_query and monitor objects */
@@ -472,7 +126,7 @@ metrics_counter_start (void)
 void
 metrics_counter_stop (void)
 {
-	context_t *ctx = &current_context;
+	context_t *ctx = context_get_current ();
 	timer_query_t *timer;
 	monitor_t *monitor;
 
@@ -525,13 +179,17 @@ metrics_counter_stop (void)
 void
 metrics_set_current_op (metrics_op_t op)
 {
-	current_context.op = op;
+	context_t *ctx = context_get_current ();
+
+	ctx->op = op;
 }
 
 metrics_op_t
 metrics_get_current_op (void)
 {
-	return current_context.op;
+	context_t *ctx = context_get_current ();
+
+	return ctx->op;
 }
 
 static void
@@ -584,7 +242,7 @@ accumulate_program_metrics (metrics_op_t op, GLuint *result, GLuint size)
 	(var) = *((typeof(var) *) p);					\
 	p += sizeof(var);
 
-	context_t *ctx = &current_context;
+	context_t *ctx = context_get_current ();
 	metrics_info_t *info = &ctx->metrics_info;
 	op_metrics_t *metrics = ctx_get_op_metrics (ctx, op);
 	unsigned char *p = (unsigned char *) result;
@@ -647,9 +305,10 @@ accumulate_program_metrics (metrics_op_t op, GLuint *result, GLuint size)
 static void
 accumulate_program_time (metrics_op_t op, unsigned time_ns)
 {
+	context_t *ctx = context_get_current ();
 	op_metrics_t *metrics;
 
-	metrics = ctx_get_op_metrics (&current_context, op);
+	metrics = ctx_get_op_metrics (ctx, op);
 
 	metrics->time_ns += time_ns;
 }
@@ -774,7 +433,7 @@ time_compare(const void *in_a, const void *in_b, void *arg unused)
 static void
 print_program_metrics (void)
 {
-	context_t *ctx = &current_context;
+	context_t *ctx = context_get_current ();
 	metrics_info_t *info = &ctx->metrics_info;
 	unsigned num_shader_stages = info->num_shader_stages;
 	per_stage_metrics_t *sorted, *per_stage;
@@ -876,9 +535,9 @@ print_program_metrics (void)
 static void
 metrics_exit (void)
 {
-	context_t *ctx = &current_context;
+	context_t *ctx = context_get_current ();
 	metrics_info_t *info = &ctx->metrics_info;
-	unsigned i;
+	unsigned i, j;
 	timer_query_t *timer, *timer_next;
 	monitor_t *monitor, *monitor_next;
 
@@ -904,8 +563,18 @@ metrics_exit (void)
 		free (monitor);
 	}
 
-	for (i = 0; i < info->num_groups; i++)
-		metrics_group_info_fini (&info->groups[i]);
+	for (i = 0; i < info->num_groups; i++) {
+		metrics_group_info_t *group = &info->groups[i];
+
+		for (j = 0; j < group->num_counters; i++)
+			free (group->counter_names[j]);
+
+		free (group->counter_types);
+		free (group->counter_names);
+		free (group->counter_ids);
+
+		free (group->name);
+	}
 
 	free (info->groups);
 
@@ -918,7 +587,7 @@ metrics_exit (void)
 void
 metrics_collect_available (void)
 {
-	context_t *ctx = &current_context;
+	context_t *ctx = context_get_current ();
 
 	/* Consume all timer queries that are ready. */
 	timer_query_t *timer = ctx->timer_head;

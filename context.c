@@ -23,12 +23,19 @@
 
 #include "metrics.h"
 
+/* FIXME: Need a map from integers to context objects and track the
+ * current context with glXMakeContextCurrent, eglMakeCurrent, etc. */
+
+context_t current_context;
+
 void
 context_enter (fips_api_t api, void *system_context_id unused)
 {
+	context_t *ctx = &current_context;
+
 	fips_dispatch_init (api);
 
-	metrics_info_init ();
+	metrics_info_init (&ctx->metrics_info);
 
 	metrics_set_current_op (METRICS_OP_SHADER + 0);
 	metrics_counter_start ();
@@ -37,5 +44,53 @@ context_enter (fips_api_t api, void *system_context_id unused)
 void
 context_leave (void)
 {
-	metrics_info_fini ();
+	context_t *ctx = &current_context;
+	timer_query_t *timer, *timer_next;
+	monitor_t *monitor, *monitor_next;
+
+	metrics_collect_available ();
+
+	if (ctx->timer_begun_id) {
+		glEndQuery (GL_TIME_ELAPSED);
+		glDeleteQueries (1, &ctx->timer_begun_id);
+		ctx->timer_begun_id = 0;
+	}
+
+	for (timer = ctx->timer_head;
+	     timer;
+	     timer = timer_next)
+	{
+		glDeleteQueries (1, &timer->id);
+		timer_next = timer->next;
+		free (timer);
+	}
+	ctx->timer_head = NULL;
+	ctx->timer_tail = NULL;
+
+	if (ctx->monitor_begun_id) {
+		glEndPerfMonitorAMD (ctx->monitor_begun_id);
+		glDeletePerfMonitorsAMD (1, &ctx->monitor_begun_id);
+		ctx->monitor_begun_id = 0;
+	}
+
+	for (monitor = ctx->monitor_head;
+	     monitor;
+	     monitor = monitor_next)
+	{
+		glDeletePerfMonitorsAMD (1, &monitor->id);
+		monitor_next = monitor->next;
+		free (monitor);
+	}
+	ctx->monitor_head = NULL;
+	ctx->monitor_tail = NULL;
+
+	current_context.monitors_in_flight = 0;
+
+	metrics_info_fini (&ctx->metrics_info);
+}
+
+context_t *
+context_get_current (void)
+{
+	return &current_context;
 }
