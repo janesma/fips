@@ -61,8 +61,9 @@ context_enter (fips_api_t api, void *system_context_id)
 
 	current_context = context_create (api, system_context_id);
 
-	metrics_set_current_op (METRICS_OP_SHADER + 0);
-	metrics_counter_start ();
+	metrics_set_current_op (current_context->metrics,
+				METRICS_OP_SHADER + 0);
+	metrics_counter_start (current_context->metrics);
 }
 
 void
@@ -76,8 +77,32 @@ context_leave (void)
 	metrics_destroy (ctx->metrics);
 }
 
-context_t *
-context_get_current (void)
+void
+context_counter_start (void)
 {
-	return current_context;
+	metrics_counter_start (current_context->metrics);
+}
+
+void
+context_counter_stop (void)
+{
+	metrics_counter_stop (current_context->metrics);
+}
+
+void
+context_set_current_op (metrics_op_t op)
+{
+	metrics_set_current_op (current_context->metrics, op);
+}
+
+metrics_op_t
+context_get_current_op (void)
+{
+	return metrics_get_current_op (current_context->metrics);
+}
+
+void
+context_end_frame (void)
+{
+	return metrics_end_frame (current_context->metrics);
 }

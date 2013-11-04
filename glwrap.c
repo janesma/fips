@@ -45,7 +45,7 @@
 
 #include "glwrap.h"
 
-#include "metrics.h"
+#include "context.h"
 
 /* As of glext.h version 20131008 some types changed.
  *
@@ -66,13 +66,13 @@ static void *gl_handle;
 
 /* Switch metrics operation persistently, (until next SWITCH) */
 #define SWITCH_METRICS_OP(op)			\
-	metrics_counter_stop ();		\
-	metrics_set_current_op (op);		\
-	metrics_counter_start ();
+	context_counter_stop ();		\
+	context_set_current_op (op);		\
+	context_counter_start ();
 
 /* Switch metrics operation temporarily, see RESTORE_METRICS_OP */
 #define SAVE_THEN_SWITCH_METRICS_OP(op)			\
-	metrics_op_t save = metrics_get_current_op ();	\
+	metrics_op_t save = context_get_current_op ();	\
 	SWITCH_METRICS_OP (op);
 
 /* Switch back to metrics operation saved by SAVE_THEN_SWITCH_METRICS_OP */

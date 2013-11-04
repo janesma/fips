@@ -59,7 +59,7 @@ typedef struct monitor
 typedef struct op_metrics
 {
 	/* This happens to also be the index into the
-	 * ctx->op_metrics array currently
+	 * metrics->op_metrics array currently
 	 */
 	metrics_op_t op;
 	double time_ns;
@@ -227,10 +227,8 @@ metrics_op_string (metrics_op_t op)
 }
 
 void
-metrics_counter_start (void)
+metrics_counter_start (metrics_t *metrics)
 {
-	context_t *ctx = context_get_current ();
-	metrics_t *metrics = ctx->metrics;
 	unsigned i;
 
 	/* Initialize the timer_query and monitor objects */
@@ -268,10 +266,8 @@ metrics_counter_start (void)
 }
 
 void
-metrics_counter_stop (void)
+metrics_counter_stop (metrics_t *metrics)
 {
-	context_t *ctx = context_get_current ();
-	metrics_t *metrics = ctx->metrics;
 	timer_query_t *timer;
 	monitor_t *monitor;
 
@@ -318,31 +314,24 @@ metrics_counter_stop (void)
 	 * available by now.)
 	 */
 	if (metrics->monitors_in_flight > MAX_MONITORS_IN_FLIGHT)
-		metrics_collect_available ();
+		metrics_collect_available (metrics);
 }
 
 void
-metrics_set_current_op (metrics_op_t op)
+metrics_set_current_op (metrics_t *metrics, metrics_op_t op)
 {
-	context_t *ctx = context_get_current ();
-	metrics_t *metrics = ctx->metrics;
-
 	metrics->op = op;
 }
 
 metrics_op_t
-metrics_get_current_op (void)
+metrics_get_current_op (metrics_t *metrics)
 {
-	context_t *ctx = context_get_current ();
-	metrics_t *metrics = ctx->metrics;
-
 	return metrics->op;
 }
 
 static void
-op_metrics_init (context_t *ctx, op_metrics_t *metrics, metrics_op_t op)
+op_metrics_init (metrics_info_t *info, op_metrics_t *metrics, metrics_op_t op)
 {
-	metrics_info_t *info = ctx->metrics->info;
 	unsigned i, j;
 
 	metrics->op = op;
@@ -359,9 +348,8 @@ op_metrics_init (context_t *ctx, op_metrics_t *metrics, metrics_op_t op)
 }
 
 static op_metrics_t *
-ctx_get_op_metrics (context_t *ctx, metrics_op_t op)
+_get_op_metrics (metrics_t *metrics, metrics_op_t op)
 {
-	metrics_t *metrics = ctx->metrics;
 	unsigned i;
 
 	if (op >= metrics->num_op_metrics)
@@ -369,7 +357,7 @@ ctx_get_op_metrics (context_t *ctx, metrics_op_t op)
 		metrics->op_metrics = realloc (metrics->op_metrics,
 					       (op + 1) * sizeof (op_metrics_t));
 		for (i = metrics->num_op_metrics; i < op + 1; i++)
-			op_metrics_init (ctx, &metrics->op_metrics[i], i);
+			op_metrics_init (metrics->info, &metrics->op_metrics[i], i);
 
 		metrics->num_op_metrics = op + 1;
 	}
@@ -378,7 +366,8 @@ ctx_get_op_metrics (context_t *ctx, metrics_op_t op)
 }
 
 static void
-accumulate_program_metrics (metrics_op_t op, GLuint *result, GLuint size)
+accumulate_program_metrics (metrics_t *metrics, metrics_op_t op,
+			    GLuint *result, GLuint size)
 {
 #define CONSUME(var)							\
 	if (p + sizeof(var) > ((unsigned char *) result) + size)	\
@@ -390,9 +379,8 @@ accumulate_program_metrics (metrics_op_t op, GLuint *result, GLuint size)
 	(var) = *((typeof(var) *) p);					\
 	p += sizeof(var);
 
-	context_t *ctx = context_get_current ();
-	metrics_info_t *info = ctx->metrics->info;
-	op_metrics_t *metrics = ctx_get_op_metrics (ctx, op);
+	metrics_info_t *info = metrics->info;
+	op_metrics_t *op_metrics = _get_op_metrics (metrics, op);
 	unsigned char *p = (unsigned char *) result;
 
 	while (p < ((unsigned char *) result) + size)
@@ -446,19 +434,18 @@ accumulate_program_metrics (metrics_op_t op, GLuint *result, GLuint size)
 			break;
 		}
 
-		metrics->counters[group_index][counter_index] += value;
+		op_metrics->counters[group_index][counter_index] += value;
 	}
 }
 
 static void
-accumulate_program_time (metrics_op_t op, unsigned time_ns)
+accumulate_program_time (metrics_t *metrics, metrics_op_t op, unsigned time_ns)
 {
-	context_t *ctx = context_get_current ();
-	op_metrics_t *metrics;
+	op_metrics_t *op_metrics;
 
-	metrics = ctx_get_op_metrics (ctx, op);
+	op_metrics = _get_op_metrics (metrics, op);
 
-	metrics->time_ns += time_ns;
+	op_metrics->time_ns += time_ns;
 }
 
 typedef struct per_stage_metrics
@@ -497,12 +484,12 @@ _is_shader_stage_counter (metrics_info_t *info,
 }
 
 static void
-print_per_stage_metrics (context_t *ctx,
+print_per_stage_metrics (metrics_t *metrics,
 			 per_stage_metrics_t *per_stage,
 			 double total)
 {
-	metrics_info_t *info = ctx->metrics->info;
-	op_metrics_t *metric = per_stage->metrics;
+	metrics_info_t *info = metrics->info;
+	op_metrics_t *op_metrics = per_stage->metrics;
 	metrics_group_info_t *group;
 	const char *op_string;
 	unsigned group_index, counter;
@@ -512,12 +499,12 @@ print_per_stage_metrics (context_t *ctx,
 	if (per_stage->time_ns == 0.0)
 		return;
 
-	op_string = metrics_op_string (metric->op);
+	op_string = metrics_op_string (op_metrics->op);
 
 	printf ("%21s", op_string);
 
-	if (metric->op >= METRICS_OP_SHADER) {
-		printf (" %3d", metric->op - METRICS_OP_SHADER);
+	if (op_metrics->op >= METRICS_OP_SHADER) {
+		printf (" %3d", op_metrics->op - METRICS_OP_SHADER);
 	} else {
 		printf ("    ");
 
@@ -554,7 +541,7 @@ print_per_stage_metrics (context_t *ctx,
 			if (_is_shader_stage_counter (info, group_index, counter))
 				continue;
 
-			value = metric->counters[group_index][counter];
+			value = op_metrics->counters[group_index][counter];
 			if (value == 0.0)
 				continue;
 			printf ("%s: %.2f ", group->counter_names[counter],
@@ -579,10 +566,8 @@ time_compare(const void *in_a, const void *in_b, void *arg unused)
 }
 
 static void
-print_program_metrics (void)
+print_program_metrics (metrics_t *metrics)
 {
-	context_t *ctx = context_get_current ();
-	metrics_t *metrics = ctx->metrics;
 	metrics_info_t *info = metrics->info;
 	unsigned num_shader_stages = info->num_shader_stages;
 	per_stage_metrics_t *sorted, *per_stage;
@@ -670,76 +655,14 @@ print_program_metrics (void)
 		 time_compare, metrics->op_metrics);
 
 	for (i = 0; i < num_sorted; i++)
-		print_per_stage_metrics (ctx, &sorted[i], total_time);
+		print_per_stage_metrics (metrics, &sorted[i], total_time);
 
 	free (sorted);
 }
 
-/* Called at program exit.
- *
- * This is similar to metrics_info_fini, but only frees any used
- * memory. Notably, it does not call any OpenGL functions, (since the
- * OpenGL context no longer exists at program exit).
- */
-static void
-metrics_exit (void)
-{
-	context_t *ctx = context_get_current ();
-	metrics_t *metrics = ctx->metrics;
-	metrics_info_t *info = metrics->info;
-	unsigned i, j;
-	timer_query_t *timer, *timer_next;
-	monitor_t *monitor, *monitor_next;
-
-	if (verbose)
-		printf ("fips: terminating\n");
-
-	if (! info->initialized)
-		return;
-
-	for (timer = metrics->timer_head;
-	     timer;
-	     timer = timer_next)
-	{
-		timer_next = timer->next;
-		free (timer);
-	}
-
-	for (monitor = metrics->monitor_head;
-	     monitor;
-	     monitor = monitor_next)
-	{
-		monitor_next = monitor->next;
-		free (monitor);
-	}
-
-	for (i = 0; i < info->num_groups; i++) {
-		metrics_group_info_t *group = &info->groups[i];
-
-		for (j = 0; j < group->num_counters; i++)
-			free (group->counter_names[j]);
-
-		free (group->counter_types);
-		free (group->counter_names);
-		free (group->counter_ids);
-
-		free (group->name);
-	}
-
-	free (info->groups);
-
-	for (i = 0; i < info->num_shader_stages; i++)
-		free (info->stages[i].name);
-
-	free (info->stages);
-}
-
 void
-metrics_collect_available (void)
+metrics_collect_available (metrics_t *metrics)
 {
-	context_t *ctx = context_get_current ();
-	metrics_t *metrics = ctx->metrics;
-
 	/* Consume all timer queries that are ready. */
 	timer_query_t *timer = metrics->timer_head;
 
@@ -754,7 +677,7 @@ metrics_collect_available (void)
 		glGetQueryObjectuiv (timer->id,
 				     GL_QUERY_RESULT, &elapsed);
 
-		accumulate_program_time (timer->op, elapsed);
+		accumulate_program_time (metrics, timer->op, elapsed);
 
 		metrics->timer_head = timer->next;
 		if (metrics->timer_head == NULL)
@@ -792,7 +715,7 @@ metrics_collect_available (void)
 						result_size, result,
 						&bytes_written);
 
-		accumulate_program_metrics (monitor->op, result, result_size);
+		accumulate_program_metrics (metrics, monitor->op, result, result_size);
 
 		free (result);
 
@@ -812,14 +735,13 @@ metrics_collect_available (void)
 
 
 void
-metrics_end_frame (void)
+metrics_end_frame (metrics_t *metrics)
 {
 	static int initialized = 0;
 	static struct timeval tv_start, tv_now;
 
 	if (! initialized) {
 		gettimeofday (&tv_start, NULL);
-		atexit (metrics_exit);
 		if (getenv ("FIPS_VERBOSE"))
 			verbose = 1;
 		initialized = 1;
@@ -827,7 +749,7 @@ metrics_end_frame (void)
 
 	frames++;
 
-	metrics_collect_available ();
+	metrics_collect_available (metrics);
 
 	if (frames % 15 == 0) {
 		double fps;
@@ -839,6 +761,6 @@ metrics_end_frame (void)
 
 		printf("FPS: %.3f\n", fps);
 
-		print_program_metrics ();
+		print_program_metrics (metrics);
 	}
 }

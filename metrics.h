@@ -81,11 +81,11 @@ metrics_destroy (metrics_t *metrics);
  * current program (as set with metrics_set_current_program).
  */
 void
-metrics_counter_start (void);
+metrics_counter_start (metrics_t *metrics);
 
 /* Stop accumulating GPU time (stops the most-recently started counter) */
 void
-metrics_counter_stop (void);
+metrics_counter_stop (metrics_t *metrics);
 
 /* Set a metrics_op_t value to indicate what kind of operation is
  * being performed.
@@ -100,13 +100,13 @@ metrics_counter_stop (void);
  * METRICS_OP_SHADER + shader_program_number to this function.
  */
 void
-metrics_set_current_op (metrics_op_t op);
+metrics_set_current_op (metrics_t *metrics, metrics_op_t op);
 
 /* Return the current metrics_op_t value, (the value most-recently-set
  * with a call to metrics_set_current_op).
  */
 metrics_op_t
-metrics_get_current_op (void);
+metrics_get_current_op (metrics_t *metrics);
 
 /* Should be called at the end of every function wrapper for a
  * function that ends a frame, (glXSwapBuffers and similar).
@@ -115,7 +115,7 @@ metrics_get_current_op (void);
  * generate a timing report, then emits that report.
  */
 void
-metrics_end_frame (void);
+metrics_end_frame (metrics_t *metrics);
 
 /* Process outstanding metrics requests, accumulating results.
  *
@@ -129,6 +129,6 @@ metrics_end_frame (void);
  * measured.
  */
 void
-metrics_collect_available (void);
+metrics_collect_available (metrics_t *metrics);
 
 #endif

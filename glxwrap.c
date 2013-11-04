@@ -37,11 +37,11 @@ glXSwapBuffers (Display *dpy, GLXDrawable drawable)
 {
 	GLWRAP_DEFER (glXSwapBuffers, dpy, drawable);
 
-	metrics_counter_stop ();
+	context_counter_stop ();
 
-	metrics_end_frame ();
+	context_end_frame ();
 
-	metrics_counter_start ();
+	context_counter_start ();
 }
 
 /* glXGetProcAddressARB is a function which accepts a string and

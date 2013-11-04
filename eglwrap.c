@@ -80,11 +80,11 @@ eglSwapBuffers (EGLDisplay dpy, EGLSurface surface)
 
 	EGLWRAP_DEFER_WITH_RETURN (ret, eglSwapBuffers, dpy, surface);
 
-	metrics_counter_stop ();
+	context_counter_stop ();
 
-	metrics_end_frame ();
+	context_end_frame ();
 
-	metrics_counter_start ();
+	context_counter_start ();
 
 	return ret;
 }
