@@ -20,22 +20,45 @@
  */
 
 #include "context.h"
-
 #include "metrics.h"
+#include "xmalloc.h"
 
-/* FIXME: Need a map from integers to context objects and track the
- * current context with glXMakeContextCurrent, eglMakeCurrent, etc. */
+context_t *current_context;
 
-context_t current_context;
-
-void
-context_enter (fips_api_t api, void *system_context_id unused)
+static context_t *
+context_create (fips_api_t api, void *system_context_id)
 {
-	context_t *ctx = &current_context;
+	context_t *ctx;
+
+	ctx = xcalloc (1, sizeof (*ctx));
+
+	ctx->system_id = system_context_id;
 
 	fips_dispatch_init (api);
 
 	metrics_info_init (&ctx->metrics_info);
+
+	return ctx;
+}
+
+static void
+context_destroy (context_t *ctx)
+{
+	metrics_info_fini (&ctx->metrics_info);
+}
+
+void
+context_enter (fips_api_t api, void *system_context_id)
+{
+	/* Do nothing if the application is setting the same context
+	 * as is already current. */
+	if (current_context && current_context->system_id == system_context_id)
+		return;
+
+	if (current_context)
+		context_destroy (current_context);
+
+	current_context = context_create (api, system_context_id);
 
 	metrics_set_current_op (METRICS_OP_SHADER + 0);
 	metrics_counter_start ();
@@ -44,9 +67,12 @@ context_enter (fips_api_t api, void *system_context_id unused)
 void
 context_leave (void)
 {
-	context_t *ctx = &current_context;
+	context_t *ctx = current_context;
 	timer_query_t *timer, *timer_next;
 	monitor_t *monitor, *monitor_next;
+
+	if (ctx == NULL)
+		return;
 
 	metrics_collect_available ();
 
@@ -84,13 +110,11 @@ context_leave (void)
 	ctx->monitor_head = NULL;
 	ctx->monitor_tail = NULL;
 
-	current_context.monitors_in_flight = 0;
-
-	metrics_info_fini (&ctx->metrics_info);
+	ctx->monitors_in_flight = 0;
 }
 
 context_t *
 context_get_current (void)
 {
-	return &current_context;
+	return current_context;
 }

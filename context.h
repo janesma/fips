@@ -58,6 +58,9 @@ typedef struct op_metrics
 
 typedef struct context
 {
+	/* Pointer to the system's context ID, (such as a GLXContext) */
+	void *system_id;
+
 	metrics_info_t metrics_info;
 
 	metrics_op_t op;
