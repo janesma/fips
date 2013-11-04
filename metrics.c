@@ -95,6 +95,85 @@ struct metrics
 	op_metrics_t *op_metrics;
 };
 
+metrics_t *
+metrics_create (void)
+{
+	metrics_t *metrics;
+
+	metrics = xmalloc (sizeof (metrics_t));
+
+	metrics->op = 0;
+
+	metrics->timer_begun_id = 0;
+
+	metrics->timer_head = NULL;
+	metrics->timer_tail = NULL;
+
+	metrics->monitor_begun_id = 0;
+
+	metrics->monitor_head = NULL;
+	metrics->monitor_tail = NULL;
+
+	metrics->monitors_in_flight = 0;
+
+	metrics->num_op_metrics = 0;
+	metrics->op_metrics = NULL;
+
+	return metrics;
+}
+
+void
+metrics_fini (metrics_t *metrics)
+{
+	timer_query_t *timer, *timer_next;
+	monitor_t *monitor, *monitor_next;
+
+	/* Discard and cleanup any outstanding queries. */
+	if (metrics->timer_begun_id) {
+		glEndQuery (GL_TIME_ELAPSED);
+		glDeleteQueries (1, &metrics->timer_begun_id);
+		metrics->timer_begun_id = 0;
+	}
+
+	for (timer = metrics->timer_head;
+	     timer;
+	     timer = timer_next)
+	{
+		glDeleteQueries (1, &timer->id);
+		timer_next = timer->next;
+		free (timer);
+	}
+	metrics->timer_head = NULL;
+	metrics->timer_tail = NULL;
+
+	if (metrics->monitor_begun_id) {
+		glEndPerfMonitorAMD (metrics->monitor_begun_id);
+		glDeletePerfMonitorsAMD (1, &metrics->monitor_begun_id);
+		metrics->monitor_begun_id = 0;
+	}
+
+	for (monitor = metrics->monitor_head;
+	     monitor;
+	     monitor = monitor_next)
+	{
+		glDeletePerfMonitorsAMD (1, &monitor->id);
+		monitor_next = monitor->next;
+		free (monitor);
+	}
+	metrics->monitor_head = NULL;
+	metrics->monitor_tail = NULL;
+
+	metrics->monitors_in_flight = 0;
+}
+
+void
+metrics_destroy (metrics_t *metrics)
+{
+	metrics_fini (metrics);
+
+	free (metrics);
+}
+
 static const char *
 metrics_op_string (metrics_op_t op)
 {
@@ -755,83 +834,4 @@ metrics_end_frame (void)
 
 		print_program_metrics ();
 	}
-}
-
-metrics_t *
-metrics_create (void)
-{
-	metrics_t *metrics;
-
-	metrics = xmalloc (sizeof (metrics_t));
-
-	metrics->op = 0;
-
-	metrics->timer_begun_id = 0;
-
-	metrics->timer_head = NULL;
-	metrics->timer_tail = NULL;
-
-	metrics->monitor_begun_id = 0;
-
-	metrics->monitor_head = NULL;
-	metrics->monitor_tail = NULL;
-
-	metrics->monitors_in_flight = 0;
-
-	metrics->num_op_metrics = 0;
-	metrics->op_metrics = NULL;
-
-	return metrics;
-}
-
-void
-metrics_fini (metrics_t *metrics)
-{
-	timer_query_t *timer, *timer_next;
-	monitor_t *monitor, *monitor_next;
-
-	/* Discard and cleanup any outstanding queries. */
-	if (metrics->timer_begun_id) {
-		glEndQuery (GL_TIME_ELAPSED);
-		glDeleteQueries (1, &metrics->timer_begun_id);
-		metrics->timer_begun_id = 0;
-	}
-
-	for (timer = metrics->timer_head;
-	     timer;
-	     timer = timer_next)
-	{
-		glDeleteQueries (1, &timer->id);
-		timer_next = timer->next;
-		free (timer);
-	}
-	metrics->timer_head = NULL;
-	metrics->timer_tail = NULL;
-
-	if (metrics->monitor_begun_id) {
-		glEndPerfMonitorAMD (metrics->monitor_begun_id);
-		glDeletePerfMonitorsAMD (1, &metrics->monitor_begun_id);
-		metrics->monitor_begun_id = 0;
-	}
-
-	for (monitor = metrics->monitor_head;
-	     monitor;
-	     monitor = monitor_next)
-	{
-		glDeletePerfMonitorsAMD (1, &monitor->id);
-		monitor_next = monitor->next;
-		free (monitor);
-	}
-	metrics->monitor_head = NULL;
-	metrics->monitor_tail = NULL;
-
-	metrics->monitors_in_flight = 0;
-}
-
-void
-metrics_destroy (metrics_t *metrics)
-{
-	metrics_fini (metrics);
-
-	free (metrics);
 }
