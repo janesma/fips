@@ -54,6 +54,36 @@ unsupported (const char *name)
 		unsupported (name_a);
 
 static void
+stub_glGetIntegerv (GLenum pname, GLint * params)
+{
+	check_initialized ();
+	resolve (fips_dispatch_glGetIntegerv, "glGetIntegerv");
+	fips_dispatch_glGetIntegerv (pname, params);
+}
+
+PFNGLGETINTEGERVPROC fips_dispatch_glGetIntegerv = stub_glGetIntegerv;
+
+static const GLubyte *
+stub_glGetString (GLenum name)
+{
+	check_initialized ();
+	resolve (fips_dispatch_glGetString, "glGetString");
+	return fips_dispatch_glGetString (name);
+}
+
+PFNGLGETSTRINGPROC fips_dispatch_glGetString = stub_glGetString;
+
+static const GLubyte *
+stub_glGetStringi (GLenum name, GLuint index)
+{
+	check_initialized ();
+	resolve (fips_dispatch_glGetStringi, "glGetStringi");
+	return fips_dispatch_glGetStringi (name, index);
+}
+
+PFNGLGETSTRINGIPROC fips_dispatch_glGetStringi = stub_glGetStringi;
+
+static void
 stub_glGenQueries (GLsizei n, GLuint *ids)
 {
 	check_initialized ();

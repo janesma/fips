@@ -49,6 +49,8 @@
 #define GL_3_BYTES				0x1408
 #define GL_4_BYTES				0x1409
 #define GL_DOUBLE				0x140A
+#define GL_EXTENSIONS				0x1F03
+#define GL_NUM_EXTENSIONS                 	0x821D
 
 typedef unsigned int GLenum;
 typedef unsigned int GLbitfield;
@@ -78,6 +80,9 @@ typedef ptrdiff_t GLsizeiptrARB;
 typedef char GLcharARB;
 typedef unsigned int GLhandleARB;
 
+typedef void (*PFNGLGETINTEGERVPROC) (GLenum pname, GLint *params);
+typedef const GLubyte* (*PFNGLGETSTRINGPROC)(GLenum name);
+typedef const GLubyte* (*PFNGLGETSTRINGIPROC)(GLenum name, GLuint index);
 typedef void (*PFNGLGENQUERIESPROC)(GLsizei, GLuint *);
 typedef void (*PFNGLDELETEQUERIESPROC)(GLsizei, const GLuint *);
 typedef void (*PFNGLBEGINQUERYPROC)(GLenum, GLuint);
@@ -101,6 +106,15 @@ typedef void (*PFNGLBEGINPERFMONITORAMDPROC)(GLuint);
 typedef void (*PFNGLENDPERFMONITORAMDPROC)(GLuint);
 typedef void (*PFNGLGETPERFMONITORCOUNTERDATAAMDPROC)(GLuint, GLenum,
 						      GLsizei, GLuint *, GLint *);
+
+extern PFNGLGETINTEGERVPROC fips_dispatch_glGetIntegerv;
+#define glGetIntegerv fips_dispatch_glGetIntegerv
+
+extern PFNGLGETSTRINGPROC fips_dispatch_glGetString;
+#define glGetString fips_dispatch_glGetString
+
+extern PFNGLGETSTRINGIPROC fips_dispatch_glGetStringi;
+#define glGetStringi fips_dispatch_glGetStringi
 
 #define GL_QUERY_RESULT 0x8866
 #define GL_QUERY_RESULT_AVAILABLE 0x8867
