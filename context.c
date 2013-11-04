@@ -37,7 +37,7 @@ context_create (fips_api_t api, void *system_context_id)
 	fips_dispatch_init (api);
 
 	metrics_info_init (&ctx->metrics_info);
-	ctx->metrics = metrics_create ();
+	ctx->metrics = metrics_create (&ctx->metrics_info);
 
 	return ctx;
 }

@@ -22,6 +22,8 @@
 #ifndef METRICS_H
 #define METRICS_H
 
+#include "metrics-info.h"
+
 typedef enum
 {
 	METRICS_OP_ACCUM,
@@ -52,9 +54,10 @@ typedef enum
 
 typedef struct metrics metrics_t;
 
-/* Create a new metrics_t object for tracking metrics. */
+/* Create a new metrics_t object for tracking metrics, given the
+ * pre-initialized metrics_info_t* describing available counters. */
 metrics_t *
-metrics_create (void);
+metrics_create (metrics_info_t *info);
 
 /* Free all internal resources of a metrics_t
  *

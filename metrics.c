@@ -69,6 +69,11 @@ typedef struct op_metrics
 
 struct metrics
 {
+	/* Description of all available peformance counters, counter
+	 * groups, their names and IDs, etc. */
+	metrics_info_t *info;
+
+	/* The current operation being measured. */
 	metrics_op_t op;
 
 	/* GL_TIME_ELAPSED query for which glEndQuery has not yet
@@ -96,11 +101,13 @@ struct metrics
 };
 
 metrics_t *
-metrics_create (void)
+metrics_create (metrics_info_t *info)
 {
 	metrics_t *metrics;
 
 	metrics = xmalloc (sizeof (metrics_t));
+
+	metrics->info = info;
 
 	metrics->op = 0;
 
@@ -231,12 +238,12 @@ metrics_counter_start (void)
 
 	glGenPerfMonitorsAMD (1, &metrics->monitor_begun_id);
 
-	for (i = 0; i < ctx->metrics_info.num_groups; i++)
+	for (i = 0; i < metrics->info->num_groups; i++)
 	{
 		metrics_group_info_t *group;
 		int num_counters;
 
-		group = &ctx->metrics_info.groups[i];
+		group = &metrics->info->groups[i];
 
 		num_counters = group->num_counters;
 		if (group->max_active_counters < group->num_counters)
@@ -335,7 +342,7 @@ metrics_get_current_op (void)
 static void
 op_metrics_init (context_t *ctx, op_metrics_t *metrics, metrics_op_t op)
 {
-	metrics_info_t *info = &ctx->metrics_info;
+	metrics_info_t *info = ctx->metrics->info;
 	unsigned i, j;
 
 	metrics->op = op;
@@ -384,7 +391,7 @@ accumulate_program_metrics (metrics_op_t op, GLuint *result, GLuint size)
 	p += sizeof(var);
 
 	context_t *ctx = context_get_current ();
-	metrics_info_t *info = &ctx->metrics_info;
+	metrics_info_t *info = ctx->metrics->info;
 	op_metrics_t *metrics = ctx_get_op_metrics (ctx, op);
 	unsigned char *p = (unsigned char *) result;
 
@@ -494,7 +501,7 @@ print_per_stage_metrics (context_t *ctx,
 			 per_stage_metrics_t *per_stage,
 			 double total)
 {
-	metrics_info_t *info = &ctx->metrics_info;
+	metrics_info_t *info = ctx->metrics->info;
 	op_metrics_t *metric = per_stage->metrics;
 	metrics_group_info_t *group;
 	const char *op_string;
@@ -576,7 +583,7 @@ print_program_metrics (void)
 {
 	context_t *ctx = context_get_current ();
 	metrics_t *metrics = ctx->metrics;
-	metrics_info_t *info = &ctx->metrics_info;
+	metrics_info_t *info = metrics->info;
 	unsigned num_shader_stages = info->num_shader_stages;
 	per_stage_metrics_t *sorted, *per_stage;
 	double total_time, op_cycles;
@@ -679,7 +686,7 @@ metrics_exit (void)
 {
 	context_t *ctx = context_get_current ();
 	metrics_t *metrics = ctx->metrics;
-	metrics_info_t *info = &ctx->metrics_info;
+	metrics_info_t *info = metrics->info;
 	unsigned i, j;
 	timer_query_t *timer, *timer_next;
 	monitor_t *monitor, *monitor_next;
