@@ -87,12 +87,13 @@ void
 metrics_counter_start (void)
 {
 	context_t *ctx = context_get_current ();
+	metrics_t *metrics = &ctx->metrics;
 	unsigned i;
 
 	/* Initialize the timer_query and monitor objects */
-	glGenQueries (1, &ctx->timer_begun_id);
+	glGenQueries (1, &metrics->timer_begun_id);
 
-	glGenPerfMonitorsAMD (1, &ctx->monitor_begun_id);
+	glGenPerfMonitorsAMD (1, &metrics->monitor_begun_id);
 
 	for (i = 0; i < ctx->metrics_info.num_groups; i++)
 	{
@@ -111,68 +112,69 @@ metrics_counter_start (void)
 
 		}
 
-		glSelectPerfMonitorCountersAMD(ctx->monitor_begun_id,
+		glSelectPerfMonitorCountersAMD(metrics->monitor_begun_id,
 					       GL_TRUE, group->id,
 					       num_counters,
 					       group->counter_ids);
 	}
 
 	/* Start the queries */
-	glBeginQuery (GL_TIME_ELAPSED, ctx->timer_begun_id);
+	glBeginQuery (GL_TIME_ELAPSED, metrics->timer_begun_id);
 
-	glBeginPerfMonitorAMD (ctx->monitor_begun_id);
+	glBeginPerfMonitorAMD (metrics->monitor_begun_id);
 }
 
 void
 metrics_counter_stop (void)
 {
 	context_t *ctx = context_get_current ();
+	metrics_t *metrics = &ctx->metrics;
 	timer_query_t *timer;
 	monitor_t *monitor;
 
 	/* Stop the current timer and monitor. */
 	glEndQuery (GL_TIME_ELAPSED);
-	glEndPerfMonitorAMD (ctx->monitor_begun_id);
+	glEndPerfMonitorAMD (metrics->monitor_begun_id);
 
 	/* Add these IDs to our lists of outstanding queries and
 	 * monitors so the results can be collected later. */
 	timer = xmalloc (sizeof (timer_query_t));
 
-	timer->op = ctx->op;
-	timer->id = ctx->timer_begun_id;
+	timer->op = metrics->op;
+	timer->id = metrics->timer_begun_id;
 	timer->next = NULL;
 
-	if (ctx->timer_tail) {
-		ctx->timer_tail->next = timer;
-		ctx->timer_tail = timer;
+	if (metrics->timer_tail) {
+		metrics->timer_tail->next = timer;
+		metrics->timer_tail = timer;
 	} else {
-		ctx->timer_tail = timer;
-		ctx->timer_head = timer;
+		metrics->timer_tail = timer;
+		metrics->timer_head = timer;
 	}
 
 	/* Create a new performance-monitor query */
 	monitor = xmalloc (sizeof (monitor_t));
 
-	monitor->op = ctx->op;
-	monitor->id = ctx->monitor_begun_id;
+	monitor->op = metrics->op;
+	monitor->id = metrics->monitor_begun_id;
 	monitor->next = NULL;
 
-	if (ctx->monitor_tail) {
-		ctx->monitor_tail->next = monitor;
-		ctx->monitor_tail = monitor;
+	if (metrics->monitor_tail) {
+		metrics->monitor_tail->next = monitor;
+		metrics->monitor_tail = monitor;
 	} else {
-		ctx->monitor_tail = monitor;
-		ctx->monitor_head = monitor;
+		metrics->monitor_tail = monitor;
+		metrics->monitor_head = monitor;
 	}
 
-	ctx->monitors_in_flight++;
+	metrics->monitors_in_flight++;
 
 	/* Avoid being a resource hog and collect outstanding results
 	 * once we have sent off a large number of
 	 * queries. (Presumably, many of the outstanding queries are
 	 * available by now.)
 	 */
-	if (ctx->monitors_in_flight > MAX_MONITORS_IN_FLIGHT)
+	if (metrics->monitors_in_flight > MAX_MONITORS_IN_FLIGHT)
 		metrics_collect_available ();
 }
 
@@ -180,16 +182,18 @@ void
 metrics_set_current_op (metrics_op_t op)
 {
 	context_t *ctx = context_get_current ();
+	metrics_t *metrics = &ctx->metrics;
 
-	ctx->op = op;
+	metrics->op = op;
 }
 
 metrics_op_t
 metrics_get_current_op (void)
 {
 	context_t *ctx = context_get_current ();
+	metrics_t *metrics = &ctx->metrics;
 
-	return ctx->op;
+	return metrics->op;
 }
 
 static void
@@ -214,19 +218,20 @@ op_metrics_init (context_t *ctx, op_metrics_t *metrics, metrics_op_t op)
 static op_metrics_t *
 ctx_get_op_metrics (context_t *ctx, metrics_op_t op)
 {
+	metrics_t *metrics = &ctx->metrics;
 	unsigned i;
 
-	if (op >= ctx->num_op_metrics)
+	if (op >= metrics->num_op_metrics)
 	{
-		ctx->op_metrics = realloc (ctx->op_metrics,
-					   (op + 1) * sizeof (op_metrics_t));
-		for (i = ctx->num_op_metrics; i < op + 1; i++)
-			op_metrics_init (ctx, &ctx->op_metrics[i], i);
+		metrics->op_metrics = realloc (metrics->op_metrics,
+					       (op + 1) * sizeof (op_metrics_t));
+		for (i = metrics->num_op_metrics; i < op + 1; i++)
+			op_metrics_init (ctx, &metrics->op_metrics[i], i);
 
-		ctx->num_op_metrics = op + 1;
+		metrics->num_op_metrics = op + 1;
 	}
 
-	return &ctx->op_metrics[op];
+	return &metrics->op_metrics[op];
 }
 
 static void
@@ -434,6 +439,7 @@ static void
 print_program_metrics (void)
 {
 	context_t *ctx = context_get_current ();
+	metrics_t *metrics = &ctx->metrics;
 	metrics_info_t *info = &ctx->metrics_info;
 	unsigned num_shader_stages = info->num_shader_stages;
 	per_stage_metrics_t *sorted, *per_stage;
@@ -445,15 +451,15 @@ print_program_metrics (void)
 	/* Make a sorted list of the per-stage operations by time
 	 * used, and figure out the total so we can print percentages.
 	 */
-	num_sorted = ctx->num_op_metrics * num_shader_stages;
+	num_sorted = metrics->num_op_metrics * num_shader_stages;
 
 	sorted = xmalloc (sizeof (*sorted) * num_sorted);
 
 	total_time = 0.0;
 
-	for (i = 0; i < ctx->num_op_metrics; i++) {
+	for (i = 0; i < metrics->num_op_metrics; i++) {
 
-		op = &ctx->op_metrics[i];
+		op = &metrics->op_metrics[i];
 
 		/* Accumulate total time across all ops. */
 		total_time += op->time_ns;
@@ -518,7 +524,7 @@ print_program_metrics (void)
 	}
 
 	qsort_r (sorted, num_sorted, sizeof (*sorted),
-		 time_compare, ctx->op_metrics);
+		 time_compare, metrics->op_metrics);
 
 	for (i = 0; i < num_sorted; i++)
 		print_per_stage_metrics (ctx, &sorted[i], total_time);
@@ -536,6 +542,7 @@ static void
 metrics_exit (void)
 {
 	context_t *ctx = context_get_current ();
+	metrics_t *metrics = &ctx->metrics;
 	metrics_info_t *info = &ctx->metrics_info;
 	unsigned i, j;
 	timer_query_t *timer, *timer_next;
@@ -547,7 +554,7 @@ metrics_exit (void)
 	if (! info->initialized)
 		return;
 
-	for (timer = ctx->timer_head;
+	for (timer = metrics->timer_head;
 	     timer;
 	     timer = timer_next)
 	{
@@ -555,7 +562,7 @@ metrics_exit (void)
 		free (timer);
 	}
 
-	for (monitor = ctx->monitor_head;
+	for (monitor = metrics->monitor_head;
 	     monitor;
 	     monitor = monitor_next)
 	{
@@ -588,9 +595,10 @@ void
 metrics_collect_available (void)
 {
 	context_t *ctx = context_get_current ();
+	metrics_t *metrics = &ctx->metrics;
 
 	/* Consume all timer queries that are ready. */
-	timer_query_t *timer = ctx->timer_head;
+	timer_query_t *timer = metrics->timer_head;
 
 	while (timer) {
 		GLuint available, elapsed;
@@ -605,18 +613,18 @@ metrics_collect_available (void)
 
 		accumulate_program_time (timer->op, elapsed);
 
-		ctx->timer_head = timer->next;
-		if (ctx->timer_head == NULL)
-			ctx->timer_tail = NULL;
+		metrics->timer_head = timer->next;
+		if (metrics->timer_head == NULL)
+			metrics->timer_tail = NULL;
 
 		glDeleteQueries (1, &timer->id);
 
 		free (timer);
-		timer = ctx->timer_head;
+		timer = metrics->timer_head;
 	}
 
 	/* And similarly for all performance monitors that are ready. */
-	monitor_t *monitor = ctx->monitor_head;
+	monitor_t *monitor = metrics->monitor_head;
 
 	while (monitor) {
 		GLuint available, result_size, *result;
@@ -645,17 +653,17 @@ metrics_collect_available (void)
 
 		free (result);
 
-		ctx->monitor_head = monitor->next;
-		if (ctx->monitor_head == NULL)
-			ctx->monitor_tail = NULL;
+		metrics->monitor_head = monitor->next;
+		if (metrics->monitor_head == NULL)
+			metrics->monitor_tail = NULL;
 
 		glDeletePerfMonitorsAMD (1, &monitor->id);
 
 		free (monitor);
 
-		ctx->monitors_in_flight--;
+		metrics->monitors_in_flight--;
 
-		monitor = ctx->monitor_head;
+		monitor = metrics->monitor_head;
 	}
 }
 
@@ -690,4 +698,75 @@ metrics_end_frame (void)
 
 		print_program_metrics ();
 	}
+}
+
+void
+metrics_init (metrics_t *metrics)
+{
+	metrics->op = 0;
+
+	metrics->timer_begun_id = 0;
+
+	metrics->timer_head = NULL;
+	metrics->timer_tail = NULL;
+
+	metrics->monitor_begun_id = 0;
+
+	metrics->monitor_head = NULL;
+	metrics->monitor_tail = NULL;
+
+	metrics->monitors_in_flight = 0;
+
+	metrics->num_op_metrics = 0;
+	metrics->op_metrics = NULL;
+}
+
+void
+metrics_fini (metrics_t *metrics)
+{
+	timer_query_t *timer, *timer_next;
+	monitor_t *monitor, *monitor_next;
+
+	/* Since these metrics are going away, let's first collect
+	 * whatever results might already be available. */
+	metrics_collect_available ();
+
+	/* If, after collection, any queries are still outstanding,
+	 * just give up and clean them up. */
+	if (metrics->timer_begun_id) {
+		glEndQuery (GL_TIME_ELAPSED);
+		glDeleteQueries (1, &metrics->timer_begun_id);
+		metrics->timer_begun_id = 0;
+	}
+
+	for (timer = metrics->timer_head;
+	     timer;
+	     timer = timer_next)
+	{
+		glDeleteQueries (1, &timer->id);
+		timer_next = timer->next;
+		free (timer);
+	}
+	metrics->timer_head = NULL;
+	metrics->timer_tail = NULL;
+
+	if (metrics->monitor_begun_id) {
+		glEndPerfMonitorAMD (metrics->monitor_begun_id);
+		glDeletePerfMonitorsAMD (1, &metrics->monitor_begun_id);
+		metrics->monitor_begun_id = 0;
+	}
+
+	for (monitor = metrics->monitor_head;
+	     monitor;
+	     monitor = monitor_next)
+	{
+		glDeletePerfMonitorsAMD (1, &monitor->id);
+		monitor_next = monitor->next;
+		free (monitor);
+	}
+	metrics->monitor_head = NULL;
+	metrics->monitor_tail = NULL;
+
+	metrics->monitors_in_flight = 0;
+
 }

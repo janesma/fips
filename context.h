@@ -27,66 +27,13 @@
 
 #include "fips-dispatch.h"
 
-/* Timer query */
-typedef struct timer_query
-{
-	unsigned id;
-
-	metrics_op_t op;
-	struct timer_query *next;
-} timer_query_t;
-
-/* Performance-monitor query */
-typedef struct monitor
-{
-	unsigned id;
-
-	metrics_op_t op;
-	struct monitor *next;
-} monitor_t;
-
-typedef struct op_metrics
-{
-	/* This happens to also be the index into the
-	 * ctx->op_metrics array currently
-	 */
-	metrics_op_t op;
-	double time_ns;
-
-	double **counters;
-} op_metrics_t;
-
 typedef struct context
 {
 	/* Pointer to the system's context ID, (such as a GLXContext) */
 	void *system_id;
 
 	metrics_info_t metrics_info;
-
-	metrics_op_t op;
-
-	/* GL_TIME_ELAPSED query for which glEndQuery has not yet
-	 * been called. */
-	unsigned timer_begun_id;
-
-	/* GL_TIME_ELAPSED queries for which glEndQuery has been
-	 * called, (but results have not yet been queried). */
-	timer_query_t *timer_head;
-	timer_query_t *timer_tail;
-
-	/* Performance monitor for which glEndPerfMonitorAMD has not
-	 * yet been called. */
-	unsigned monitor_begun_id;
-
-	/* Performance monitors for which glEndPerfMonitorAMD has
-	 * been called, (but results have not yet been queried). */
-	monitor_t *monitor_head;
-	monitor_t *monitor_tail;
-
-	int monitors_in_flight;
-
-	unsigned num_op_metrics;
-	op_metrics_t *op_metrics;
+	metrics_t metrics;
 } context_t;
 
 /* Indicate that a new context has come into use.

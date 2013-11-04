@@ -50,6 +50,71 @@ typedef enum
 	METRICS_OP_SHADER
 } metrics_op_t;
 
+/* Timer query */
+typedef struct timer_query
+{
+	unsigned id;
+
+	metrics_op_t op;
+	struct timer_query *next;
+} timer_query_t;
+
+/* Performance-monitor query */
+typedef struct monitor
+{
+	unsigned id;
+
+	metrics_op_t op;
+	struct monitor *next;
+} monitor_t;
+
+typedef struct op_metrics
+{
+	/* This happens to also be the index into the
+	 * ctx->op_metrics array currently
+	 */
+	metrics_op_t op;
+	double time_ns;
+
+	double **counters;
+} op_metrics_t;
+
+typedef struct metrics
+{
+	metrics_op_t op;
+
+	/* GL_TIME_ELAPSED query for which glEndQuery has not yet
+	 * been called. */
+	unsigned timer_begun_id;
+
+	/* GL_TIME_ELAPSED queries for which glEndQuery has been
+	 * called, (but results have not yet been queried). */
+	timer_query_t *timer_head;
+	timer_query_t *timer_tail;
+
+	/* Performance monitor for which glEndPerfMonitorAMD has not
+	 * yet been called. */
+	unsigned monitor_begun_id;
+
+	/* Performance monitors for which glEndPerfMonitorAMD has
+	 * been called, (but results have not yet been queried). */
+	monitor_t *monitor_head;
+	monitor_t *monitor_tail;
+
+	int monitors_in_flight;
+
+	unsigned num_op_metrics;
+	op_metrics_t *op_metrics;
+} metrics_t;
+
+/* Initialize a metrics_t object for tracking metrics. */
+void
+metrics_init (metrics_t *metrics);
+
+/* Cleanup a metrics_t object that's no longer needed. */
+void
+metrics_fini (metrics_t *metrics);
+
 /* Start accumulating GPU time.
  *
  * The time accumulated will be accounted against the
