@@ -40,6 +40,20 @@ xmalloc (size_t size)
 }
 
 void *
+xcalloc (size_t nmemb, size_t size)
+{
+	void *ret;
+
+	ret = calloc (nmemb, size);
+	if (size != 0 && ret == NULL) {
+		fprintf (stderr, "Out of memory\n");
+		exit (1);
+	}
+
+	return ret;
+}
+
+void *
 xrealloc (void *ptr, size_t size)
 {
 	void *ret;
