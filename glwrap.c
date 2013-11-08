@@ -47,6 +47,13 @@
 
 #include "context.h"
 
+/* The first appearance of the GLfixed datatype in Mesa was with
+ * glext.h of version 20130624. So we'll assume that any older glext.h
+ * cannot have any function accepting a GLfixed parameter. */
+#if GL_GLEXT_VERSION >= 20130624
+#define HAVE_GLFIXED 1
+#endif
+
 /* As of glext.h version 20131008 some types changed.
  *
  * I have no idea why some internalFormats changed from GLenum to
@@ -177,6 +184,7 @@ glClearAccum (GLfloat red, GLfloat green, GLfloat blue, GLfloat alpha)
 	RESTORE_METRICS_OP ();
 }
 
+#if HAVE_GLFIXED
 void
 glClearAccumxOES (GLfixed red, GLfixed green, GLfixed blue, GLfixed alpha)
 {
@@ -186,6 +194,7 @@ glClearAccumxOES (GLfixed red, GLfixed green, GLfixed blue, GLfixed alpha)
 
 	RESTORE_METRICS_OP ();
 }
+#endif
 
 /* METRICS_OP_BUFFER_DATA */
 void
@@ -418,6 +427,7 @@ glBitmap (GLsizei width, GLsizei height, GLfloat xorig, GLfloat yorig,
 	RESTORE_METRICS_OP ();
 }
 
+#if HAVE_GLFIXED
 void
 glBitmapxOES (GLsizei width, GLsizei height, GLfixed xorig, GLfixed yorig,
 	      GLfixed xmove, GLfixed ymove, const GLubyte *bitmap)
@@ -429,6 +439,7 @@ glBitmapxOES (GLsizei width, GLsizei height, GLfixed xorig, GLfixed yorig,
 
 	RESTORE_METRICS_OP ();
 }
+#endif
 
 /* METRICS_OP_BLIT_FRAMEBUFFER */
 void
