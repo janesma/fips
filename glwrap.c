@@ -83,7 +83,7 @@ static void *gl_handle;
 	SWITCH_METRICS_OP (op);
 
 /* Switch back to metrics operation saved by SAVE_THEN_SWITCH_METRICS_OP */
-#define RESTORE_METRICS_OP(op)				\
+#define RESTORE_METRICS_OP()				\
 	SWITCH_METRICS_OP (save);
 
 void
