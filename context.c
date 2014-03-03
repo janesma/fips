@@ -51,7 +51,7 @@ context_create (fips_api_t api, void *system_context_id)
 
 	fips_dispatch_init (api);
 
-	ctx->have_perfmon = check_extension ("AMD_performance_monitor");
+	ctx->have_perfmon = check_extension ("GL_AMD_performance_monitor");
 
 	metrics_info_init (&ctx->metrics_info, ctx->have_perfmon);
 	ctx->metrics = metrics_create (&ctx->metrics_info);
