@@ -764,6 +764,12 @@ metrics_collect_available (metrics_t *metrics)
 	}
 }
 
+static void
+metrics_exit (void)
+{
+	if (verbose)
+		printf ("fips: terminating\n");
+}
 
 void
 metrics_end_frame (metrics_t *metrics)
@@ -773,6 +779,7 @@ metrics_end_frame (metrics_t *metrics)
 
 	if (! initialized) {
 		gettimeofday (&tv_start, NULL);
+		atexit (metrics_exit);
 		if (getenv ("FIPS_VERBOSE"))
 			verbose = 1;
 		initialized = 1;
