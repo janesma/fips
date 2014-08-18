@@ -558,6 +558,7 @@ glClearNamedBufferDataEXT (GLuint buffer, GLenum internalformat, GLenum format,
 	RESTORE_METRICS_OP ();
 }
 
+#if GL_GLEXT_VERSION < 20131212
 void
 glClearNamedBufferSubDataEXT (GLuint buffer, GLenum internalformat,
 			      GLenum format, GLenum type, GLsizeiptr offset,
@@ -570,6 +571,21 @@ glClearNamedBufferSubDataEXT (GLuint buffer, GLenum internalformat,
 
 	RESTORE_METRICS_OP ();
 }
+#else
+void
+glClearNamedBufferSubDataEXT (GLuint buffer, GLenum internalformat, 
+                              GLsizeiptr offset, GLsizeiptr size, 
+                              GLenum format, GLenum type, 
+                              const void *data)
+{
+	SAVE_THEN_SWITCH_METRICS_OP (METRICS_OP_CLEAR_BUFFER_DATA);
+
+	GLWRAP_DEFER (glClearNamedBufferSubDataEXT, buffer, internalformat, 
+                  offset, size, format, type, data);
+
+	RESTORE_METRICS_OP ();
+}
+#endif
 
 /* METRICS_OP_CLEAR_TEX_IMAGE */
 
