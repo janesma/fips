@@ -29,8 +29,10 @@ glx_link_call_srcs = \
 
 glx_link_call_modules = $(glx_link_call_srcs:.c=.o)
 
+PTHREAD_LDFLAGS = -pthread
+
 $(dir)/glx-link-call: $(glx_link_call_modules)
-	$(call quiet,$(FIPS_LINKER) $(CFLAGS)) $^ $(GL_LDFLAGS) $(X11_LDFLAGS) -o $@
+	$(call quiet,$(FIPS_LINKER) $(CFLAGS)) $^ $(GL_LDFLAGS) $(X11_LDFLAGS) $(PTHREAD_LDFLAGS) -o $@
 
 glx_link_gpa_srcs = \
 	$(dir)/glx-link-gpa.c \
@@ -39,7 +41,7 @@ glx_link_gpa_srcs = \
 glx_link_gpa_modules = $(glx_link_gpa_srcs:.c=.o)
 
 $(dir)/glx-link-gpa: $(glx_link_gpa_modules)
-	$(call quiet,$(FIPS_LINKER) $(CFLAGS)) $^ $(GL_LDFLAGS) $(X11_LDFLAGS) -o $@
+	$(call quiet,$(FIPS_LINKER) $(CFLAGS)) $^ $(GL_LDFLAGS) $(X11_LDFLAGS) $(PTHREAD_LDFLAGS) -o $@
 
 glx_link_gpaa_srcs = \
 	$(dir)/glx-link-gpaa.c \
@@ -48,7 +50,7 @@ glx_link_gpaa_srcs = \
 glx_link_gpaa_modules = $(glx_link_gpaa_srcs:.c=.o)
 
 $(dir)/glx-link-gpaa: $(glx_link_gpaa_modules)
-	$(call quiet,$(FIPS_LINKER) $(CFLAGS)) $^ $(GL_LDFLAGS) $(X11_LDFLAGS) -o $@
+	$(call quiet,$(FIPS_LINKER) $(CFLAGS)) $^ $(GL_LDFLAGS) $(X11_LDFLAGS) $(PTHREAD_LDFLAGS) -o $@
 
 glx_dlopen_dlsym_srcs = \
 	$(dir)/glx-dlopen-dlsym.c \
@@ -57,7 +59,7 @@ glx_dlopen_dlsym_srcs = \
 glx_dlopen_dlsym_modules = $(glx_dlopen_dlsym_srcs:.c=.o)
 
 $(dir)/glx-dlopen-dlsym: $(glx_dlopen_dlsym_modules)
-	$(call quiet,$(FIPS_LINKER) $(CFLAGS)) $^ -ldl $(X11_LDFLAGS) -o $@
+	$(call quiet,$(FIPS_LINKER) $(CFLAGS)) $^ -ldl $(X11_LDFLAGS) $(PTHREAD_LDFLAGS) -o $@
 
 glx_dlopen_gpa_srcs = \
 	$(dir)/glx-dlopen-gpa.c \
@@ -66,7 +68,7 @@ glx_dlopen_gpa_srcs = \
 glx_dlopen_gpa_modules = $(glx_dlopen_gpa_srcs:.c=.o)
 
 $(dir)/glx-dlopen-gpa: $(glx_dlopen_gpa_modules)
-	$(call quiet,$(FIPS_LINKER) $(CFLAGS)) $^ -ldl $(X11_LDFLAGS) -o $@
+	$(call quiet,$(FIPS_LINKER) $(CFLAGS)) $^ -ldl $(X11_LDFLAGS) $(PTHREAD_LDFLAGS) -o $@
 
 glx_dlopen_gpaa_srcs = \
 	$(dir)/glx-dlopen-gpaa.c \
@@ -75,7 +77,7 @@ glx_dlopen_gpaa_srcs = \
 glx_dlopen_gpaa_modules = $(glx_dlopen_gpaa_srcs:.c=.o)
 
 $(dir)/glx-dlopen-gpaa: $(glx_dlopen_gpaa_modules)
-	$(call quiet,$(FIPS_LINKER) $(CFLAGS)) $^ -ldl $(X11_LDFLAGS) -o $@
+	$(call quiet,$(FIPS_LINKER) $(CFLAGS)) $^ -ldl $(X11_LDFLAGS) $(PTHREAD_LDFLAGS) -o $@
 
 egl_opengl_link_call_srcs = \
 	$(dir)/egl-opengl-link-call.c \
@@ -84,7 +86,7 @@ egl_opengl_link_call_srcs = \
 egl_opengl_link_call_modules = $(egl_opengl_link_call_srcs:.c=.o)
 
 $(dir)/egl-opengl-link-call: $(egl_opengl_link_call_modules)
-	$(call quiet,$(FIPS_LINKER) $(CFLAGS)) $^ $(EGL_LDFLAGS) $(GL_LDFLAGS) $(X11_LDFLAGS) -o $@
+	$(call quiet,$(FIPS_LINKER) $(CFLAGS)) $^ $(EGL_LDFLAGS) $(GL_LDFLAGS) $(X11_LDFLAGS) $(PTHREAD_LDFLAGS) -o $@
 
 egl_opengl_link_gpa_srcs = \
 	$(dir)/egl-opengl-link-gpa.c \
@@ -93,7 +95,7 @@ egl_opengl_link_gpa_srcs = \
 egl_opengl_link_gpa_modules = $(egl_opengl_link_gpa_srcs:.c=.o)
 
 $(dir)/egl-opengl-link-gpa: $(egl_opengl_link_gpa_modules)
-	$(call quiet,$(FIPS_LINKER) $(CFLAGS)) $^ $(EGL_LDFLAGS) $(GL_LDFLAGS) $(X11_LDFLAGS) -o $@
+	$(call quiet,$(FIPS_LINKER) $(CFLAGS)) $^ $(EGL_LDFLAGS) $(GL_LDFLAGS) $(X11_LDFLAGS) $(PTHREAD_LDFLAGS) -o $@
 
 egl_opengl_dlopen_dlsym_srcs = \
 	$(dir)/egl-opengl-dlopen-dlsym.c \
@@ -102,7 +104,7 @@ egl_opengl_dlopen_dlsym_srcs = \
 egl_opengl_dlopen_dlsym_modules = $(egl_opengl_dlopen_dlsym_srcs:.c=.o)
 
 $(dir)/egl-opengl-dlopen-dlsym: $(egl_opengl_dlopen_dlsym_modules)
-	$(call quiet,$(FIPS_LINKER) $(CFLAGS)) $^ -ldl $(X11_LDFLAGS) -o $@
+	$(call quiet,$(FIPS_LINKER) $(CFLAGS)) $^ -ldl $(X11_LDFLAGS) $(PTHREAD_LDFLAGS) -o $@
 
 egl_opengl_dlopen_gpa_srcs = \
 	$(dir)/egl-opengl-dlopen-gpa.c \
@@ -111,7 +113,7 @@ egl_opengl_dlopen_gpa_srcs = \
 egl_opengl_dlopen_gpa_modules = $(egl_opengl_dlopen_gpa_srcs:.c=.o)
 
 $(dir)/egl-opengl-dlopen-gpa: $(egl_opengl_dlopen_gpa_modules)
-	$(call quiet,$(FIPS_LINKER) $(CFLAGS)) $^ -ldl $(X11_LDFLAGS) -o $@
+	$(call quiet,$(FIPS_LINKER) $(CFLAGS)) $^ -ldl $(X11_LDFLAGS) $(PTHREAD_LDFLAGS) -o $@
 
 egl_glesv2_link_call_srcs = \
 	$(dir)/egl-glesv2-link-call.c \
@@ -120,7 +122,7 @@ egl_glesv2_link_call_srcs = \
 egl_glesv2_link_call_modules = $(egl_glesv2_link_call_srcs:.c=.o)
 
 $(dir)/egl-glesv2-link-call: $(egl_glesv2_link_call_modules)
-	$(call quiet,$(FIPS_LINKER) $(CFLAGS)) $^ $(EGL_LDFLAGS) $(GLESV2_LDFLAGS) $(X11_LDFLAGS) -o $@
+	$(call quiet,$(FIPS_LINKER) $(CFLAGS)) $^ $(EGL_LDFLAGS) $(GLESV2_LDFLAGS) $(X11_LDFLAGS) $(PTHREAD_LDFLAGS) -o $@
 
 egl_glesv2_link_gpa_srcs = \
 	$(dir)/egl-glesv2-link-gpa.c \
@@ -129,7 +131,7 @@ egl_glesv2_link_gpa_srcs = \
 egl_glesv2_link_gpa_modules = $(egl_glesv2_link_gpa_srcs:.c=.o)
 
 $(dir)/egl-glesv2-link-gpa: $(egl_glesv2_link_gpa_modules)
-	$(call quiet,$(FIPS_LINKER) $(CFLAGS)) $^ $(EGL_LDFLAGS) $(GLESV2_LDFLAGS) $(X11_LDFLAGS) -o $@
+	$(call quiet,$(FIPS_LINKER) $(CFLAGS)) $^ $(EGL_LDFLAGS) $(GLESV2_LDFLAGS) $(X11_LDFLAGS) $(PTHREAD_LDFLAGS) -o $@
 
 egl_glesv2_dlopen_dlsym_srcs = \
 	$(dir)/egl-glesv2-dlopen-dlsym.c \
@@ -138,7 +140,7 @@ egl_glesv2_dlopen_dlsym_srcs = \
 egl_glesv2_dlopen_dlsym_modules = $(egl_glesv2_dlopen_dlsym_srcs:.c=.o)
 
 $(dir)/egl-glesv2-dlopen-dlsym: $(egl_glesv2_dlopen_dlsym_modules)
-	$(call quiet,$(FIPS_LINKER) $(CFLAGS)) $^ -ldl $(X11_LDFLAGS) -o $@
+	$(call quiet,$(FIPS_LINKER) $(CFLAGS)) $^ -ldl $(X11_LDFLAGS) $(PTHREAD_LDFLAGS) -o $@
 
 egl_glesv2_dlopen_gpa_srcs = \
 	$(dir)/egl-glesv2-dlopen-gpa.c \
@@ -147,7 +149,7 @@ egl_glesv2_dlopen_gpa_srcs = \
 egl_glesv2_dlopen_gpa_modules = $(egl_glesv2_dlopen_gpa_srcs:.c=.o)
 
 $(dir)/egl-glesv2-dlopen-gpa: $(egl_glesv2_dlopen_gpa_modules)
-	$(call quiet,$(FIPS_LINKER) $(CFLAGS)) $^ -ldl $(X11_LDFLAGS) -o $@
+	$(call quiet,$(FIPS_LINKER) $(CFLAGS)) $^ -ldl $(X11_LDFLAGS) $(PTHREAD_LDFLAGS) -o $@
 
 test: all $(test_programs)
 	@${dir}/fips-test
