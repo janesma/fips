@@ -405,7 +405,7 @@ accumulate_program_metrics (metrics_t *metrics, metrics_op_t op,
 		GLuint group_id, group_index;
 		GLuint counter_id, counter_index;
 		metrics_group_info_t *group;
-		double value;
+		double value = 0.0;
 		unsigned i;
 
 		CONSUME (group_id);
