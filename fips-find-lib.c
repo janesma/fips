@@ -110,12 +110,12 @@ main (int argc, const char **argv)
 
 	function = dlsym (handle, "glClear");
 	if (function == NULL) {
-		fprintf (stderr, "glaze-find-libgl: Failed to dlsym glClear\n");
+		fprintf (stderr, "fips-find-lib: Failed to dlsym glClear\n");
 		return 1;
 	}
 
 	if (dladdr (function, &info) == 0) {
-		fprintf (stderr, "glaze-find-libgl: Failed to dladdr glClear\n");
+		fprintf (stderr, "fips-find-lib: Failed to dladdr glClear\n");
 		return 1;
 	}
     printf ("%s\n", info.dli_fname);

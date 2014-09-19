@@ -1,0 +1,38 @@
+This directory was adapted from the glaze project at
+http://git.cworth.org/git/glaze.  It contains .def files listing all
+of the OpenGL functions for which fips creates ifunc resolvers so that
+target applications can link against the fips libGL.
+
+The .def files are automatically generated from XML descriptions of
+the OpenGL API. The XML descriptions are included here as well, and
+were obtained by starting from the Khronos "OpenGL Registry" at:
+
+	http://www.opengl.org/registry/
+
+From there, browse to the "XML API Registry" to find:
+
+	https://cvs.khronos.org/svn/repos/ogl/trunk/doc/registry/public/api/
+
+Where the actual .xml files can be downloaded.
+
+The XML files are made available under the same license as fips
+itself, so are included in this directory.
+
+The XML files contain much more information than fips needs. Fips
+requires only the list of function names. We have written a one-liner
+script named xml2def that extracts the function names. That script is
+also included here.
+
+The xml2def script depends on the XMLStarlet command-line XML toolkit
+which is aailable as a Debian package named "xmlstarlet" or available
+for download from:
+
+	http://xmlstar.sourceforge.net/
+
+The simple .def files are the true "source" file used by fips, so
+even though they were generated from an XML document, the generated
+files are tracked under revision control here in this directory.
+
+This means that a user of fips does not need to have xmlstarlet
+installed in order to compile fips.
+

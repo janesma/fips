@@ -1,0 +1,4 @@
+#!/bin/sh
+
+xmlstarlet sel -t -m "/registry/commands/command/proto/name" -s A:T:- "." -v "concat('FIPS_API(',concat(.,')
+'))" "$1"
