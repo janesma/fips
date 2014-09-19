@@ -6,5 +6,6 @@ fips
 libfips-32.so
 libfips-64.so
 libfips.sym
+fips-find-lib-*
 *.o
 *~
