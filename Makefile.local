@@ -135,10 +135,15 @@ ifeq ($(MAKECMDGOALS), install)
 endif
 
 SRCS  := $(SRCS) $(fips_srcs) $(libfips_srcs)
-CLEAN := $(CLEAN) fips $(fips_modules) $(libfips_32_modules) $(libfips_64_modules) libfips.sym
+CLEAN := $(CLEAN) fips $(fips_modules) $(libfips_32_modules) $(libfips_64_modules) \
+		libfips.sym fips-find-lib-64 fips-find-lib-32 libfips-64.so libfips-32.so
 
 DISTCLEAN := $(DISTCLEAN) .first-build-message Makefile.config
 
 DEPS := $(SRCS:%.c=.deps/%.d)
 
 -include $(DEPS)
+
+.PHONY: check-syntax
+check-syntax:
+	$(CC) $(CFLAGS) -Wall -Wextra -fsyntax-only $(CHK_SOURCES)
