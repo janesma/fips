@@ -14,11 +14,11 @@ FIPS_LINKER = CC
 ALL_TARGETS = fips
 
 ifeq ($(COMPILER_SUPPORTS_32),Yes)
-ALL_TARGETS += libfips-32.so
+ALL_TARGETS += libfips-32.so fips-find-lib-32
 endif
 
 ifeq ($(COMPILER_SUPPORTS_64),Yes)
-ALL_TARGETS += libfips-64.so
+ALL_TARGETS += libfips-64.so fips-find-lib-64
 endif
 
 .PHONY: all
@@ -117,6 +117,13 @@ libfips-32.so: $(libfips_32_modules) libfips.sym
 libfips-64.so: $(libfips_64_modules) libfips.sym
 	$(call quiet,$(FIPS_LINKER) $(CFLAGS) -m64) -o $@ $(LIBFIPS_CFLAGS) -m64 $(libfips_64_modules) $(LIBRARY_LINK_FLAGS) $(LIBFIPS_LDFLAGS)
 
+fips-find-lib-32: fips-find-lib.c
+	$(CC) $(GLAZE_CFLAGS) -m32 -fPIC -ldl -o $@ $<
+
+fips-find-lib-64: fips-find-lib.c
+	$(CC) $(GLAZE_CFLAGS) -m64 -fPIC -ldl -o $@ $<
+
+
 .PHONY: install
 install: all
 	mkdir -p $(DESTDIR)$(bindir)
@@ -124,9 +131,11 @@ install: all
 	mkdir -p $(DESTDIR)$(libdir)/fips
 ifeq ($(COMPILER_SUPPORTS_32), Yes)
 	install -m0644 libfips-32.so $(DESTDIR)$(libdir)/fips/libfips-32.so
+	install fips-find-lib-32 $(DESTDIR)$(bindir)/fips-find-lib-32
 endif
 ifeq ($(COMPILER_SUPPORTS_64), Yes)
 	install -m0644 libfips-64.so $(DESTDIR)$(libdir)/fips/libfips-64.so
+	install fips-find-lib-64 $(DESTDIR)$(bindir)/fips-find-lib-64
 endif
 ifeq ($(MAKECMDGOALS), install)
 	@echo ""
