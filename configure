@@ -362,6 +362,7 @@ have_m32=Yes
 if ${CC} -m32 -o arch-minimal arch-minimal.c > /dev/null 2>&1
 then
     printf "Yes.\n"
+    lib32_dir=$(gcc -m32 --print-multiarch)
 else
     printf "No.\n"
     have_m32=No
@@ -372,6 +373,7 @@ have_m64=Yes
 if ${CC} -m64 -o arch-minimal arch-minimal.c > /dev/null 2>&1
 then
     printf "Yes.\n"
+    lib64_dir=$(gcc -m64 --print-multiarch)
 else
     printf "No.\n"
     have_m64=No
@@ -521,7 +523,9 @@ sysconfdir = ${SYSCONFDIR:=\$(prefix)/etc}
 
 # Whether compiler can create 32 or 64-bit binaries
 COMPILER_SUPPORTS_32 = ${have_m32}
+LIB32_DIR = ${lib32_dir}
 COMPILER_SUPPORTS_64 = ${have_m64}
+LIB64_DIR = ${lib64_dir}
 
 # Flags needed to compile and link against talloc
 TALLOC_CFLAGS = ${talloc_cflags}
