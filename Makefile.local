@@ -14,11 +14,11 @@ FIPS_LINKER = CC
 ALL_TARGETS = fips
 
 ifeq ($(COMPILER_SUPPORTS_32),Yes)
-ALL_TARGETS += libfips-32.so fips-find-lib-32
+ALL_TARGETS += libfips-32.so fips-find-lib-32 $(LIB32_DIR)/libGL.so.1
 endif
 
 ifeq ($(COMPILER_SUPPORTS_64),Yes)
-ALL_TARGETS += libfips-64.so fips-find-lib-64
+ALL_TARGETS += libfips-64.so fips-find-lib-64 $(LIB64_DIR)/libGL.so.1
 endif
 
 .PHONY: all
@@ -118,11 +118,18 @@ libfips-64.so: $(libfips_64_modules) libfips.sym
 	$(call quiet,$(FIPS_LINKER) $(CFLAGS) -m64) -o $@ $(LIBFIPS_CFLAGS) -m64 $(libfips_64_modules) $(LIBRARY_LINK_FLAGS) $(LIBFIPS_LDFLAGS)
 
 fips-find-lib-32: fips-find-lib.c
-	$(CC) $(GLAZE_CFLAGS) -m32 -fPIC -ldl -o $@ $<
+	$(CC) $(FIPS_CFLAGS) -m32 -fPIC -ldl -o $@ $<
 
 fips-find-lib-64: fips-find-lib.c
-	$(CC) $(GLAZE_CFLAGS) -m64 -fPIC -ldl -o $@ $<
+	$(CC) $(FIPS_CFLAGS) -m64 -fPIC -ldl -o $@ $<
 
+$(LIB64_DIR)/libGL.so.1: fips-gl.c $(SPECS)
+	mkdir -p $(LIB64_DIR)
+	$(CC) $(FIPS_CFLAGS) -m64 -fPIC -shared -Wl,-Bsymbolic -o $@ $<
+
+$(LIB32_DIR)/libGL.so.1: fips-gl.c $(SPECS)
+	mkdir -p $(LIB32_DIR)
+	$(CC) $(FIPS_CFLAGS) -m32 -fPIC -shared -Wl,-Bsymbolic -o $@ $<
 
 .PHONY: install
 install: all
@@ -130,10 +137,22 @@ install: all
 	install fips $(DESTDIR)$(bindir)/fips
 	mkdir -p $(DESTDIR)$(libdir)/fips
 ifeq ($(COMPILER_SUPPORTS_32), Yes)
+	mkdir -p $(DESTDIR)$(libdir)/fips/$(LIB32_DIR)
+	install -m0644 $(LIB32_DIR)/libGL.so.1 $(DESTDIR)$(libdir)/fips/$(LIB32_DIR)
+	ln -sf libGL.so.1 $(DESTDIR)$(libdir)/fips/$(LIB32_DIR)/libGL.so
+	ln -sf libGL.so.1 $(DESTDIR)$(libdir)/fips/$(LIB32_DIR)/libEGL.so
+	ln -sf libGL.so.1 $(DESTDIR)$(libdir)/fips/$(LIB32_DIR)/libEGL.so.1
+
 	install -m0644 libfips-32.so $(DESTDIR)$(libdir)/fips/libfips-32.so
 	install fips-find-lib-32 $(DESTDIR)$(bindir)/fips-find-lib-32
 endif
 ifeq ($(COMPILER_SUPPORTS_64), Yes)
+	mkdir -p $(DESTDIR)$(libdir)/fips/$(LIB64_DIR)
+	install -m0644 $(LIB64_DIR)/libGL.so.1 $(DESTDIR)$(libdir)/fips/$(LIB64_DIR)
+	ln -sf libGL.so.1 $(DESTDIR)$(libdir)/fips/$(LIB64_DIR)/libGL.so
+	ln -sf libGL.so.1 $(DESTDIR)$(libdir)/fips/$(LIB64_DIR)/libEGL.so
+	ln -sf libGL.so.1 $(DESTDIR)$(libdir)/fips/$(LIB64_DIR)/libEGL.so.1
+
 	install -m0644 libfips-64.so $(DESTDIR)$(libdir)/fips/libfips-64.so
 	install fips-find-lib-64 $(DESTDIR)$(bindir)/fips-find-lib-64
 endif
@@ -145,7 +164,8 @@ endif
 
 SRCS  := $(SRCS) $(fips_srcs) $(libfips_srcs)
 CLEAN := $(CLEAN) fips $(fips_modules) $(libfips_32_modules) $(libfips_64_modules) \
-		libfips.sym fips-find-lib-64 fips-find-lib-32 libfips-64.so libfips-32.so
+		libfips.sym fips-find-lib-64 fips-find-lib-32 libfips-64.so libfips-32.so \
+		$(LIB64_DIR)/libGL.so.1 $(LIB32_DIR)/libGL.so.1
 
 DISTCLEAN := $(DISTCLEAN) .first-build-message Makefile.config
 
