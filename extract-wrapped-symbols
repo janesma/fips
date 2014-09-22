@@ -7,23 +7,14 @@
 # indicates that the extracted symbols should be exported from
 # libfips, while all other symbols are private.
 
-# We have two different patterns for identifying wrapped
-# functions. The first is a call to one of the DEFER macros
-# (GLWRAP_DEFER, TIMED_DEFER, WGLWRAP_DEFER_WITH_RETURN, etc.). In
-# this case, the name of the wrapped function appears as the first or
-# second argument to the macro, (second for the case of of
-# _WITH_RETURN macro).
+# A call to one of the DEFER macros identifies a wrapped function
+# (FIPS_DEFER, FIPS_DEFER_WITH_RETURN, etc.). The name of the wrapped
+# function appears as the first or second argument to the macro,
+# (second for the case of of _WITH_RETURN macro).
 
 deferred=`grep 'DEFER[ (]*e*gl' $@ | sed -s 's/.*DEFER *(\([^,)]*\).*/\1/'`
 
 deferred_return=`grep 'DEFER_WITH_RETURN *([^,]*, *e*gl' $@ | sed -s 's/.*DEFER_WITH_RETURN *([^,]*, *\([^,)]*\).*/\1/'`
-
-# The second-case is functions for which we either implement or call
-# the underlying "real" function. In these cases, the code uses the
-# convention of having a function or a function-pointer with a name of
-# the form *wrap_real_<function>
-
-wrapped=`grep wrap_real_ $@ | sed -e 's/.*wrap_real_\([a-zA-Z0-9_]*\).*/\1/'`
 
 # With those two lists collected, all we need is a simple template for
 # a version script, along with alphabetic sorting and uniquifying of
@@ -36,8 +27,7 @@ global:
 EOF
 
 echo "$deferred
-$deferred_return
-$wrapped" | sort | uniq | sed -e 's/\(.*\)/	\1;/'
+$deferred_return" | sort | uniq | sed -e 's/\(.*\)/	\1;/'
 
 cat <<EOF
 local:

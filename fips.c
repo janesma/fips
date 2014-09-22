@@ -89,7 +89,7 @@ main (int argc, char *argv[])
 		exit (1);
 	}
 
-	ret = execute_with_fips_preload (argc - optind, &argv[optind]);
+	ret = execute_with_fips_wrapper (argc - optind, &argv[optind]);
 
 	return ret;
 }
