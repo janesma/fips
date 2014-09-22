@@ -28,7 +28,6 @@
 #include <EGL/egl.h>
 
 #include "glwrap.h"
-#include "eglwrap.h"
 
 bool fips_dispatch_initialized;
 fips_api_t fips_dispatch_api;
@@ -51,11 +50,11 @@ fips_dispatch_lookup (const char *name)
 	
 	if (fips_dispatch_api == FIPS_API_GLX) {
 		if (glx_gpa == NULL)
-			glx_gpa = glwrap_lookup ("glXGetProcAddressARB");
+			glx_gpa = fips_lookup ("glXGetProcAddressARB");
 		return glx_gpa ((const GLubyte *)name);
 	} else {
 		if (egl_gpa == NULL)
-			egl_gpa = eglwrap_lookup ("eglGetProcAddress");
+			egl_gpa = fips_lookup ("eglGetProcAddress");
 		return egl_gpa (name);
 	}
 }
