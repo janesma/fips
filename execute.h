@@ -26,6 +26,6 @@
  * fips library specified as an LD_PRELOAD.
  */
 int
-execute_with_fips_preload (int argc, char * const argv[]);
+execute_with_fips_wrapper (int argc, char * const argv[]);
 
 #endif

@@ -13,12 +13,15 @@ FIPS_LINKER = CC
 
 ALL_TARGETS = fips
 
+LIB_64_SYMLINKS = $(LIB64_DIR)/libGL.so $(LIB64_DIR)/libEGL.so $(LIB64_DIR)/libEGL.so.1
+LIB_32_SYMLINKS = $(LIB32_DIR)/libGL.so $(LIB32_DIR)/libEGL.so $(LIB32_DIR)/libEGL.so.1
+
 ifeq ($(COMPILER_SUPPORTS_32),Yes)
-ALL_TARGETS += libfips-32.so fips-find-lib-32 $(LIB32_DIR)/libGL.so.1
+ALL_TARGETS += libfips-32.so fips-find-lib-32 $(LIB32_DIR)/libGL.so.1 $(LIB_64_SYMLINKS)
 endif
 
 ifeq ($(COMPILER_SUPPORTS_64),Yes)
-ALL_TARGETS += libfips-64.so fips-find-lib-64 $(LIB64_DIR)/libGL.so.1
+ALL_TARGETS += libfips-64.so fips-find-lib-64 $(LIB64_DIR)/libGL.so.1 $(LIB_32_SYMLINKS)
 endif
 
 .PHONY: all
@@ -82,7 +85,7 @@ fips_srcs = \
 fips_modules = $(fips_srcs:.c=.o)
 
 fips: $(fips_modules)
-	$(call quiet,$(FIPS_LINKER) $(CFLAGS)) $(FIPS_CFLAGS) $^ $(FIPS_LDFLAGS) -o $@
+	$(call quiet,$(FIPS_LINKER) $(CFLAGS)) $(FIPS_CFLAGS) $^ $(FIPS_LDFLAGS) -lpthread -o $@
 
 # GL-wrapper library, libfips
 LIBRARY_LINK_FLAGS = -shared -Wl,--version-script=libfips.sym
@@ -91,7 +94,6 @@ extra_cflags += -I$(srcdir) -fPIC
 
 libfips_srcs = \
 	context.c \
-	dlwrap.c \
 	fips-dispatch.c \
 	fips-dispatch-gl.c \
 	glwrap.c \
@@ -103,6 +105,14 @@ libfips_srcs = \
 ifeq ($(HAVE_EGL),Yes)
 libfips_srcs += eglwrap.c
 endif
+
+$(LIB_64_SYMLINKS) : $(LIB64_DIR)/libGL.so.1
+	rm -f $@
+	ln -s libGL.so.1 $@
+
+$(LIB_32_SYMLINKS) : $(LIB32_DIR)/libGL.so.1
+	rm -f $@
+	ln -s libGL.so.1 $@
 
 libfips.sym: extract-wrapped-symbols $(libfips_srcs)
 	$(call quiet,extract-wrapped-symbols) ./extract-wrapped-symbols $(libfips_srcs) > $@

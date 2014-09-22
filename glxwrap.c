@@ -28,56 +28,19 @@
 #include <GL/glx.h>
 
 #include "context.h"
-#include "dlwrap.h"
 #include "glwrap.h"
 #include "metrics.h"
 
 void
 glXSwapBuffers (Display *dpy, GLXDrawable drawable)
 {
-	GLWRAP_DEFER (glXSwapBuffers, dpy, drawable);
+	FIPS_DEFER (glXSwapBuffers, dpy, drawable);
 
 	context_counter_stop ();
 
 	context_end_frame ();
 
 	context_counter_start ();
-}
-
-/* glXGetProcAddressARB is a function which accepts a string and
- * returns a generic function pointer (which nominally accepts void and
- * has void return type). Of course, the user is expected to cast the
- * returned function pointer to a function pointer of the expected
- * type.
- */
-void (*glXGetProcAddressARB (const GLubyte *func))(void)
-{
-	static void *libfips_handle = NULL;
-	void *ret;
-
-	if (libfips_handle == NULL)
-		libfips_handle = dlwrap_dlopen_libfips ();
-
-	/* If our library has this symbol, that's what we want to give. */
-	ret = dlwrap_real_dlsym (libfips_handle, (const char *) func);
-	if (ret)
-		return ret;
-
-	/* Otherwise, just defer to the real glXGetProcAddressARB. */
-	GLWRAP_DEFER_WITH_RETURN (ret, glXGetProcAddressARB, func);
-
-	return ret;
-}
-
-void (*glXGetProcAddress (const GLubyte *func))(void)
-{
-	/* This comment must not be removed. It ensures that the
-	 * glXGetProcAddress function ends up in our exported symbol
-	 * list even though there's not otherwise any code saying:
-	 *
-	 * GLWRAP_DEFER_WITH_RETURN (ret, glXGetProcAddress, func);
-	 */
-	return glXGetProcAddressARB(func);
 }
 
 Bool
@@ -87,7 +50,7 @@ glXMakeCurrent (Display *dpy, GLXDrawable drawable, GLXContext ctx)
 
 	context_leave (ctx);
 
-	GLWRAP_DEFER_WITH_RETURN (ret, glXMakeCurrent, dpy, drawable, ctx);
+	FIPS_DEFER_WITH_RETURN (ret, glXMakeCurrent, dpy, drawable, ctx);
 
 	context_enter (FIPS_API_GLX, ctx);
 
@@ -101,7 +64,7 @@ glXMakeContextCurrent (Display *dpy, GLXDrawable drawable, GLXDrawable read, GLX
 
 	context_leave (ctx);
 
-	GLWRAP_DEFER_WITH_RETURN (ret, glXMakeContextCurrent, dpy, drawable, read, ctx);
+	FIPS_DEFER_WITH_RETURN (ret, glXMakeContextCurrent, dpy, drawable, read, ctx);
 
 	context_enter (FIPS_API_GLX, ctx);
 

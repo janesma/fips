@@ -573,4 +573,6 @@ cat > config.h <<EOF
 
 /* Relative path from ${BINDIR} to ${LIBDIR}/fips */
 #define BINDIR_TO_LIBFIPSDIR "$(relative_path ${BINDIR} ${LIBDIR})/fips"
+#define LIB64_DIR "${lib64_dir}"
+#define LIB32_DIR "${lib32_dir}"
 EOF

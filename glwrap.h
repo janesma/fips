@@ -24,28 +24,24 @@
 
 /* Lookup a function named 'name' in the underlying, real, libGL.so */
 void *
-glwrap_lookup (char *name);
-
-/* Register a dlopened handle to be used by glwrap. */
-void
-glwrap_set_gl_handle (void *handle);
+fips_lookup (char *name);
 
 /* Defer to the real 'function' (from libGL.so) to do the real work.
  * The symbol is looked up once and cached in a static variable for
  * future uses.
  */
-#define GLWRAP_DEFER(function,...) do {				\
+#define FIPS_DEFER(function,...) do {				\
 	static typeof(&function) real_ ## function;		\
 	if (! real_ ## function)				\
-		real_ ## function = glwrap_lookup (#function);	\
+		real_ ## function = fips_lookup (#function);	\
 	real_ ## function(__VA_ARGS__); 			\
 } while (0);
 
-/* As GLWRAP_DEFER, but also set 'ret' to the return value */
-#define GLWRAP_DEFER_WITH_RETURN(ret, function,...) do {	\
+/* As FIPS_DEFER, but also set 'ret' to the return value */
+#define FIPS_DEFER_WITH_RETURN(ret, function,...) do {	\
 	static typeof(&function) real_ ## function;		\
 	if (! real_ ## function)				\
-		real_ ## function = glwrap_lookup (#function);	\
+		real_ ## function = fips_lookup (#function);	\
 	(ret) = real_ ## function(__VA_ARGS__); 		\
 } while (0);
 

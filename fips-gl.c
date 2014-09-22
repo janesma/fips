@@ -49,7 +49,7 @@ open_lib_handles (void)
     assert(libgl_path != NULL && strlen (libgl_path) > 0);
 	if (libgl_path == NULL || strlen (libgl_path) == 0) {
         fprintf (stderr,
-				 "Error: Failed to detect OpenGL library.\n"
+				 "fips: Error: Failed to detect OpenGL library.\n"
 				 "FIPS_GL not set.\n");
         exit (1);
     }
@@ -67,7 +67,7 @@ open_lib_handles (void)
     assert(libegl_path != NULL && strlen (libegl_path) > 0);
     if (libegl_path == NULL || strlen (libegl_path) == 0) {
         fprintf (stderr,
-                 "Error: Failed to detect EGL library.\n"
+                 "fips: Error: Failed to detect EGL library.\n"
                  "FIPS_EGL not set.\n");
         exit (1);
     }
@@ -85,7 +85,7 @@ open_lib_handles (void)
     assert(libfips_path != NULL && strlen (libfips_path) > 0);
     if (libfips_path == NULL || strlen (libfips_path) == 0) {
         fprintf (stderr,
-                 "Error: Failed to detect fips library.\n"
+                 "fips: Error: Failed to detect fips library.\n"
                  "FIPS_LIBFIPS not set.\n");
         exit (1);
     }

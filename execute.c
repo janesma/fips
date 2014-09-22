@@ -222,7 +222,52 @@ elf_bits (const char *program)
 
 }
 
-/* Find the appropriate path to the libfips wrapper.
+/* Execute "program" in a pipe, reads its first line of output on
+ * stdout, and returns that as a string (discarding any further
+ * output).
+ *
+ * Returns NULL if the program failed to execute for any reason.
+ *
+ * NOTE: The caller should free() the returned string when done with
+ * it.
+ */
+static char *
+read_process_output_one_line (const char *program)
+{
+	FILE *process;
+	int status;
+	char *line = NULL;
+	size_t len = 0;
+	ssize_t bytes_read;
+
+	process = popen (program, "r");
+	if (process == NULL)
+		return NULL;
+
+	bytes_read = getline (&line, &len, process);
+
+	status = pclose (process);
+	if (! WIFEXITED (status))
+		return NULL;
+
+	if (WEXITSTATUS (status))
+		return NULL;
+
+	if (bytes_read == -1)
+		return NULL;
+
+	if (bytes_read) {
+		if (line[strlen(line)-1] == '\n')
+			line[strlen(line)-1] = '\0';
+		return line;
+	} else {
+		return NULL;
+	}
+}
+
+
+/* Find the appropriate path to fips libraries, and set corresponding
+ * environment variables.
  *
  * This involves, first, examining the elf header of the 'program'
  * binary to be executed to know whether we should look for
@@ -246,15 +291,18 @@ elf_bits (const char *program)
  *      wrapper---so this "nearest search" should most often be
  *      correct.
  *
- * Returns: a string talloc'ed to 'ctx'
+ * sets LD_LIBRARY_PATH to point at directory containing fips libGL
+ * sets FIPS_GL to point at real libGL
+ * sets FIPS_EGL to point at real libEGL
+ *
  */
-static char *
-find_libfips_path (void *ctx, const char *program)
+static 
+void set_lib_environment(const char *program)
 {
-	char *bin_path, *library, *lib_path;
-	int bits;
-
-	bits = elf_bits (program);
+	void *ctx = talloc_new (NULL);
+	char *bin_path, *library, *lib_path, *find_lib_binary, *find_lib_invoke, *ld_path;
+    const int bits = elf_bits(program);
+    const char * lib_dir = (bits == 64) ? LIB64_DIR : LIB32_DIR;
 
 	library = talloc_asprintf(ctx, "libfips-%d.so", bits);
 
@@ -264,34 +312,83 @@ find_libfips_path (void *ctx, const char *program)
 
 	lib_path = talloc_asprintf(ctx, "%s/%s", bin_path, library);
 
-	if (exists (lib_path))
-		return lib_path;
+	if (! exists (lib_path))
+    {
+        lib_path = talloc_asprintf(ctx, "%s/../lib/fips/%s", bin_path, library);
+        if (! exists (lib_path))
+        {
+            fprintf (stderr, "fips: Error: Failed to locate libfips-%d.so\n", bits);
+            exit(-1);
+        }
+    }
+    setenv ("FIPS_LIBFIPS", lib_path, 1);
 
-	talloc_free (lib_path);
 
-	lib_path = talloc_asprintf(ctx, "%s/" BINDIR_TO_LIBFIPSDIR "/%s",
-				   bin_path, library);
+    find_lib_binary = talloc_asprintf(ctx, "%s/fips-find-lib-%d", bin_path, bits);
+    if (! exists (find_lib_binary))
+    {
+        fprintf (stderr, "fips: Error: Failed to locate fips-find-lib-%d.so\n", bits);
+        exit(-1);
+    }
 
-	if (exists (lib_path))
-		return lib_path;
+    find_lib_invoke = talloc_asprintf(ctx, "%s EGL",
+                                      find_lib_binary);
+    lib_path = read_process_output_one_line (find_lib_invoke);
+    if (lib_path == NULL)
+    {
+        fprintf (stderr, "fips: Error: determine target EGL.  Execute `%s EGL` "
+                 "to reproduce error.\n", find_lib_binary);
+        exit(-1);
+    }
 
-	fprintf (stderr, "Error: Failed to find library %s.\n", library);
-	fprintf (stderr, "Looked in both:\n"
-		 "\t%s\n"
-		 "and\n"
-		 "\t%s/" BINDIR_TO_LIBFIPSDIR "\n", bin_path, bin_path);
+    setenv ("FIPS_EGL", lib_path, 1);
+    free(lib_path);
 
-	fprintf(stderr, "\nIt's possible fips was not compiled with support for %d-bit applications.\n", bits);
-	fprintf(stderr, "Perhaps you need to install gcc-multilib and re-compile fips?\n");
-	exit (1);
+    lib_path = talloc_asprintf(ctx, "%s/%s",
+                               bin_path, lib_dir);
+
+    find_lib_invoke = talloc_asprintf(ctx, "%s GL",
+                                      find_lib_binary);
+    lib_path = read_process_output_one_line (find_lib_invoke);
+    if (lib_path == NULL)
+    {
+        fprintf (stderr, "fips: Error: determine target GL.  Execute `%s GL` "
+                 "to reproduce error.\n", find_lib_binary);
+        exit(-1);
+    }
+
+    setenv ("FIPS_GL", lib_path, 1);
+    free(lib_path);
+
+    lib_path = talloc_asprintf(ctx, "%s/%s",
+                               bin_path, lib_dir);
+
+    if (! exists (lib_path))
+    {
+        lib_path = talloc_asprintf(ctx, "%s/../lib/fips/%s",
+                                   bin_path, lib_dir);
+        if (! exists (lib_path))
+        {
+            fprintf (stderr, "fips: Error: Failed to locate directory containing "
+                     "fips libGL.so.\n");
+            exit(-1);
+        }
+    }
+	ld_path = getenv ("LD_LIBRARY_PATH");
+    if (!ld_path)
+        setenv ("LD_LIBRARY_PATH", lib_path, 1);
+    else
+    {
+        const char * appended_path = talloc_asprintf(ctx, "%s:%s", lib_path, ld_path);
+        setenv ("LD_LIBRARY_PATH", appended_path, 1);
+    }
+    talloc_free(ctx);
 }
 
 int
-execute_with_fips_preload (int argc, char * const argv[])
+execute_with_fips_wrapper (int argc, char * const argv[])
 {
 	void *ctx = talloc_new (NULL);
-	char *lib_path;
-	char *ld_preload_value;
 	char **execvp_args;
 	int i;
 
@@ -304,19 +401,7 @@ execute_with_fips_preload (int argc, char * const argv[])
 	/* execvp needs final NULL */
 	execvp_args[i] = NULL;
 
-	lib_path = find_libfips_path (ctx, argv[0]);
-
-	ld_preload_value = getenv ("LD_PRELOAD");
-
-	if (ld_preload_value) {
-		ld_preload_value = talloc_asprintf(ctx, "%s:%s",
-						   ld_preload_value,
-						   lib_path);
-	} else {
-		ld_preload_value = lib_path;
-	}
-
-	setenv ("LD_PRELOAD", ld_preload_value, 1);
+    set_lib_environment(argv[0]);
 
 	talloc_free (ctx);
 		
