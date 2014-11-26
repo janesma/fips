@@ -30,6 +30,7 @@
 #include "context.h"
 #include "glwrap.h"
 #include "metrics.h"
+#include "publish.h"
 
 void
 glXSwapBuffers (Display *dpy, GLXDrawable drawable)
@@ -41,6 +42,7 @@ glXSwapBuffers (Display *dpy, GLXDrawable drawable)
 	context_end_frame ();
 
 	context_counter_start ();
+    publish();
 }
 
 Bool

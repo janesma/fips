@@ -1,0 +1,35 @@
+import "gfmetric.proto";
+
+package GrafipsProto;
+
+message SubscriberInvocation {
+    enum Method {
+        kClear = 0;
+        kOnMetric = 1;
+        kOnDescriptions = 2;
+        kFlush = 3;
+    }
+
+    required Method method = 1;
+
+    // "Clear" is reserved in protocol buffers, which defines a method called Clear in each message
+    message ClearM
+    {
+        required int32 id = 1;
+    }
+    
+    optional ClearM clearArgs= 2;
+
+    message OnMetric
+    {
+        repeated DataPoint data = 1;
+    }
+
+    optional OnMetric onMetricArgs=3;
+        
+    message OnDescriptions
+    {
+        repeated MetricDescription descriptions = 1;
+    }
+    optional OnDescriptions onDescriptionsArgs = 4;
+}

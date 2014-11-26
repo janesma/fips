@@ -1,0 +1,44 @@
+import "gfmetric.proto";
+
+package GrafipsProto;
+
+message PublisherInvocation {
+    enum Method {
+        kFlush = 0;
+        kEnable = 1;
+        kDisable = 2;
+        kGetDescriptions = 3;
+        kSubscribe = 4;
+    }
+
+    required Method method = 1;
+
+    // "Clear" is reserved in protocol buffers, which defines a method called Clear in each message
+    message Enable
+    {
+        required int32 id = 1;
+    }
+    
+    optional Enable enableArgs= 2;
+
+    message Disable
+    {
+        required int32 id = 1;
+    }
+    
+    optional Disable disableArgs= 3;
+
+    message GetDescriptions
+    {
+        repeated MetricDescription descriptions = 1;
+    }
+
+    optional GetDescriptions getDescriptionsArgs = 4;
+        
+    message Subscribe
+    {
+        required string address = 1;
+        required int32 port = 2;
+    }
+    optional Subscribe subscribeArgs = 5;
+}

@@ -10,4 +10,7 @@ fips-find-lib-*
 libGL.so*
 libEGL.so*
 *.o
+*.a
+*.pb.cc
+*.pb.h
 *~

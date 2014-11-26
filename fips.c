@@ -58,6 +58,7 @@ main (int argc, char *argv[])
 	const struct option long_options[] = {
 		{"help", no_argument, 0, 'h'},
 		{"verbose", no_argument, 0, 'v'},
+		{"port", required_argument, 0, 'p'},
 		{0, 0, 0, 0}
 	};
 
@@ -73,6 +74,9 @@ main (int argc, char *argv[])
 			return 0;
 		case 'v':
 			setenv ("FIPS_VERBOSE", "1", 1);
+			break;
+		case 'p':
+			setenv ("FIPS_PORT", optarg, 1);
 			break;
 		case '?':
 			break;

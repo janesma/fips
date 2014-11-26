@@ -1,0 +1,24 @@
+package GrafipsProto;
+
+enum MetricType
+{
+    GR_METRIC_COUNT = 0;
+    GR_METRIC_RATE = 1;
+    GR_METRIC_PERCENT = 2;
+};
+
+message MetricDescription
+{
+    required string path = 1;
+    required string help_text = 2;
+    required string display_name = 3;
+    required MetricType type = 4;
+};
+
+message DataPoint
+{
+    required int32 time_val = 1;
+    required int32 id = 2;
+    required float data = 3;
+};
+

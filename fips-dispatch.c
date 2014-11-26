@@ -28,6 +28,7 @@
 #include <EGL/egl.h>
 
 #include "glwrap.h"
+#include "publish.h"
 
 bool fips_dispatch_initialized;
 fips_api_t fips_dispatch_api;
@@ -36,6 +37,9 @@ void
 fips_dispatch_init (fips_api_t api)
 {
 	fips_dispatch_api = api;
+
+    if (!fips_dispatch_initialized)
+        create_publishers();
 
 	fips_dispatch_initialized = true;
 }

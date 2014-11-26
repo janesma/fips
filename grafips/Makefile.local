@@ -1,0 +1,61 @@
+# -*- makefile -*-
+
+gdir := grafips
+
+grafips_srcs = \
+	$(gdir)/publish.cpp \
+	$(gdir)/gfsubscriber_stub.cpp \
+	$(gdir)/gfpublisher_skel.cpp \
+	$(gdir)/gfpublisher.cpp \
+	$(gdir)/gfsocket.cpp \
+	$(gdir)/gfthread.cpp \
+	$(gdir)/gfcpu_provider.cpp \
+	$(gdir)/gfprovider.cpp \
+
+grafips_proto = \
+	$(gdir)/gfmetric.proto \
+	$(gdir)/gfpublisher.proto \
+	$(gdir)/gfsubscriber.proto \
+
+grafips_proto_gen_h = $(grafips_proto:%.proto=%.pb.h)
+grafips_proto_gen_cc = $(grafips_proto:%.proto=%.pb.cc)
+
+grafips_32_modules = $(grafips_srcs:.cpp=-32.o) $(grafips_proto_gen_cc:.cc=-32.o)
+grafips_64_modules = $(grafips_srcs:.cpp=-64.o) $(grafips_proto_gen_cc:.cc=-64.o)
+
+CPPFLAGS = -std=gnu++11
+
+gen: $(grafips_proto_gen_cc) $(grafips_proto_gen_h)
+
+$(gdir)/%.pb.h $(gdir)/%.pb.cc: $(gdir)/%.proto
+	protoc --cpp_out=$(gdir) -I=$(gdir) $<
+
+$(gdir)/%-32.o: $(gdir)/%.cpp $(global_deps) | gen
+	@mkdir -p .deps/$(@D)
+	$(call quiet,CPP $(CFLAGS) -m32) -c $(CPPFLAGS) $(LIBFIPS_CFLAGS) -m32 $< -o $@ -MD -MP -MF .deps/$*.d
+#	g++ $(CFLAGS) $(CPPFLAGS) -m32 -c $(LIBFIPS_CFLAGS) -m32 $< -o $@ -MD -MP -MF .deps/$*.d
+
+$(gdir)/%-32.o: $(gdir)/%.cc $(global_deps) | gen
+	@mkdir -p .deps/$(@D)
+	$(call quiet,CPP $(CFLAGS) -m32) -c $(CPPFLAGS) $(LIBFIPS_CFLAGS) -m32 $< -o $@ -MD -MP -MF .deps/$*.d
+
+$(gdir)/%-64.o: $(gdir)/%.cpp $(global_deps) | gen
+	@mkdir -p .deps/$(@D)
+	$(call quiet,CPP $(CFLAGS) -m64) -c $(CPPFLAGS) $(LIBFIPS_CFLAGS) -m64 $< -o $@ -MD -MP -MF .deps/$*.d
+
+$(gdir)/%-64.o: $(gdir)/%.cc $(global_deps) | gen
+	@mkdir -p .deps/$(@D)
+	$(call quiet,CPP $(CFLAGS) -m64) -c $(CPPFLAGS) $(LIBFIPS_CFLAGS) -m64 $< -o $@ -MD -MP -MF .deps/$*.d
+
+$(gdir)/libgrafips-32.a: $(grafips_32_modules)
+	$(call quiet,$(FIPS_LINKER) $(CFLAGS) $(CPPFLAGS) -m32) -o $@ $(LIBFIPS_CFLAGS) -m32 $(grafips_32_modules) $(LIBRARY_LINK_FLAGS) $(LIBFIPS_LDFLAGS) -pthread
+
+#	g++ $(CFLAGS) $(CPPFLAGS) -m32 -o $@ $(LIBFIPS_CFLAGS) -m32 $(grafips_32_modules) $(LIBRARY_LINK_FLAGS) $(LIBFIPS_LDFLAGS)
+
+
+$(gdir)/libgrafips-64.a: $(grafips_64_modules)
+	ar -rcs -o $@ $(grafips_64_modules)
+#	$(call quiet,$(FIPS_LINKER) $(CFLAGS) $(CPPFLAGS) -m64) -o $@ $(LIBFIPS_CFLAGS) -m64 $(grafips_64_modules) $(LIBRARY_LINK_FLAGS) $(LIBFIPS_LDFLAGS) -pthread
+
+
+
