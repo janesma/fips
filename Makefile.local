@@ -17,13 +17,11 @@ LIB_64_SYMLINKS = $(LIB64_DIR)/libGL.so $(LIB64_DIR)/libEGL.so $(LIB64_DIR)/libE
 LIB_32_SYMLINKS = $(LIB32_DIR)/libGL.so $(LIB32_DIR)/libEGL.so $(LIB32_DIR)/libEGL.so.1
 
 ifeq ($(COMPILER_SUPPORTS_32),Yes)
-ALL_TARGETS += libfips-32.so fips-find-lib-32 $(LIB32_DIR)/libGL.so.1 $(LIB_64_SYMLINKS)
-ALL_TARGETS += grafips/libgrafips-32.a
+ALL_TARGETS += libfips-32.so fips-find-lib-32 $(LIB32_DIR)/libGL.so.1 $(LIB_32_SYMLINKS) $(GRAFIPS_32_LIB)
 endif
 
 ifeq ($(COMPILER_SUPPORTS_64),Yes)
-ALL_TARGETS += libfips-64.so fips-find-lib-64 $(LIB64_DIR)/libGL.so.1 $(LIB_32_SYMLINKS)
-ALL_TARGETS += grafips/libgrafips-64.a
+ALL_TARGETS += libfips-64.so fips-find-lib-64 $(LIB64_DIR)/libGL.so.1 $(LIB_64_SYMLINKS) $(GRAFIPS_64_LIB)
 endif
 
 .PHONY: all
@@ -123,11 +121,11 @@ libfips_32_modules = $(libfips_srcs:.c=-32.o)
 
 libfips_64_modules = $(libfips_srcs:.c=-64.o)
 
-libfips-32.so: $(libfips_32_modules) libfips.sym grafips/libgrafips-32.a
-	$(call quiet,$(FIPS_LINKER) $(CFLAGS) -m32) -o $@ $(LIBFIPS_CFLAGS) -m32 $(libfips_32_modules)  $(LIBRARY_LINK_FLAGS) $(LIBFIPS_LDFLAGS) grafips/libgrafips-32.a -lprotobuf -lpthread
+libfips-32.so: $(libfips_32_modules) libfips.sym $(GRAFIPS_32_LIB)
+	$(call quiet,$(FIPS_LINKER) $(CFLAGS) -m32) -o $@ $(LIBFIPS_CFLAGS) -m32 $(libfips_32_modules)  $(LIBRARY_LINK_FLAGS) $(LIBFIPS_LDFLAGS) $(GRAFIPS_32_LDFLAGS)
 
-libfips-64.so: $(libfips_64_modules) libfips.sym grafips/libgrafips-64.a
-	$(call quiet,$(FIPS_LINKER) $(CFLAGS) -m64) -o $@ $(LIBFIPS_CFLAGS) -m64 $(libfips_64_modules) $(LIBRARY_LINK_FLAGS) $(LIBFIPS_LDFLAGS) grafips/libgrafips-64.a -lprotobuf -lpthread
+libfips-64.so: $(libfips_64_modules) libfips.sym $(GRAFIPS_64_LIB)
+	$(call quiet,$(FIPS_LINKER) $(CFLAGS) -m64) -o $@ $(LIBFIPS_CFLAGS) -m64 $(libfips_64_modules) $(LIBRARY_LINK_FLAGS) $(LIBFIPS_LDFLAGS) $(GRAFIPS_64_LDFLAGS)
 
 fips-find-lib-32: fips-find-lib.c
 	$(CC) $(FIPS_CFLAGS) -m32 -fPIC -ldl -o $@ $<

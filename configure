@@ -36,7 +36,10 @@ fi
 # Set several defaults (optionally specified by the user in
 # environment variables)
 CC=${CC:-gcc}
+CPP=${CPP:-g++}
+AR=${AR:-ar}
 CFLAGS=${CFLAGS:--O2}
+CPPFLAGS=${CPPFLAGS:--std=gnu++11}
 LDFLAGS=${LDFLAGS:-}
 
 # Set the defaults for values the user can specify with command-line
@@ -242,6 +245,41 @@ EOF
 exit 1
 
 fi
+printf "Checking for working C++ compiler (${CPP})... "
+printf "#include <vector>\nint main(void){ std::vector<int> v; return 42;}\n" > minimal.cpp
+if ${CPP} -o minimal minimal.cpp > /dev/null 2>&1
+then
+    printf "Yes.\n"
+    rm minimal minimal.cpp
+else
+    printf "No.\n"
+    cat <<EOF
+
+*** Error: No functioning C++ compiler found. Either set the CPP environment
+to a working C++ compiler, or else install gcc:
+
+	http://gcc.gnu.org/
+
+You may be able to install gcc with a command such as:
+
+	sudo apt-get install build-essential
+    or:
+	sudo yum install make automake gcc gcc-c++ kernel-devel
+
+EOF
+fi
+
+printf "Checking for libprotobuf... "
+if pkg-config --exists protobuf; then
+    printf "Yes.\n"
+    have_protobuf=1
+    protobuf_cflags=$(pkg-config --cflags protobuf)
+    protobuf_ldflags=$(pkg-config --libs protobuf)
+else
+    printf "No.\n"
+    have_protobuf=0
+    protobuf_cflags=
+fi
 
 printf "Checking for libtalloc... "
 if pkg-config --exists talloc; then
@@ -446,6 +484,26 @@ EOF
     exit 1
 fi
 
+if [ $have_protobuf -eq 0 ]; then
+   cat <<EOF
+
+Protocol buffers support was not found.  Grafips support will not be
+added to fips.
+
+To enable grafips on Debian and similar systems:
+    sudo apt-get install libprotobuf-dev libprotobuf-dev:i386
+
+Or on Fedora and similar systems:
+	sudo yum install protobuf-devel
+
+EOF
+else
+   grafips_32_lib=grafips/libgrafips-32.a
+   grafips_32_link='grafips/libgrafips-32.a $(PROTOBUF_LDFLAGS)'
+   grafips_64_lib=grafips/libgrafips-64.a
+   grafips_64_link='grafips/libgrafips-64.a $(PROTOBUF_LDFLAGS)'
+fi
+
 cat <<EOF
 
 All required packages were found.
@@ -496,9 +554,12 @@ vpath Makefile.% \$(srcdir)
 
 # The C compiler to use
 CC = ${CC}
+CPP = ${CPP}
+AR = ${AR}
 
 # Default FLAGS for C compiler (can be overridden by user such as "make CFLAGS=-g")
 CFLAGS = ${CFLAGS}
+CPPFLAGS = ${CPPFLAGS}
 
 # Default FLAGS for the linker (can be overridden by user such as "make LDFLAGS=-znow")
 LDFLAGS = ${LDFLAGS}
@@ -531,6 +592,10 @@ LIB64_DIR = ${lib64_dir}
 TALLOC_CFLAGS = ${talloc_cflags}
 TALLOC_LDFLAGS = ${talloc_ldflags}
 
+# Flags needed to compile and link against protobuf
+PROTOBUF_CFLAGS = ${protobuf_cflags}
+PROTOBUF_LDFLAGS = ${protobuf_ldflags}
+
 # Flags needed to compile and link against libelf
 LIBELF_CFLAGS = ${libelf_cflags}
 LIBELF_LDFLAGS = ${libelf_ldflags}
@@ -562,6 +627,12 @@ HAVE_GLESV2 = ${have_glesv2}
 # Flags needed to compile and link against GLESv2
 GLESV2_CFLAGS = ${glesv2_cflags}
 GLESV2_LDFLAGS = ${glesv2_ldflags}
+
+# Flags needed to compile and link grafips support
+GRAFIPS_32_LIB = ${grafips_32_lib}
+GRAFIPS_32_LDFLAGS = ${grafips_32_link}
+GRAFIPS_64_LIB = ${grafips_64_lib}
+GRAFIPS_64_LDFLAGS = ${grafips_64_link}
 
 # Flags needed to have linker link only to necessary libraries
 AS_NEEDED_LDFLAGS = ${as_needed_ldflags}
