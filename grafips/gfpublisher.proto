@@ -7,8 +7,7 @@ message PublisherInvocation {
         kFlush = 0;
         kEnable = 1;
         kDisable = 2;
-        kGetDescriptions = 3;
-        kSubscribe = 4;
+        kSubscribe = 3;
     }
 
     required Method method = 1;
@@ -28,17 +27,10 @@ message PublisherInvocation {
     
     optional Disable disableArgs= 3;
 
-    message GetDescriptions
-    {
-        repeated MetricDescription descriptions = 1;
-    }
-
-    optional GetDescriptions getDescriptionsArgs = 4;
-        
     message Subscribe
     {
         required string address = 1;
         required int32 port = 2;
     }
-    optional Subscribe subscribeArgs = 5;
+    optional Subscribe subscribeArgs = 4;
 }

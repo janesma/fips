@@ -25,30 +25,39 @@
 //  *   Mark Janes <mark.a.janes@intel.com>
 //  **********************************************************************/
 
-#include "gfthread.h"
+#include "gfmutex.h"
 
 #include <assert.h>
-#include <string>
 
-using Grafips::Thread;
+using Grafips::Mutex;
+using Grafips::ScopedLock;
 
-Thread::Thread(const std::string &name) : m_name(name) {}
+Mutex::Mutex() {
+  const int ret = pthread_mutex_init(&m_mut, NULL);
+  assert(ret == 0);
+}
 
-void *start_thread(void*ctx);
-void *start_thread(void*ctx) {
-  reinterpret_cast<Thread*>(ctx)->Run();
-  return NULL;
+Mutex::~Mutex() {
+  const int ret = pthread_mutex_destroy(&m_mut);
+  assert(ret == 0);
 }
 
 void
-Thread::Start() {
-  const int result = pthread_create(&m_thread, NULL, &start_thread, this);
-  assert(result == 0);
+Mutex::Lock() {
+  const int ret = pthread_mutex_lock(&m_mut);
+  assert(ret == 0);
 }
 
 void
-Thread::Join() {
-  pthread_join(m_thread, NULL);
+Mutex::Unlock() {
+  const int ret = pthread_mutex_unlock(&m_mut);
+  assert(ret == 0);
 }
 
+ScopedLock::ScopedLock(Mutex *m) : m_mut(m) {
+  m_mut->Lock();
+}
 
+ScopedLock::~ScopedLock() {
+  m_mut->Unlock();
+}

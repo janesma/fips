@@ -1,4 +1,4 @@
-#include "gfcpu_provider.h"
+#include "gfcpu_source.h"
 
 #include <assert.h>
 #include <fcntl.h>
@@ -14,7 +14,7 @@ using namespace Grafips;
 
 static const int READ_BUF_SIZE = 4096;
 
-CpuProvider::CpuProvider() : m_publisher(NULL), m_running(false)
+CpuSource::CpuSource() : m_metric_sink(NULL), m_running(false)
 {
     m_cpu_info_handle = open("/proc/stat", O_RDONLY);
     m_buf.resize(READ_BUF_SIZE);
@@ -22,21 +22,21 @@ CpuProvider::CpuProvider() : m_publisher(NULL), m_running(false)
 }
 
 void 
-CpuProvider::setPublisher(PublisherInterface *p) 
+CpuSource::SetMetricSink(MetricSinkInterface *p) 
 {
-    m_publisher = p; 
-    m_publisher->RegisterProvider(this);
+    m_metric_sink = p; 
+    m_metric_sink->RegisterSource(this);
 }
 
 void 
-CpuProvider::start()
+CpuSource::start()
 {
     m_running = true;
-    m_thread = new std::thread(&CpuProvider::Run, this);
+    m_thread = new std::thread(&CpuSource::Run, this);
 }
 
 void 
-CpuProvider::stop()
+CpuSource::stop()
 {
     m_running = false;
     m_thread->join();
@@ -44,13 +44,13 @@ CpuProvider::stop()
     m_thread = NULL;
 }
 
-CpuProvider::~CpuProvider()
+CpuSource::~CpuSource()
 {
     close(m_cpu_info_handle);
 }
 
 void
-CpuProvider::Refresh()
+CpuSource::Refresh()
 {
     // seek will refresh the data in the proc file
     lseek(m_cpu_info_handle, 0, SEEK_SET);
@@ -90,7 +90,7 @@ CpuProvider::Refresh()
 
 
 void 
-CpuProvider::ParseCpuLine(CpuLine *dest, char **savePtr)
+CpuSource::ParseCpuLine(CpuLine *dest, char **savePtr)
 {
     static const int COUNT_STAT_ITEMS = 10;
     CpuLine current;
@@ -127,13 +127,13 @@ CpuProvider::ParseCpuLine(CpuLine *dest, char **savePtr)
 }
 
 bool
-CpuProvider::IsEnabled() const
+CpuSource::IsEnabled() const
 {
     return ! m_enabled_cores.empty();
 }
 
 void 
-CpuProvider::GetDescriptions(std::vector<MetricDescription> *descriptions)
+CpuSource::GetDescriptions(std::vector<MetricDescription> *descriptions)
 {
     std::lock_guard<std::mutex> l(m_protect);
     descriptions->push_back(MetricDescription("/cpu/system/utilization", 
@@ -154,7 +154,7 @@ CpuProvider::GetDescriptions(std::vector<MetricDescription> *descriptions)
 }
 
 void 
-CpuProvider::Enable(int id)
+CpuSource::Enable(int id)
 {
     std::lock_guard<std::mutex> l(m_protect);
     if (id == m_sysId)
@@ -174,7 +174,7 @@ CpuProvider::Enable(int id)
 }
 
 void 
-CpuProvider::Disable(int id)
+CpuSource::Disable(int id)
 {
     std::lock_guard<std::mutex> l(m_protect);
     if (id == m_sysId)
@@ -194,24 +194,28 @@ CpuProvider::Disable(int id)
 }
 
 void 
-CpuProvider::Poll()
+CpuSource::Poll()
 {
     std::lock_guard<std::mutex> l(m_protect);
     if (! IsEnabled())
         return;
 
+    const unsigned int ms = get_ms_time();
+    if (ms - m_last_publish_ms < 500)
+        return;
+    m_last_publish_ms = ms;
+
     Refresh();
-    Publish();
+    Publish(ms);
 }
 
 void 
-CpuProvider::Publish()
+CpuSource::Publish(unsigned int ms)
 {
-    if (!m_publisher)
+    if (!m_metric_sink)
         return;
 
     DataSet d;
-    const unsigned int ms = get_ms_time();
 
     if (m_enabled_cores.count(-1) != 0)
         d.push_back(DataPoint(ms, m_sysId, m_systemStats.utilization));
@@ -222,11 +226,11 @@ CpuProvider::Publish()
             continue;
         d.push_back(DataPoint(ms, m_ids[i], m_core_stats[i].utilization));
     }
-    m_publisher->OnMetric(d);
+    m_metric_sink->OnMetric(d);
 }
 
 
-void CpuProvider::Run()
+void CpuSource::Run()
 {
     while (m_running)
     {

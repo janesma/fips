@@ -3,14 +3,16 @@
 gdir := grafips
 
 grafips_srcs = \
-	$(gdir)/publish.cpp \
-	$(gdir)/gfsubscriber_stub.cpp \
-	$(gdir)/gfpublisher_skel.cpp \
-	$(gdir)/gfpublisher.cpp \
-	$(gdir)/gfsocket.cpp \
-	$(gdir)/gfthread.cpp \
-	$(gdir)/gfcpu_provider.cpp \
+	$(gdir)/gfcpu_source.cpp \
+	$(gdir)/gfmetric.cpp \
+	$(gdir)/gfmutex.cpp \
 	$(gdir)/gfprovider.cpp \
+	$(gdir)/gfpublisher.cpp \
+	$(gdir)/gfpublisher_skel.cpp \
+	$(gdir)/gfsocket.cpp \
+	$(gdir)/gfsubscriber_stub.cpp \
+	$(gdir)/gfthread.cpp \
+	$(gdir)/publish.cpp \
 
 grafips_proto = \
 	$(gdir)/gfmetric.proto \

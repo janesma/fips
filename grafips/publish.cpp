@@ -2,19 +2,19 @@
 
 #include <stddef.h>
 
-#include "gfcpu_provider.h"
+#include "gfcpu_source.h"
 #include "gfpublisher_skel.h"
 #include "gfpublisher.h"
 
 using namespace Grafips;
 
-CpuProvider *prov = NULL;
+CpuSource *prov = NULL;
 
 void create_publishers()
 {
-    prov = new CpuProvider;
+    prov = new CpuSource;
     PublisherImpl *pub = new PublisherImpl;
-    prov->setPublisher(pub);
+    prov->SetMetricSink(pub);
     PublisherSkeleton *skel = new PublisherSkeleton(53136, pub);
     skel->Start();
 }

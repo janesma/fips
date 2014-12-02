@@ -77,26 +77,6 @@ PublisherSkeleton::Run()
                     m_target->Disable(args.id());
                     break;
                 }
-            case GrafipsProto::PublisherInvocation::kGetDescriptions:
-                {
-                    std::vector<MetricDescription> d;
-                    m_target->GetDescriptions(&d);
-
-                    GrafipsProto::PublisherInvocation response;
-                    response.set_method(GrafipsProto::PublisherInvocation::kGetDescriptions);
-                    GrafipsProto::PublisherInvocation::GetDescriptions * args = response.mutable_getdescriptionsargs();
-                    for (std::vector<MetricDescription>::const_iterator i = d.begin();
-                         i != d.end(); ++i)
-                    {
-                        ::GrafipsProto::MetricDescription *pdesc =  args->add_descriptions();
-                        pdesc->set_path(i->path);
-                        pdesc->set_help_text(i->help_text);
-                        pdesc->set_display_name(i->display_name);
-                        pdesc->set_type((::GrafipsProto::MetricType)i->type);
-                    }
-                    WriteMessage(response);
-                    break;
-                }
             case GrafipsProto::PublisherInvocation::kSubscribe:
                 {
                     assert (m_subscriber == NULL);

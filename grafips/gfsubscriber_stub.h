@@ -6,6 +6,7 @@
 
 #include "gfsocket.h"
 #include "gfisubscriber.h"
+#include "gftraits.h"
 
 namespace GrafipsProto
 {
@@ -15,7 +16,8 @@ namespace GrafipsProto
 namespace Grafips
 {
 
-    class SubscriberStub : public SubscriberInterface
+    class SubscriberStub : public SubscriberInterface,
+                           NoCopy, NoAssign, NoMove
     {
       public:
         SubscriberStub(const std::string &address, int port);
