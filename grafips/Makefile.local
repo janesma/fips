@@ -29,7 +29,7 @@ VPATH = $(gdir)/sources:$(gdir)/remote:$(gdir)/os:$(gdir)
 gen: $(grafips_proto_gen_cc) $(grafips_proto_gen_h)
 
 %.pb.h %.pb.cc: %.proto
-	protoc --cpp_out=$(gdir) -I=$(gdir)/remote $<
+	protoc --cpp_out=. -I=$(gdir)/remote $<
 
 %-32.o: %.cpp $(global_deps) | gen
 	@mkdir -p .deps/$(@D)
@@ -47,11 +47,11 @@ gen: $(grafips_proto_gen_cc) $(grafips_proto_gen_h)
 	@mkdir -p .deps/$(@D)
 	$(call quiet,CPP $(CFLAGS) -m64) -c $(CPPFLAGS) $(LIBFIPS_CFLAGS) -m64 $< -o $@ -MD -MP -MF .deps/$*.d
 
-$(gdir)/libgrafips-32.a: $(grafips_32_modules)
+libgrafips-32.a: $(grafips_32_modules)
 	@rm -f $@
 	$(call quiet,AR) -rcs -o $@ $(grafips_32_modules)
 
-$(gdir)/libgrafips-64.a: $(grafips_64_modules)
+libgrafips-64.a: $(grafips_64_modules)
 	@rm -f $@
 	$(call quiet,AR) -rcs -o $@ $(grafips_64_modules)
 

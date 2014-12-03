@@ -498,10 +498,10 @@ Or on Fedora and similar systems:
 
 EOF
 else
-   grafips_32_lib=grafips/libgrafips-32.a
-   grafips_32_link='grafips/libgrafips-32.a $(PROTOBUF_LDFLAGS)'
-   grafips_64_lib=grafips/libgrafips-64.a
-   grafips_64_link='grafips/libgrafips-64.a $(PROTOBUF_LDFLAGS)'
+   grafips_32_lib=libgrafips-32.a
+   grafips_32_link='libgrafips-32.a $(PROTOBUF_LDFLAGS)'
+   grafips_64_lib=libgrafips-64.a
+   grafips_64_link='libgrafips-64.a $(PROTOBUF_LDFLAGS)'
 fi
 
 cat <<EOF
