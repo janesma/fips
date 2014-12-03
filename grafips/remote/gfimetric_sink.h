@@ -25,30 +25,19 @@
 //  *   Mark Janes <mark.a.janes@intel.com>
 //  **********************************************************************/
 
-#include "gfthread.h"
+#ifndef REMOTE_GFIMETRIC_SINK_H_
+#define REMOTE_GFIMETRIC_SINK_H_
 
-#include <assert.h>
-#include <string>
+#include "remote/gfmetric.h"
 
-using Grafips::Thread;
+namespace Grafips {
+class MetricSourceInterface;
+class MetricSinkInterface {
+ public:
+  virtual ~MetricSinkInterface() {}
+  virtual void RegisterSource(MetricSourceInterface *p) = 0;
+  virtual void OnMetric(const DataSet &d) = 0;
+};
+}  // namespace Grafips
 
-Thread::Thread(const std::string &name) : m_name(name) {}
-
-void *start_thread(void*ctx);
-void *start_thread(void*ctx) {
-  reinterpret_cast<Thread*>(ctx)->Run();
-  return NULL;
-}
-
-void
-Thread::Start() {
-  const int result = pthread_create(&m_thread, NULL, &start_thread, this);
-  assert(result == 0);
-}
-
-void
-Thread::Join() {
-  pthread_join(m_thread, NULL);
-}
-
-
+#endif  // REMOTE_GFIMETRIC_SINK_H_

@@ -3,21 +3,20 @@
 gdir := grafips
 
 grafips_srcs = \
-	$(gdir)/gfcpu_source.cpp \
-	$(gdir)/gfmetric.cpp \
-	$(gdir)/gfmutex.cpp \
-	$(gdir)/gfprovider.cpp \
-	$(gdir)/gfpublisher.cpp \
-	$(gdir)/gfpublisher_skel.cpp \
-	$(gdir)/gfsocket.cpp \
-	$(gdir)/gfsubscriber_stub.cpp \
-	$(gdir)/gfthread.cpp \
-	$(gdir)/publish.cpp \
+	gfcpu_source.cpp \
+	gfmetric.cpp \
+	gfmutex.cpp \
+	gfpublisher.cpp \
+	gfpublisher_skel.cpp \
+	gfsocket.cpp \
+	gfsubscriber_stub.cpp \
+	gfthread.cpp \
+	publish.cpp \
 
 grafips_proto = \
-	$(gdir)/gfmetric.proto \
-	$(gdir)/gfpublisher.proto \
-	$(gdir)/gfsubscriber.proto \
+	gfmetric.proto \
+	gfpublisher.proto \
+	gfsubscriber.proto \
 
 grafips_proto_gen_h = $(grafips_proto:%.proto=%.pb.h)
 grafips_proto_gen_cc = $(grafips_proto:%.proto=%.pb.cc)
@@ -25,24 +24,26 @@ grafips_proto_gen_cc = $(grafips_proto:%.proto=%.pb.cc)
 grafips_32_modules = $(grafips_srcs:.cpp=-32.o) $(grafips_proto_gen_cc:.cc=-32.o)
 grafips_64_modules = $(grafips_srcs:.cpp=-64.o) $(grafips_proto_gen_cc:.cc=-64.o)
 
+VPATH = $(gdir)/sources:$(gdir)/remote:$(gdir)/os:$(gdir)
+
 gen: $(grafips_proto_gen_cc) $(grafips_proto_gen_h)
 
-$(gdir)/%.pb.h $(gdir)/%.pb.cc: $(gdir)/%.proto
-	protoc --cpp_out=$(gdir) -I=$(gdir) $<
+%.pb.h %.pb.cc: %.proto
+	protoc --cpp_out=$(gdir) -I=$(gdir)/remote $<
 
-$(gdir)/%-32.o: $(gdir)/%.cpp $(global_deps) | gen
+%-32.o: %.cpp $(global_deps) | gen
 	@mkdir -p .deps/$(@D)
 	$(call quiet,CPP $(CFLAGS) -m32) -c $(CPPFLAGS) $(LIBFIPS_CFLAGS) -m32 $< -o $@ -MD -MP -MF .deps/$*.d
 
-$(gdir)/%-32.o: $(gdir)/%.cc $(global_deps) | gen
+%-32.o: %.cc $(global_deps) | gen
 	@mkdir -p .deps/$(@D)
 	$(call quiet,CPP $(CFLAGS) -m32) -c $(CPPFLAGS) $(LIBFIPS_CFLAGS) -m32 $< -o $@ -MD -MP -MF .deps/$*.d
 
-$(gdir)/%-64.o: $(gdir)/%.cpp $(global_deps) | gen
+%-64.o: %.cpp $(global_deps) | gen
 	@mkdir -p .deps/$(@D)
 	$(call quiet,CPP $(CFLAGS) -m64) -c $(CPPFLAGS) $(LIBFIPS_CFLAGS) -m64 $< -o $@ -MD -MP -MF .deps/$*.d
 
-$(gdir)/%-64.o: $(gdir)/%.cc $(global_deps) | gen
+%-64.o: %.cc $(global_deps) | gen
 	@mkdir -p .deps/$(@D)
 	$(call quiet,CPP $(CFLAGS) -m64) -c $(CPPFLAGS) $(LIBFIPS_CFLAGS) -m64 $< -o $@ -MD -MP -MF .deps/$*.d
 

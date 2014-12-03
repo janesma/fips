@@ -25,27 +25,57 @@
 //  *   Mark Janes <mark.a.janes@intel.com>
 //  **********************************************************************/
 
-#ifndef OS_GFTHREAD_H_
-#define OS_GFTHREAD_H_
+#include "remote/gfpublisher.h"
 
-#include <pthread.h>
-#include <string>
+#include <vector>
 
-#include "gftraits.h"
+#include "sources/gfimetric_source.h"
+#include "remote/gfisubscriber.h"
 
-namespace Grafips {
+using Grafips::PublisherImpl;
 
-class Thread : NoCopy, NoAssign, NoMove {
- public:
-    explicit Thread(const std::string &name);
-    virtual void Run() = 0;
-    void Start();
-    void Join();
- private:
-    const std::string m_name;
-    pthread_t m_thread;
-};
+PublisherImpl::PublisherImpl() : m_subscriber(NULL) {}
 
-}  // namespace Grafips
+PublisherImpl::~PublisherImpl() {}
 
-#endif  // OS_GFTHREAD_H_
+void
+PublisherImpl::RegisterSource(MetricSourceInterface *p) {
+    std::vector<MetricDescription> desc;
+    p->GetDescriptions(&desc);
+    for (unsigned int i = 0; i < desc.size(); ++i) {
+        m_sources_by_metric_id[desc[i].id()] = p;
+    }
+
+    m_sources.push_back(p);
+
+    if (m_subscriber)
+        // refresh metrics to the subscriber
+        Subscribe(m_subscriber);
+}
+
+void
+PublisherImpl::OnMetric(const DataSet &d) {
+    if (m_subscriber)
+        m_subscriber->OnMetric(d);
+}
+
+void
+PublisherImpl::Enable(int id) {
+    m_sources_by_metric_id[id]->Enable(id);
+}
+
+void
+PublisherImpl::Disable(int id) {
+    m_sources_by_metric_id[id]->Disable(id);
+    m_subscriber->Clear(id);
+}
+
+void
+PublisherImpl::Subscribe(SubscriberInterface *s) {
+    m_subscriber = s;
+    std::vector<MetricDescription> descriptions;
+    for (std::vector<MetricSourceInterface *>::iterator i = m_sources.begin();
+         i != m_sources.end(); ++i)
+        (*i)->GetDescriptions(&descriptions);
+    s->OnDescriptions(descriptions);
+}

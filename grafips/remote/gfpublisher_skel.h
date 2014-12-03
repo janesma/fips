@@ -25,39 +25,37 @@
 //  *   Mark Janes <mark.a.janes@intel.com>
 //  **********************************************************************/
 
-#include "gfmutex.h"
+#ifndef REMOTE_GFPUBLISHER_SKEL_H_
+#define REMOTE_GFPUBLISHER_SKEL_H_
 
-#include <assert.h>
+#include "os/gfthread.h"
 
-using Grafips::Mutex;
-using Grafips::ScopedLock;
-
-Mutex::Mutex() {
-  const int ret = pthread_mutex_init(&m_mut, NULL);
-  assert(ret == 0);
+namespace GrafipsProto {
+class PublisherInvocation;
 }
 
-Mutex::~Mutex() {
-  const int ret = pthread_mutex_destroy(&m_mut);
-  assert(ret == 0);
-}
+namespace Grafips {
+class ServerSocket;
+class Socket;
+class PublisherInterface;
+class SubscriberStub;
 
-void
-Mutex::Lock() {
-  const int ret = pthread_mutex_lock(&m_mut);
-  assert(ret == 0);
-}
+class PublisherSkeleton : public Thread {
+ public:
+  PublisherSkeleton(int port, PublisherInterface *target);
+  ~PublisherSkeleton();
+  void Run();
+  void Flush() const;
+  int GetPort() const;
+ private:
+  void WriteMessage(const GrafipsProto::PublisherInvocation &m);
+  ServerSocket *m_server;
+  Socket *m_socket;
+  PublisherInterface *m_target;
 
-void
-Mutex::Unlock() {
-  const int ret = pthread_mutex_unlock(&m_mut);
-  assert(ret == 0);
-}
+  // on Subscribe(), this member is created to send publications remotely
+  SubscriberStub *m_subscriber;
+};
+}  // namespace Grafips
 
-ScopedLock::ScopedLock(Mutex *m) : m_mut(m) {
-  m_mut->Lock();
-}
-
-ScopedLock::~ScopedLock() {
-  m_mut->Unlock();
-}
+#endif  // REMOTE_GFPUBLISHER_SKEL_H_

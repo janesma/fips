@@ -30,7 +30,7 @@
 
 #include <pthread.h>
 
-#include "gftraits.h"
+#include "os/gftraits.h"
 
 namespace Grafips {
 class Mutex : NoCopy, NoAssign, NoMove {
