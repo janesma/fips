@@ -40,11 +40,9 @@ namespace Grafips {
 class MetricSourceInterface {
  public:
   virtual ~MetricSourceInterface() {}
-  virtual void GetDescriptions(
-      std::vector<MetricDescription> *descriptions) = 0;
+  virtual void GetDescriptions(MetricDescriptionSet *descriptions) = 0;
   virtual void Enable(int id) = 0;
   virtual void Disable(int id) = 0;
-  virtual void Poll() = 0;
 };
 }  // namespace Grafips
 

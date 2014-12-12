@@ -25,43 +25,29 @@
 //  *   Mark Janes <mark.a.janes@intel.com>
 //  **********************************************************************/
 
-#include "os/gfmutex.h"
+#ifndef SOURCES_GFGL_SOURCE_H_
+#define SOURCES_GFGL_SOURCE_H_
 
-#include <assert.h>
+#include <set>
 
-using Grafips::Mutex;
-using Grafips::ScopedLock;
+#include "sources/gfimetric_source.h"
 
-Mutex::Mutex() {
-  pthread_mutexattr_t attr;
-  pthread_mutexattr_init(&attr);
-  pthread_mutexattr_settype(&attr, PTHREAD_MUTEX_ERRORCHECK);
-  const int ret = pthread_mutex_init(&m_mut, &attr);
-  assert(ret == 0);
-  pthread_mutexattr_destroy(&attr);
-}
+namespace Grafips {
+class MetricSinkInterface;
 
-Mutex::~Mutex() {
-  const int ret = pthread_mutex_destroy(&m_mut);
-  assert(ret == 0);
-}
-
-void
-Mutex::Lock() {
-  const int ret = pthread_mutex_lock(&m_mut);
-  assert(ret == 0);
-}
-
-void
-Mutex::Unlock() {
-  const int ret = pthread_mutex_unlock(&m_mut);
-  assert(ret == 0);
-}
-
-ScopedLock::ScopedLock(Mutex *m) : m_mut(m) {
-  m_mut->Lock();
-}
-
-ScopedLock::~ScopedLock() {
-  m_mut->Unlock();
-}
+// GlSource produces metrics based on the GL API
+class GlSource : public MetricSourceInterface {
+ public:
+  explicit GlSource(MetricSinkInterface *sink);
+  ~GlSource();
+  void GetDescriptions(MetricDescriptionSet *descriptions);
+  void Enable(int id);
+  void Disable(int id);
+  void glSwapBuffers();
+ private:
+  MetricSinkInterface *m_sink;
+  uint64_t m_last_time_ns;
+  std::set<int> m_enabled_ids;
+};
+}  // end namespace Grafips
+#endif  // SOURCES_GFGL_SOURCE_H_

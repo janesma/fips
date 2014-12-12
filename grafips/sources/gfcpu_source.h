@@ -38,7 +38,7 @@
 
 namespace Grafips {
 
-class CpuSource : public MetricSourceInterface, public Thread {
+class CpuSource : public MetricSourceInterface {
  public:
   void stop();
 
@@ -48,7 +48,6 @@ class CpuSource : public MetricSourceInterface, public Thread {
   void Enable(int id);
   void Disable(int id);
   void Poll();
-  void Run();
 
   friend class CpuSourceFixture;
 
