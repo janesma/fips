@@ -95,7 +95,7 @@ typedef void (*PFNGLGETPERFMONITORCOUNTERSAMDPROC)(GLuint, GLint *, GLint *,
 typedef void (*PFNGLGETPERFMONITORGROUPSTRINGAMDPROC)(GLuint, GLsizei,
 						      GLsizei *, GLchar *);
 typedef void (*PFNGLGETPERFMONITORCOUNTERSTRINGAMDPROC)(GLuint, GLuint,
-					      GLsizei, GLsizei *, GLchar *);
+							GLsizei, GLsizei *, GLchar *);
 typedef void (*PFNGLGETPERFMONITORCOUNTERINFOAMDPROC)(GLuint, GLuint,
 						      GLenum, GLvoid *);
 typedef void (*PFNGLGENPERFMONITORSAMDPROC)(GLsizei, GLuint *);

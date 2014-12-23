@@ -46,11 +46,11 @@ unsupported (const char *name)
 	if (! dispatch)				\
 		unsupported (name);
 
-#define resolve2(dispatch, name_a, name_b)		  \
-	dispatch = fips_dispatch_lookup (name_a);	  \
-	if (! dispatch)					  \
-		dispatch = fips_dispatch_lookup (name_b); \
-	if (! dispatch)					  \
+#define resolve2(dispatch, name_a, name_b)			\
+	dispatch = fips_dispatch_lookup (name_a);		\
+	if (! dispatch)						\
+		dispatch = fips_dispatch_lookup (name_b);	\
+	if (! dispatch)						\
 		unsupported (name_a);
 
 static void
@@ -88,7 +88,7 @@ stub_glGenQueries (GLsizei n, GLuint *ids)
 {
 	check_initialized ();
 	resolve2 (fips_dispatch_glGenQueries,
-		  "glGenQueries", "glGenQueriesARB")
+		  "glGenQueries", "glGenQueriesARB");
 	fips_dispatch_glGenQueries (n, ids);
 }
 
