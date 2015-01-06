@@ -42,7 +42,7 @@ glXSwapBuffers (Display *dpy, GLXDrawable drawable)
 	context_end_frame ();
 
 	context_counter_start ();
-    publish();
+	publish();
 }
 
 Bool
@@ -55,7 +55,7 @@ glXMakeCurrent (Display *dpy, GLXDrawable drawable, GLXContext ctx)
 	FIPS_DEFER_WITH_RETURN (ret, glXMakeCurrent, dpy, drawable, ctx);
 
 	context_enter (FIPS_API_GLX, ctx);
-
+	grafips_context_init();
 	return ret;
 }
 
@@ -69,6 +69,7 @@ glXMakeContextCurrent (Display *dpy, GLXDrawable drawable, GLXDrawable read, GLX
 	FIPS_DEFER_WITH_RETURN (ret, glXMakeContextCurrent, dpy, drawable, read, ctx);
 
 	context_enter (FIPS_API_GLX, ctx);
-
+	grafips_context_init();
 	return ret;
 }
+

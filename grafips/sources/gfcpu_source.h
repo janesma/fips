@@ -44,7 +44,8 @@ class CpuSource : public MetricSourceInterface {
 
   CpuSource();
   ~CpuSource();
-  void GetDescriptions(std::vector<MetricDescription> *descriptions);
+
+  void Subscribe(MetricSinkInterface *sink);
   void Enable(int id);
   void Disable(int id);
   void Poll();
@@ -52,7 +53,6 @@ class CpuSource : public MetricSourceInterface {
   friend class CpuSourceFixture;
 
   MetricSinkInterface *MetricSink() { return m_metric_sink; }
-  void SetMetricSink(MetricSinkInterface *p);
 
  private:
   struct CpuLine {
@@ -73,6 +73,7 @@ class CpuSource : public MetricSourceInterface {
     float utilization;
   };
 
+  void GetDescriptions(std::vector<MetricDescription> *descriptions);
   bool IsEnabled() const;
   void Refresh();
   void ParseCpuLine(CpuLine *dest, char **savePtr);

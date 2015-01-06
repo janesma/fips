@@ -38,13 +38,15 @@ class MetricSinkInterface;
 // GlSource produces metrics based on the GL API
 class GlSource : public MetricSourceInterface {
  public:
-  explicit GlSource(MetricSinkInterface *sink);
+  GlSource();
   ~GlSource();
-  void GetDescriptions(MetricDescriptionSet *descriptions);
+  void Subscribe(MetricSinkInterface *sink);
   void Enable(int id);
   void Disable(int id);
   void glSwapBuffers();
  private:
+  void GetDescriptions(MetricDescriptionSet *descriptions);
+
   MetricSinkInterface *m_sink;
   uint64_t m_last_time_ns;
   std::set<int> m_enabled_ids;

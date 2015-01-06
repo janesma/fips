@@ -50,12 +50,6 @@ CpuSource::CpuSource() : m_metric_sink(NULL),
     Refresh();
 }
 
-void
-CpuSource::SetMetricSink(MetricSinkInterface *p) {
-    m_metric_sink = p;
-    m_metric_sink->RegisterSource(this);
-}
-
 CpuSource::~CpuSource() {
     close(m_cpu_info_handle);
 }
@@ -136,8 +130,19 @@ CpuSource::IsEnabled() const {
 }
 
 void
+CpuSource::Subscribe(MetricSinkInterface *sink) {
+  m_metric_sink = sink;
+  std::vector<MetricDescription> descriptions;
+  {
+    ScopedLock s(&m_protect);
+    GetDescriptions(&descriptions);
+  } 
+  sink->OnDescriptions(descriptions);
+}
+
+
+void
 CpuSource::GetDescriptions(std::vector<MetricDescription> *descriptions) {
-  ScopedLock s(&m_protect);
   descriptions->push_back(MetricDescription("cpu/system/utilization",
                                             "Displays percent cpu "
                                             "activity for the system",
@@ -171,7 +176,6 @@ CpuSource::Enable(int id) {
             return;
         }
     }
-    assert(false);
 }
 
 void
@@ -187,7 +191,6 @@ CpuSource::Disable(int id) {
             return;
         }
     }
-    assert(false);
 }
 
 void

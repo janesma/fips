@@ -27,6 +27,7 @@
 #include "context.h"
 #include "glwrap.h"
 #include "metrics.h"
+#include "publish.h"
 
 EGLBoolean
 eglSwapBuffers (EGLDisplay dpy, EGLSurface surface)
@@ -40,6 +41,8 @@ eglSwapBuffers (EGLDisplay dpy, EGLSurface surface)
 	context_end_frame ();
 
 	context_counter_start ();
+
+	publish();
 
 	return ret;
 }
@@ -56,6 +59,7 @@ eglMakeCurrent (EGLDisplay display, EGLSurface draw, EGLSurface read,
 	FIPS_DEFER_WITH_RETURN (ret, eglMakeCurrent, display, draw, read, context);
 
 	context_enter (FIPS_API_EGL, context);
+	grafips_context_init();
 
 	return ret;
 }

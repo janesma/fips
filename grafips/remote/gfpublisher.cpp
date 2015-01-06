@@ -36,46 +36,61 @@ using Grafips::PublisherImpl;
 
 PublisherImpl::PublisherImpl() : m_subscriber(NULL) {}
 
-PublisherImpl::~PublisherImpl() {}
+PublisherImpl::~PublisherImpl() {
+  while (!m_descriptions_by_metric_id.empty()) {
+    delete m_descriptions_by_metric_id.begin()->second;
+    m_descriptions_by_metric_id.erase(m_descriptions_by_metric_id.begin());
+  }
+}
 
 void
 PublisherImpl::RegisterSource(MetricSourceInterface *p) {
-    std::vector<MetricDescription> desc;
-    p->GetDescriptions(&desc);
-    for (unsigned int i = 0; i < desc.size(); ++i) {
-        m_sources_by_metric_id[desc[i].id()] = p;
-    }
+  std::vector<MetricDescription> desc;
+  m_sources.push_back(p);
 
-    m_sources.push_back(p);
-
-    if (m_subscriber)
-        // refresh metrics to the subscriber
-        Subscribe(m_subscriber);
+  p->Subscribe(this);
 }
 
 void
 PublisherImpl::OnMetric(const DataSet &d) {
-    if (m_subscriber)
-        m_subscriber->OnMetric(d);
+  if (m_subscriber)
+    m_subscriber->OnMetric(d);
 }
 
 void
 PublisherImpl::Enable(int id) {
-    m_sources_by_metric_id[id]->Enable(id);
+  for (unsigned int i = 0; i < m_sources.size(); ++i) {
+    m_sources[i]->Enable(id);
+  }
 }
 
 void
 PublisherImpl::Disable(int id) {
-    m_sources_by_metric_id[id]->Disable(id);
-    m_subscriber->Clear(id);
+  for (unsigned int i = 0; i < m_sources.size(); ++i) {
+    m_sources[i]->Disable(id);
+  }
+  m_subscriber->Clear(id);
 }
 
 void
 PublisherImpl::Subscribe(SubscriberInterface *s) {
-    m_subscriber = s;
-    std::vector<MetricDescription> descriptions;
-    for (std::vector<MetricSourceInterface *>::iterator i = m_sources.begin();
-         i != m_sources.end(); ++i)
-        (*i)->GetDescriptions(&descriptions);
-    s->OnDescriptions(descriptions);
+  m_subscriber = s;
+  std::vector<MetricDescription> descriptions;
+  OnDescriptions(descriptions);
+}
+
+void
+PublisherImpl::OnDescriptions(const std::vector<MetricDescription> &desc) {
+  for (unsigned int i = 0; i < desc.size(); ++i) {
+    m_descriptions_by_metric_id[desc[i].id()] = new MetricDescription(desc[i]);
+  }
+
+  std::vector<MetricDescription> all_descriptions;
+  if (m_subscriber) {
+    for (MetricDescriptionMap::iterator i = m_descriptions_by_metric_id.begin();
+         i != m_descriptions_by_metric_id.end(); ++i) {
+      all_descriptions.push_back(*(i->second));
+    }
+    m_subscriber->OnDescriptions(all_descriptions);
+  }
 }

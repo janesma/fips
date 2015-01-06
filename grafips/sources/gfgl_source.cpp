@@ -56,12 +56,21 @@ static const MetricDescriptionSet k_metrics = {
 static const int kfps_id = k_metrics[0].id();
 static const int kframe_time_id = k_metrics[1].id();
 
-GlSource::GlSource(MetricSinkInterface *sink)
-    : m_sink(sink), m_last_time_ns(0) {
-  m_sink->RegisterSource(this);
+GlSource::GlSource()
+    : m_sink(NULL), m_last_time_ns(0) {
 }
 
 GlSource::~GlSource() {
+}
+
+void
+GlSource::Subscribe(MetricSinkInterface *sink)
+{
+  m_sink = sink;
+
+  MetricDescriptionSet desc;
+  GetDescriptions(&desc);
+  sink->OnDescriptions(desc);
 }
 
 void

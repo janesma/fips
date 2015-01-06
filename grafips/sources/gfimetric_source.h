@@ -35,12 +35,14 @@
 
 namespace Grafips {
 
+class MetricSinkInterface;
+
 // polls raw data sources, hands data to publisher, which resides in
 // same process
 class MetricSourceInterface {
  public:
   virtual ~MetricSourceInterface() {}
-  virtual void GetDescriptions(MetricDescriptionSet *descriptions) = 0;
+  virtual void Subscribe(MetricSinkInterface *sink) = 0;
   virtual void Enable(int id) = 0;
   virtual void Disable(int id) = 0;
 };

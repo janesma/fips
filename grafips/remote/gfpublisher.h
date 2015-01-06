@@ -51,10 +51,11 @@ class PublisherImpl : public PublisherInterface,
   void OnMetric(const DataSet &d);
   void Enable(int id);
   void Disable(int id);
+  void OnDescriptions(const std::vector<MetricDescription> &descriptions);
  private:
   SubscriberInterface *m_subscriber;
-  typedef std::map <int, MetricSourceInterface*> MetricSourceMap;
-  MetricSourceMap m_sources_by_metric_id;
+  typedef std::map <int, MetricDescription*> MetricDescriptionMap;
+  MetricDescriptionMap m_descriptions_by_metric_id;
   std::vector<MetricSourceInterface *> m_sources;
 };
 

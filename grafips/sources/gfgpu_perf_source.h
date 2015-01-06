@@ -25,19 +25,34 @@
 //  *   Mark Janes <mark.a.janes@intel.com>
 //  **********************************************************************/
 
-#ifndef REMOTE_GFIMETRIC_SINK_H_
-#define REMOTE_GFIMETRIC_SINK_H_
+#ifndef SOURCES_GFGPU_PERF_SOURCE_H_
+#define SOURCES_GFGPU_PERF_SOURCE_H_
 
-#include "remote/gfmetric.h"
+#include <set>
+#include <vector>
+
+#include "sources/gfimetric_source.h"
 
 namespace Grafips {
-class MetricSourceInterface;
-class MetricSinkInterface {
- public:
-  virtual ~MetricSinkInterface() {}
-  virtual void OnMetric(const DataSet &d) = 0;
-  virtual void OnDescriptions(const std::vector<MetricDescription> &descriptions) = 0;
-};
-}  // namespace Grafips
+class MetricSinkInterface;
+class PerfMetricSet;
 
-#endif  // REMOTE_GFIMETRIC_SINK_H_
+// GlSource produces metrics based on the GL API
+class GpuPerfSource : public MetricSourceInterface {
+ public:
+  GpuPerfSource();
+  ~GpuPerfSource();
+  void Subscribe(MetricSinkInterface *sink);
+  void Enable(int id);
+  void Disable(int id);
+  void MakeContextCurrent();
+  void glSwapBuffers();
+ private:
+  void GetDescriptions(MetricDescriptionSet *descriptions);
+
+  MetricSinkInterface *m_sink;
+  std::set<int> m_enabled_ids;
+  PerfMetricSet *m_metrics;
+};
+}  // end namespace Grafips
+#endif  // SOURCES_GFGPU_PERF_SOURCE_H_

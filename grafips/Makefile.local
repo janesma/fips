@@ -5,6 +5,7 @@ gdir := grafips
 grafips_srcs = \
 	gfcpu_source.cpp \
 	gfgl_source.cpp \
+	gfgpu_perf_source.cpp \
 	gfmetric.cpp \
 	gfmutex.cpp \
 	gfpublisher.cpp \

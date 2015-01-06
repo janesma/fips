@@ -4,8 +4,9 @@
 #ifdef __cplusplus
 extern "C" {
 #endif
-    void create_publishers();
-    void publish();
+	void create_publishers();
+	void publish();
+	void grafips_context_init();
 #ifdef __cplusplus
 }
 #endif
