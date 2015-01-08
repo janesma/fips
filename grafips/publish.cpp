@@ -38,6 +38,8 @@ void publish()
 		prov->Poll();
 	if (gl_source)
 		gl_source->glSwapBuffers();
+	if (gpu_source)
+		gpu_source->glSwapBuffers();
 }
 
 void grafips_context_init()
