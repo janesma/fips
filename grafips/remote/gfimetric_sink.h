@@ -36,7 +36,7 @@ class MetricSinkInterface {
  public:
   virtual ~MetricSinkInterface() {}
   virtual void OnMetric(const DataSet &d) = 0;
-  virtual void OnDescriptions(const std::vector<MetricDescription> &descriptions) = 0;
+  virtual void OnDescriptions(const MetricDescriptionSet &descriptions) = 0;
 };
 }  // namespace Grafips
 

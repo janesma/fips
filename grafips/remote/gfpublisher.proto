@@ -1,5 +1,3 @@
-import "gfmetric.proto";
-
 package GrafipsProto;
 
 message PublisherInvocation {

@@ -64,8 +64,7 @@ GlSource::~GlSource() {
 }
 
 void
-GlSource::Subscribe(MetricSinkInterface *sink)
-{
+GlSource::Subscribe(MetricSinkInterface *sink) {
   m_sink = sink;
 
   MetricDescriptionSet desc;

@@ -136,7 +136,7 @@ CpuSource::Subscribe(MetricSinkInterface *sink) {
   {
     ScopedLock s(&m_protect);
     GetDescriptions(&descriptions);
-  } 
+  }
   sink->OnDescriptions(descriptions);
 }
 
