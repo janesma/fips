@@ -35,7 +35,7 @@ typedef struct context
 	metrics_t *metrics;
 } context_t;
 
-context_t *current_context;
+static context_t *current_context = NULL;
 
 static bool
 check_extension (const char *extension);
@@ -84,13 +84,19 @@ context_enter (fips_api_t api, void *system_context_id)
 }
 
 void
-context_leave (void)
+context_leave (void *next_system_context_id)
 {
 	context_t *ctx = current_context;
 
 	if (ctx == NULL)
 		return;
 
+	if (next_system_context_id == ctx->system_id)
+		// glXMakeCurrent called twice with the same context
+		return;
+
+	// clean up metrics resources allocated to the current
+	// context, before it changes.
 	metrics_destroy (ctx->metrics);
 }
 

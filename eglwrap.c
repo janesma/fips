@@ -110,7 +110,7 @@ eglMakeCurrent (EGLDisplay display, EGLSurface draw, EGLSurface read,
 {
 	EGLBoolean ret;
 
-	context_leave ();
+	context_leave (context);
 
 	EGLWRAP_DEFER_WITH_RETURN (ret, eglMakeCurrent, display, draw, read, context);
 

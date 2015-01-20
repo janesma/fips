@@ -38,11 +38,16 @@ context_enter (fips_api_t api, void *system_context_id);
 
 /* Indicate that the application is done using the current context for now.
  *
- * The context_enter function should be called before any subsequent
- * OpenGL calls are made (other than glXMakeCurrent or similar).
+ * Context-specific resoures (eg Queries) must be cleaned up before
+ * the context changes.  No action should be taken if the context is
+ * unchanged.
+ * 
+ * The context_enter function should be called
+ * before any subsequent OpenGL calls are made (other than
+ * glXMakeCurrent or similar).
  */
 void
-context_leave (void);
+context_leave (void *next_system_context_id);
 
 /* Start accumulating GPU time.
  *

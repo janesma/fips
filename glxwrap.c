@@ -85,7 +85,7 @@ glXMakeCurrent (Display *dpy, GLXDrawable drawable, GLXContext ctx)
 {
 	Bool ret;
 
-	context_leave ();
+	context_leave (ctx);
 
 	GLWRAP_DEFER_WITH_RETURN (ret, glXMakeCurrent, dpy, drawable, ctx);
 
@@ -99,7 +99,7 @@ glXMakeContextCurrent (Display *dpy, GLXDrawable drawable, GLXDrawable read, GLX
 {
 	Bool ret;
 
-	context_leave ();
+	context_leave (ctx);
 
 	GLWRAP_DEFER_WITH_RETURN (ret, glXMakeContextCurrent, dpy, drawable, read, ctx);
 
