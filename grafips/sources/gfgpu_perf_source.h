@@ -32,6 +32,7 @@
 #include <vector>
 
 #include "sources/gfimetric_source.h"
+#include "os/gfmutex.h"
 
 namespace Grafips {
 class MetricSinkInterface;
@@ -53,6 +54,7 @@ class GpuPerfSource : public MetricSourceInterface {
   MetricSinkInterface *m_sink;
   std::set<int> m_enabled_ids;
   PerfMetricSet *m_metrics;
+  Mutex m_protect;
 };
 }  // end namespace Grafips
 #endif  // SOURCES_GFGPU_PERF_SOURCE_H_

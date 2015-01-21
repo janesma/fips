@@ -35,11 +35,15 @@
 #include <sstream>
 #include <string>
 #include <vector>
+#include <string.h>
+// #include <iostream>
 
 #include "os/gftraits.h"
 #include "remote/gfimetric_sink.h"
+#include "sources/gfgpu_perf_functions.h"
 
 using Grafips::GpuPerfSource;
+using Grafips::PerfFunctions;
 using Grafips::PerfMetricSet;
 using Grafips::NoCopy;
 using Grafips::NoAssign;
@@ -49,57 +53,30 @@ using Grafips::MetricSinkInterface;
 using Grafips::DataSet;
 using Grafips::DataPoint;
 using Grafips::get_ms_time;
+using Grafips::ScopedLock;
+
+// current metrics exported by this source:
+// gpu/intel/1/Render Engine Busy offset: 8 size: 4 type: 38132 data_type: 38138 max: 0
+// gpu/intel/2/EU Active offset: 20 size: 4 type: 38132 data_type: 38138 max: 0
+// gpu/intel/3/EU Stalled offset: 32 size: 4 type: 38132 data_type: 38138 max: 0
+// gpu/intel/4/VS EU Active offset: 44 size: 4 type: 38132 data_type: 38138 max: 0
+// gpu/intel/5/VS EU Stalled offset: 56 size: 4 type: 38132 data_type: 38138 max: 0
+// gpu/intel/6/Average Cycles per VS Thread offset: 68 size: 8 type: 38132 data_type: 38137 max: 0
+// gpu/intel/7/Average Stalled Cycles per VS Thread offset: 84 size: 8 type: 38132 data_type: 38137 max: 0
+// gpu/intel/24/PS EU Active offset: 324 size: 4 type: 38132 data_type: 38138 max: 0
+// gpu/intel/25/PS EU Stalled offset: 336 size: 4 type: 38132 data_type: 38138 max: 0
+// gpu/intel/26/Average Cycles per PS Thread offset: 348 size: 8 type: 38132 data_type: 38137 max: 0
+// gpu/intel/27/Average Stalled Cycles per PS Thread offset: 364 size: 8 type: 38132 data_type: 38137 max: 0
+// gpu/intel/28/GPU Timestamp offset: 380 size: 8 type: 38132 data_type: 38137 max: 0
+// gpu/intel/29/GPU Clock offset: 396 size: 8 type: 38132 data_type: 38137 max: 0
+// gpu/intel/1/IA_VERTICES_COUNT offset: 8 size: 8 type: 38132 data_type: 38137 max: 0
+// gpu/intel/2/IA_PRIMITIVES_COUNT offset: 24 size: 8 type: 38132 data_type: 38137 max: 0
+// gpu/intel/3/VS_INVOCATION_COUNT offset: 40 size: 8 type: 38132 data_type: 38137 max: 0
+// gpu/intel/10/PS_INVOCATION_COUNT offset: 152 size: 8 type: 38132 data_type: 38137 max: 0
+// gpu/intel/11/PS_DEPTH_COUNT offset: 168 size: 8 type: 38132 data_type: 38137 max: 0
+
 
 namespace {
-typedef void (PFNGLGETFIRSTQUERYID) (GLuint *queryId);
-typedef void (PFNGLGETNEXTQUERYID) (GLuint queryId,
-                                        GLuint *nextQueryId);
-typedef void (PFNGLGETQUERYINFO)
-    (GLuint queryId, GLuint queryNameLength, GLchar *queryName,
-     GLuint *dataSize, GLuint *noCounters, GLuint *noInstances,
-     GLuint *capsMask);
-
-typedef void (PFNGLGETPERFCOUNTERINFO) (
-    GLuint queryId, GLuint counterId, GLuint counterNameLength,
-    GLchar *counterName, GLuint counterDescLength,
-    GLchar *counterDesc, GLuint *counterOffset,
-    GLuint *counterDataSize,
-    GLuint *counterTypeEnum, GLuint *counterDataTypeEnum,
-    GLuint64 *rawCounterMaxValue);
-
-typedef void (PFNGLCREATEQUERY) (GLuint queryId, GLuint *queryHandle);
-typedef void (PFNGLDELETEQUERY) (GLuint queryHandle);
-typedef void (PFNGLBEGINQUERY) (GLuint queryHandle);
-typedef void (PFNGLENDQUERY) (GLuint queryHandle);
-typedef void (PFNGLGETQUERYDATA) (GLuint queryHandle, GLuint flags,
-                                           GLsizei dataSize, GLvoid *data,
-                                           GLuint *bytesWritten);
-
-static const GLubyte *create_name =
-    reinterpret_cast<const GLubyte*>("glCreatePerfQueryINTEL");
-static const PFNGLCREATEQUERY *p_glCreatePerfQueryINTEL =
-    reinterpret_cast<const PFNGLCREATEQUERY*>(glXGetProcAddress(create_name));
-
-static const GLubyte *delete_name =
-    reinterpret_cast<const GLubyte*>("glDeletePerfQueryINTEL");
-static const PFNGLDELETEQUERY *p_glDeletePerfQueryINTEL =
-    reinterpret_cast<const PFNGLDELETEQUERY*>(glXGetProcAddress(delete_name));
-
-static const GLubyte *begin_name =
-    reinterpret_cast<const GLubyte*>("glBeginPerfQueryINTEL");
-static const PFNGLBEGINQUERY *p_glBeginPerfQueryINTEL =
-    reinterpret_cast<const PFNGLBEGINQUERY*>(glXGetProcAddress(begin_name));
-
-static const GLubyte *end_name =
-    reinterpret_cast<const GLubyte*>("glEndPerfQueryINTEL");
-static const PFNGLENDQUERY *p_glEndPerfQueryINTEL =
-    reinterpret_cast<const PFNGLENDQUERY*>(glXGetProcAddress(end_name));
-
-static const GLubyte *get_name =
-    reinterpret_cast<const GLubyte*>("glGetPerfQueryDataINTEL");
-static const PFNGLGETQUERYDATA *p_glGetPerfQueryDataINTEL =
-    reinterpret_cast<const PFNGLGETQUERYDATA*>(glXGetProcAddress(get_name));
-
 
 class PerfMetric : public NoCopy, NoAssign {
  public:
@@ -173,6 +150,7 @@ GpuPerfSource::~GpuPerfSource() {
 
 void
 GpuPerfSource::Subscribe(MetricSinkInterface *sink) {
+  ScopedLock l(&m_protect);
   m_sink = sink;
   MetricDescriptionSet descriptions;
   GetDescriptions(&descriptions);
@@ -187,18 +165,22 @@ GpuPerfSource::GetDescriptions(MetricDescriptionSet *descriptions) {
 
 void
 GpuPerfSource::Enable(int id) {
+  ScopedLock l(&m_protect);
   if (m_metrics)
     m_metrics->Enable(id);
 }
 
 void
 GpuPerfSource::Disable(int id) {
+  ScopedLock l(&m_protect);
   if (m_metrics)
     m_metrics->Disable(id);
 }
 
 void
 GpuPerfSource::MakeContextCurrent() {
+  PerfFunctions::Init();
+  ScopedLock l(&m_protect);
   if (m_metrics != NULL)
     return;
 
@@ -211,6 +193,7 @@ GpuPerfSource::MakeContextCurrent() {
 
 void
 GpuPerfSource::glSwapBuffers() {
+  ScopedLock l(&m_protect);
   if (m_metrics)
     m_metrics->SwapBuffers();
 }
@@ -218,25 +201,8 @@ GpuPerfSource::glSwapBuffers() {
 
 PerfMetricSet::PerfMetricSet(MetricSinkInterface *sink)
     : m_enabled_group(-1), m_enable_count(0) {
-  const GLubyte* name =
-      reinterpret_cast<const GLubyte*>("glGetFirstPerfQueryIdINTEL");
-  void (*proc_addr)() = glXGetProcAddress(name);
-  if (proc_addr == NULL)
-    return;
-  PFNGLGETFIRSTQUERYID *p_glGetFirstPerfQueryId =
-      reinterpret_cast<PFNGLGETFIRSTQUERYID*>(proc_addr);
-
-  name = reinterpret_cast<const GLubyte*>("glGetNextPerfQueryIdINTEL");
-  proc_addr = glXGetProcAddress(name);
-  assert(proc_addr != NULL);
-  if (proc_addr == NULL)
-    return;
-  PFNGLGETNEXTQUERYID *p_glGetNextPerfQueryId =
-      reinterpret_cast<PFNGLGETNEXTQUERYID*>(proc_addr);
-
-
   unsigned int query_id = 0;
-  (*p_glGetFirstPerfQueryId)(&query_id);
+  PerfFunctions::GetFirstQueryId(&query_id);
 
   if (query_id == 0)
     return;
@@ -244,7 +210,7 @@ PerfMetricSet::PerfMetricSet(MetricSinkInterface *sink)
   std::vector<unsigned int> query_ids;
   query_ids.push_back(query_id);
   while (true) {
-    p_glGetNextPerfQueryId(query_id, &query_id);
+    PerfFunctions::GetNextQueryId(query_id, &query_id);
     if (!query_id)
       break;
     query_ids.push_back(query_id);
@@ -305,23 +271,13 @@ PerfMetricSet::GetDescriptions(MetricDescriptionSet *desc) {
 PerfMetricGroup::PerfMetricGroup(int query_id, MetricSinkInterface *sink)
     : m_query_id(query_id), m_current_query_handle(GL_INVALID_VALUE) {
 
-  static const GLubyte *name =
-      reinterpret_cast<const GLubyte*>("glGetPerfQueryInfoINTEL");
-
-  const PFNGLGETQUERYINFO *p_glGetPerfQueryInfoINTEL =
-      reinterpret_cast<const PFNGLGETQUERYINFO*>(glXGetProcAddress(name));
-
-  assert(p_glGetPerfQueryInfoINTEL != NULL);
-  if (p_glGetPerfQueryInfoINTEL == NULL)
-    return;
-
   static GLint max_name_len = 0;
   if (max_name_len == 0)
     glGetIntegerv(GL_PERFQUERY_QUERY_NAME_LENGTH_MAX_INTEL, &max_name_len);
 
   std::vector<GLchar> query_name(max_name_len);
   unsigned int number_instances;
-  p_glGetPerfQueryInfoINTEL(m_query_id,
+  PerfFunctions::GetQueryInfo(m_query_id,
                             query_name.size(), query_name.data(),
                             &m_data_size, &m_number_counters,
                             &number_instances, &m_capabilities_mask);
@@ -372,11 +328,11 @@ PerfMetricGroup::Disable(int id) {
       for (auto extant_query = m_extant_query_handles.rbegin();
            extant_query != m_extant_query_handles.rend(); ++extant_query) {
         GLuint bytes_written = 0;
-        p_glGetPerfQueryDataINTEL(*extant_query, GL_PERFQUERY_WAIT_INTEL,
+        PerfFunctions::GetQueryData(*extant_query, GL_PERFQUERY_WAIT_INTEL,
                                   m_data_size, m_data_buf.data(),
                                   &bytes_written);
         assert(bytes_written != 0);
-        p_glDeletePerfQueryINTEL(*extant_query);
+        PerfFunctions::DeleteQuery(*extant_query);
       }
       m_extant_query_handles.clear();
       m_current_query_handle = GL_INVALID_VALUE;
@@ -384,7 +340,7 @@ PerfMetricGroup::Disable(int id) {
 
       for (auto free_query =m_free_query_handles.begin();
            free_query != m_free_query_handles.end(); ++free_query)
-        p_glDeletePerfQueryINTEL(*free_query);
+        PerfFunctions::DeleteQuery(*free_query);
       m_free_query_handles.clear();
 
       return true;
@@ -398,25 +354,36 @@ PerfMetricGroup::SwapBuffers() {
   if (m_enabled_metric_indices.empty())
     return;
 
-  assert(p_glCreatePerfQueryINTEL != NULL &&
-         p_glDeletePerfQueryINTEL != NULL &&
-         p_glBeginPerfQueryINTEL != NULL &&
-         p_glEndPerfQueryINTEL != NULL &&
-         p_glGetPerfQueryDataINTEL != NULL);
-
   if (m_current_query_handle != GL_INVALID_VALUE) {
-    p_glEndPerfQueryINTEL(m_current_query_handle);
+    PerfFunctions::EndQuery(m_current_query_handle);
     m_extant_query_handles.push_back(m_current_query_handle);
     m_current_query_handle = GL_INVALID_VALUE;
   }
 
+#ifdef NDEBUG
+#else
+  // {
+  //   static GLint max_name_len = 0;
+  //   if (max_name_len == 0)
+  //     glGetIntegerv(GL_PERFQUERY_QUERY_NAME_LENGTH_MAX_INTEL, &max_name_len);
+
+  //   std::vector<GLchar> query_name(max_name_len);
+  //   GLuint data_size, number_counters, number_instances, capabilities_mask;
+  //   PerfFunctions::GetPerfQueryInfoINTEL(m_query_id,
+  //                             query_name.size(), query_name.data(),
+  //                             &data_size, &number_counters,
+  //                             &number_instances, &capabilities_mask);
+  //   assert(number_instances == m_extant_query_handles.size());
+  // }
+#endif
+  
   // reverse iteration, so we can remove entries without invalidating
   // the iterator
   for (auto extant_query = m_extant_query_handles.rbegin();
        extant_query != m_extant_query_handles.rend(); ++extant_query) {
     uint bytes_written = 0;
-    // p_glGetPerfQueryDataINTEL(*extant_query, GL_PERFQUERY_WAIT_INTEL,
-    p_glGetPerfQueryDataINTEL(*extant_query, GL_PERFQUERY_DONOT_FLUSH_INTEL,
+    memset(m_data_buf.data(), 0, m_data_buf.size());
+    PerfFunctions::GetQueryData(*extant_query, GL_PERFQUERY_DONOT_FLUSH_INTEL,
                               m_data_size, m_data_buf.data(),
                               &bytes_written);
     if (bytes_written == 0) {
@@ -436,14 +403,14 @@ PerfMetricGroup::SwapBuffers() {
 
   if (m_free_query_handles.empty()) {
     unsigned int query_handle;
-    p_glCreatePerfQueryINTEL(m_query_id, &query_handle);
+    PerfFunctions::CreateQuery(m_query_id, &query_handle);
     assert(query_handle != GL_INVALID_VALUE);
     m_free_query_handles.push_back(query_handle);
   }
 
   m_current_query_handle = m_free_query_handles.back();
   m_free_query_handles.pop_back();
-  p_glBeginPerfQueryINTEL(m_current_query_handle);
+  PerfFunctions::BeginQuery(m_current_query_handle);
 }
 
 void
@@ -455,8 +422,6 @@ PerfMetricGroup::AppendDescriptions(MetricDescriptionSet *descriptions) {
 PerfMetric::PerfMetric(int query_id, int counter_num, MetricSinkInterface *sink)
     : m_query_id(query_id), m_counter_num(counter_num),
       m_sink(sink) {
-  static const GLubyte *name =
-      reinterpret_cast<const GLubyte*>("glGetPerfCounterInfoINTEL");
   static GLint max_name_len = 0, max_desc_len = 0;
   if (max_name_len == 0)
     glGetIntegerv(GL_PERFQUERY_COUNTER_NAME_LENGTH_MAX_INTEL, &max_name_len);
@@ -464,16 +429,10 @@ PerfMetric::PerfMetric(int query_id, int counter_num, MetricSinkInterface *sink)
   if (max_desc_len == 0)
     glGetIntegerv(GL_PERFQUERY_COUNTER_DESC_LENGTH_MAX_INTEL, &max_desc_len);
 
-  static const PFNGLGETPERFCOUNTERINFO *p_glGetPerfCounterInfoINTEL =
-      reinterpret_cast<PFNGLGETPERFCOUNTERINFO*>(glXGetProcAddress(name));
-  assert(p_glGetPerfCounterInfoINTEL != NULL);
-  if (p_glGetPerfCounterInfoINTEL == NULL)
-    return;
-
   std::vector<GLchar> counter_name(max_name_len);
   std::vector<GLchar> counter_description(max_desc_len);
 
-  p_glGetPerfCounterInfoINTEL(m_query_id, m_counter_num,
+  PerfFunctions::GetCounterInfo(m_query_id, m_counter_num,
                               counter_name.size(), counter_name.data(),
                               counter_description.size(),
                               counter_description.data(),
@@ -491,7 +450,26 @@ PerfMetric::PerfMetric(int query_id, int counter_num, MetricSinkInterface *sink)
 
 void
 PerfMetric::AppendDescription(MetricDescriptionSet *desc) {
+  if (strstr(m_name.c_str(), "HS") != NULL)
+    return;
+  if (strstr(m_name.c_str(), "DS") != NULL)
+    return;
+  if (strstr(m_name.c_str(), "GS") != NULL)
+    return;
+  if (strstr(m_name.c_str(), "CS") != NULL)
+    return;
+  if (strstr(m_name.c_str(), "CL") != NULL)
+    return;
+  if (strstr(m_name.c_str(), "SO") != NULL)
+    return;
   desc->push_back(*m_grafips_desc);
+  // std::cout << m_grafips_desc->path
+  //           << " offset: " << m_offset
+  //           << " size: " << m_data_size
+  //           << " type: " << m_type
+  //           << " data_type: " << m_data_type
+  //           << " max: " << m_max_value
+  //           << std::endl;
 }
 
 bool
