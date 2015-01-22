@@ -122,10 +122,10 @@ libfips_32_modules = $(libfips_srcs:.c=-32.o)
 libfips_64_modules = $(libfips_srcs:.c=-64.o)
 
 libfips-32.so: $(libfips_32_modules) libfips.sym $(GRAFIPS_32_LIB)
-	$(call quiet,$(FIPS_LINKER) $(CFLAGS) -m32) -o $@ $(LIBFIPS_CFLAGS) -m32 $(libfips_32_modules)  $(LIBRARY_LINK_FLAGS) $(LIBFIPS_LDFLAGS) $(GRAFIPS_32_LDFLAGS)
+	$(call quiet,$(FIPS_LINKER) $(CFLAGS) -m32) -o $@ $(LIBFIPS_CFLAGS) -m32 $(libfips_32_modules)  $(LIBRARY_LINK_FLAGS) $(GRAFIPS_32_LDFLAGS) $(LIBFIPS_LDFLAGS)
 
 libfips-64.so: $(libfips_64_modules) libfips.sym $(GRAFIPS_64_LIB)
-	$(call quiet,$(FIPS_LINKER) $(CFLAGS) -m64) -o $@ $(LIBFIPS_CFLAGS) -m64 $(libfips_64_modules) $(LIBRARY_LINK_FLAGS) $(LIBFIPS_LDFLAGS) $(GRAFIPS_64_LDFLAGS)
+	$(call quiet,$(FIPS_LINKER) $(CFLAGS) -m64) -o $@ $(LIBFIPS_CFLAGS) -m64 $(libfips_64_modules) $(LIBRARY_LINK_FLAGS) $(GRAFIPS_64_LDFLAGS) $(LIBFIPS_LDFLAGS)
 
 fips-find-lib-32: fips-find-lib.c
 	$(CC) $(FIPS_CFLAGS) -m32 -fPIC -ldl -o $@ $<

@@ -179,8 +179,8 @@ GpuPerfSource::Disable(int id) {
 
 void
 GpuPerfSource::MakeContextCurrent() {
-  PerfFunctions::Init();
   ScopedLock l(&m_protect);
+  PerfFunctions::Init();
   if (m_metrics != NULL)
     return;
 
@@ -325,18 +325,17 @@ PerfMetricGroup::Disable(int id) {
       }
       // If last metric is disabled, then flush queries and delete
       // them.  Also set m_current_query_handle to -1
-      for (auto extant_query = m_extant_query_handles.rbegin();
-           extant_query != m_extant_query_handles.rend(); ++extant_query) {
-        GLuint bytes_written = 0;
-        PerfFunctions::GetQueryData(*extant_query, GL_PERFQUERY_WAIT_INTEL,
-                                  m_data_size, m_data_buf.data(),
-                                  &bytes_written);
-        assert(bytes_written != 0);
-        PerfFunctions::DeleteQuery(*extant_query);
-      }
-      m_extant_query_handles.clear();
-      m_current_query_handle = GL_INVALID_VALUE;
-
+      // for (auto extant_query = m_extant_query_handles.rbegin();
+      //      extant_query != m_extant_query_handles.rend(); ++extant_query) {
+      //   GLuint bytes_written = 0;
+      //   PerfFunctions::GetQueryData(*extant_query, GL_PERFQUERY_WAIT_INTEL,
+      //                             m_data_size, m_data_buf.data(),
+      //                             &bytes_written);
+      //   //assert(bytes_written != 0);
+      //   PerfFunctions::DeleteQuery(*extant_query);
+      // }
+      // m_extant_query_handles.clear();
+      // m_current_query_handle = GL_INVALID_VALUE;
 
       for (auto free_query =m_free_query_handles.begin();
            free_query != m_free_query_handles.end(); ++free_query)
