@@ -37,8 +37,8 @@ typedef struct context
 
 static context_t *current_context = NULL;
 
-static bool
-check_extension (const char *extension);
+/* static bool */
+/* check_extension (const char *extension); */
 
 static context_t *
 context_create (fips_api_t api, void *system_context_id)
@@ -51,7 +51,7 @@ context_create (fips_api_t api, void *system_context_id)
 
 	fips_dispatch_init (api);
 
-	ctx->have_perfmon = check_extension ("GL_AMD_performance_monitor");
+	ctx->have_perfmon = false;
 
 	metrics_info_init (&ctx->metrics_info, ctx->have_perfmon);
 	ctx->metrics = metrics_create (&ctx->metrics_info);
@@ -80,7 +80,7 @@ context_enter (fips_api_t api, void *system_context_id)
 
 	metrics_set_current_op (current_context->metrics,
 				METRICS_OP_SHADER + 0);
-	metrics_counter_start (current_context->metrics);
+	//metrics_counter_start (current_context->metrics);
 }
 
 void
@@ -103,13 +103,13 @@ context_leave (void *next_system_context_id)
 void
 context_counter_start (void)
 {
-	metrics_counter_start (current_context->metrics);
+	//metrics_counter_start (current_context->metrics);
 }
 
 void
 context_counter_stop (void)
 {
-	metrics_counter_stop (current_context->metrics);
+	//metrics_counter_stop (current_context->metrics);
 }
 
 void
@@ -131,20 +131,20 @@ context_end_frame (void)
 }
 
 /* Is the given extension available? */
-static bool
-check_extension (const char *extension)
-{
-	int i, num_extensions;
-	const char *available;
+/* static bool */
+/* check_extension (const char *extension) */
+/* { */
+/* 	int i, num_extensions; */
+/* 	const char *available; */
 
-	glGetIntegerv (GL_NUM_EXTENSIONS, &num_extensions);
+/* 	glGetIntegerv (GL_NUM_EXTENSIONS, &num_extensions); */
 
-	for (i = 0; i < num_extensions; i++) {
-		available = (char *) glGetStringi (GL_EXTENSIONS, i);
-		if (strcmp (extension, available) == 0) {
-			return true;
-		}
-	}
+/* 	for (i = 0; i < num_extensions; i++) { */
+/* 		available = (char *) glGetStringi (GL_EXTENSIONS, i); */
+/* 		if (strcmp (extension, available) == 0) { */
+/* 			return true; */
+/* 		} */
+/* 	} */
 
-	return false;
-}
+/* 	return false; */
+/* } */
