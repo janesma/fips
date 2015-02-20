@@ -38,7 +38,7 @@ class MetricSinkInterface;
 // GlSource produces metrics based on the GL API
 class GlSource : public MetricSourceInterface {
  public:
-  GlSource();
+  explicit GlSource(int ms_interval = 1000);
   ~GlSource();
   void Subscribe(MetricSinkInterface *sink);
   void Enable(int id);
@@ -49,6 +49,7 @@ class GlSource : public MetricSourceInterface {
 
   MetricSinkInterface *m_sink;
   uint64_t m_last_time_ns;
+  int m_frame_count, m_ms_interval;
   std::set<int> m_enabled_ids;
 };
 }  // end namespace Grafips

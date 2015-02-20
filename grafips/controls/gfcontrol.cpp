@@ -25,55 +25,52 @@
 //  *   Mark Janes <mark.a.janes@intel.com>
 //  **********************************************************************/
 
-#ifndef REMOTE_GFMETRIC_H_
-#define REMOTE_GFMETRIC_H_
+#include "controls/gfcontrol.h"
 
-#include <time.h>
+#include <assert.h>
+
 #include <string>
-#include <vector>
 
-namespace Grafips {
-enum MetricType {
-  GR_METRIC_COUNT = 0,
-  GR_METRIC_RATE,
-  GR_METRIC_PERCENT
-};
+#include "controls/gfcontrol_stub.h"
 
-class MetricDescription {
- public:
-  MetricDescription(const MetricDescription &o);
-  MetricDescription(const std::string &_path,
-                    const std::string &_help_text,
-                    const std::string &_display_name,
-                    MetricType _type);
-  MetricDescription();
-  MetricDescription &operator=(const MetricDescription &o);
-  int id() const;
-  std::string path;
-  std::string help_text;
-  std::string display_name;
-  MetricType type;
-};
+using Grafips::ControlRouterTarget;
 
-inline unsigned int
-get_ms_time() {
-  struct timespec t;
-  clock_gettime(CLOCK_REALTIME, &t);
-  unsigned int ms = t.tv_sec * 1000;
-  ms += (t.tv_nsec / 1000000);
-  return ms;
+ControlRouterTarget::ControlRouterTarget()
+    : m_subscriber(NULL) {}
+
+bool
+ControlRouterTarget::Set(const std::string &key, const std::string &value) {
+  auto i = m_targets.find(key);
+  if (i == m_targets.end())
+    return false;
+  i->second->Set(key, value);
+  return true;
 }
 
-struct DataPoint {
-  DataPoint(unsigned int t, int i, float d) : time_val(t), id(i), data(d) {}
-  unsigned int   time_val;
-  int   id;
-  float data;
-};
+void
+ControlRouterTarget::AddControl(const std::string &key,
+                                ControlInterface* target) {
+  auto i = m_targets.find(key);
+  assert(i == m_targets.end());
+  m_targets[key] = target;
+  target->Subscribe(this);
+}
 
-typedef std::vector<MetricDescription> MetricDescriptionSet;
+void
+ControlRouterTarget::Subscribe(ControlSubscriberInterface *sub) {
+  // might need to cache all publications, to send initial state on a
+  // tardy subscribe
+  m_subscriber = sub;
+  for (auto i = m_current_state.begin(); i != m_current_state.end(); ++i)
+    sub->OnControlChanged(i->first, i->second);
+}
 
-typedef std::vector<DataPoint> DataSet;
+void
+ControlRouterTarget::OnControlChanged(const std::string &key,
+                                      const std::string &value) {
+  m_current_state[key] = value;
+  if (m_subscriber)
+    m_subscriber->OnControlChanged(key, value);
+}
 
-}  // namespace Grafips
-#endif  // REMOTE_GFMETRIC_H_
+

@@ -52,3 +52,14 @@ MetricDescription::id() const {
     }
     return hash;
 }
+
+MetricDescription::MetricDescription() { }
+
+MetricDescription &
+MetricDescription::operator=(const MetricDescription &o) {
+  path = o.path;
+  help_text = o.help_text;
+  display_name = o.display_name;
+  type = type;
+  return *this;
+}

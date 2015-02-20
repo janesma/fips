@@ -48,7 +48,6 @@ class PublisherSkeleton : public Thread {
   void Flush() const;
   int GetPort() const;
  private:
-  void WriteMessage(const GrafipsProto::PublisherInvocation &m);
   ServerSocket *m_server;
   Socket *m_socket;
   PublisherInterface *m_target;

@@ -37,13 +37,14 @@ namespace Grafips {
 
 class Thread : NoCopy, NoAssign, NoMove {
  public:
-    explicit Thread(const std::string &name);
-    virtual void Run() = 0;
-    void Start();
-    void Join();
+  explicit Thread(const std::string &name);
+  virtual ~Thread() {}
+  virtual void Run() = 0;
+  void Start();
+  void Join();
  private:
-    const std::string m_name;
-    pthread_t m_thread;
+  const std::string m_name;
+  pthread_t m_thread;
 };
 
 }  // namespace Grafips

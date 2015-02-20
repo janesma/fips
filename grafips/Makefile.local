@@ -3,6 +3,10 @@
 gdir := grafips
 
 grafips_srcs = \
+	gfcontrol.cpp \
+	gfcontrol_stub.cpp \
+	gfcpu_clock_source.cpp \
+	gfcpu_freq_control.cpp \
 	gfcpu_source.cpp \
 	gfgl_source.cpp \
 	gfgpu_perf_functions.cpp \
@@ -20,6 +24,7 @@ grafips_proto = \
 	gfmetric.proto \
 	gfpublisher.proto \
 	gfsubscriber.proto \
+	gfcontrol.proto \
 
 grafips_proto_gen_h = $(grafips_proto:%.proto=%.pb.h)
 grafips_proto_gen_cc = $(grafips_proto:%.proto=%.pb.cc)
@@ -27,12 +32,12 @@ grafips_proto_gen_cc = $(grafips_proto:%.proto=%.pb.cc)
 grafips_32_modules = $(grafips_srcs:.cpp=-32.o) $(grafips_proto_gen_cc:.cc=-32.o)
 grafips_64_modules = $(grafips_srcs:.cpp=-64.o) $(grafips_proto_gen_cc:.cc=-64.o)
 
-VPATH = $(gdir)/sources:$(gdir)/remote:$(gdir)/os:$(gdir)
+VPATH = $(gdir)/sources:$(gdir)/remote:$(gdir)/os:$(gdir)/controls:$(gdir)
 
 gen: $(grafips_proto_gen_cc) $(grafips_proto_gen_h)
 
 %.pb.h %.pb.cc: %.proto
-	protoc --cpp_out=. -I=$(gdir)/remote $<
+	protoc --cpp_out=. -I=$(gdir)/controls -I=$(gdir)/remote $<
 
 %-32.o: %.cpp $(global_deps) | gen
 	@mkdir -p .deps/$(@D)

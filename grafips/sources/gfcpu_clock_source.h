@@ -25,55 +25,44 @@
 //  *   Mark Janes <mark.a.janes@intel.com>
 //  **********************************************************************/
 
-#ifndef REMOTE_GFMETRIC_H_
-#define REMOTE_GFMETRIC_H_
+#ifndef SOURCES_GFCPU_CLOCK_SOURCE_H_
+#define SOURCES_GFCPU_CLOCK_SOURCE_H_
 
-#include <time.h>
-#include <string>
+#include <map>
+#include <set>
 #include <vector>
 
+#include "sources/gfimetric_source.h"
+
+// TODO(majanes) this control uses sysfs, which is apparently
+// unreliable for accessing cpu frequency configuration, especially on
+// new platforms.  Kristin Accardi recommended using the MSRs to get
+// and modify this information.  See turbostat in the linux sources.
+
 namespace Grafips {
-enum MetricType {
-  GR_METRIC_COUNT = 0,
-  GR_METRIC_RATE,
-  GR_METRIC_PERCENT
-};
+class MetricSinkInterface;
 
-class MetricDescription {
+// GlSource produces metrics based on the GL API
+class CpuFreqSource : public MetricSourceInterface {
  public:
-  MetricDescription(const MetricDescription &o);
-  MetricDescription(const std::string &_path,
-                    const std::string &_help_text,
-                    const std::string &_display_name,
-                    MetricType _type);
-  MetricDescription();
-  MetricDescription &operator=(const MetricDescription &o);
-  int id() const;
-  std::string path;
-  std::string help_text;
-  std::string display_name;
-  MetricType type;
+  CpuFreqSource();
+  ~CpuFreqSource();
+  void Subscribe(MetricSinkInterface *sink);
+  void Enable(int id);
+  void Disable(int id);
+  void Poll();
+ private:
+  MetricSinkInterface *m_sink;
+  unsigned int m_last_publish_ms;
+  int m_frame_count;
+  std::set<int> m_enabled_ids;
+  std::vector<int> m_core_freq_handles;
+  // reverse lookup for enable
+  std::map<int, int> m_index_to_id;
+  MetricDescriptionSet m_descriptions;
+  static const int BUF_SIZE = 100;
+  char m_buf[BUF_SIZE];
 };
+}  // end namespace Grafips
 
-inline unsigned int
-get_ms_time() {
-  struct timespec t;
-  clock_gettime(CLOCK_REALTIME, &t);
-  unsigned int ms = t.tv_sec * 1000;
-  ms += (t.tv_nsec / 1000000);
-  return ms;
-}
-
-struct DataPoint {
-  DataPoint(unsigned int t, int i, float d) : time_val(t), id(i), data(d) {}
-  unsigned int   time_val;
-  int   id;
-  float data;
-};
-
-typedef std::vector<MetricDescription> MetricDescriptionSet;
-
-typedef std::vector<DataPoint> DataSet;
-
-}  // namespace Grafips
-#endif  // REMOTE_GFMETRIC_H_
+#endif  // SOURCES_GFCPU_CLOCK_SOURCE_H_

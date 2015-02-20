@@ -72,22 +72,21 @@ static const PFNGLGETFIRSTQUERYID *p_glGetFirstPerfQueryId = NULL;
 static const PFNGLGETNEXTQUERYID *p_glGetNextPerfQueryId = NULL;
 static const PFNGLGETPERFCOUNTERINFO *p_glGetPerfCounterInfoINTEL = NULL;
 
-}
+}  // namespace
 
 void
 PerfFunctions::Init() {
   void *lib_handle = NULL;
-  const char *path = getenv ("FIPS_GL");
-  if (path) 
-    lib_handle = dlopen(path, RTLD_LAZY | RTLD_GLOBAL);
-  else
-    lib_handle = dlopen("libGL.so", RTLD_LAZY | RTLD_GLOBAL);
-  void *ret = dlsym (lib_handle, "glXGetProcAddress");
+  lib_handle = dlopen("libGL.so", RTLD_LAZY | RTLD_GLOBAL);
+  void *ret = dlsym(lib_handle, "glXGetProcAddress");
   assert(ret);
   typedef void* (* PFNGLXGETPROCADDRESSPROC) (const GLubyte *procName);
-  PFNGLXGETPROCADDRESSPROC get_proc = reinterpret_cast<PFNGLXGETPROCADDRESSPROC>(ret);
+  PFNGLXGETPROCADDRESSPROC get_proc =
+      reinterpret_cast<PFNGLXGETPROCADDRESSPROC>(ret);
 
-  const GLubyte *name = reinterpret_cast<const GLubyte*>("glCreatePerfQueryINTEL");
+  const GLubyte *name =
+      reinterpret_cast<const GLubyte*>("glCreatePerfQueryINTEL");
+
   p_glCreatePerfQueryINTEL =
       reinterpret_cast<const PFNGLCREATEQUERY*>(get_proc(name));
 
@@ -146,13 +145,14 @@ PerfFunctions::GetNextQueryId(GLuint queryId,
 }
 
 void
-PerfFunctions::GetQueryInfo(GLuint queryId, GLuint queryNameLength, GLchar *queryName,
-                            GLuint *dataSize, GLuint *noCounters, GLuint *noInstances,
+PerfFunctions::GetQueryInfo(GLuint queryId, GLuint queryNameLength,
+                            GLchar *queryName, GLuint *dataSize,
+                            GLuint *noCounters,
+                            GLuint *noInstances,
                             GLuint *capsMask) {
   p_glGetPerfQueryInfoINTEL(queryId, queryNameLength, queryName,
                             dataSize, noCounters, noInstances,
                             capsMask);
-   
 }
 
 void
@@ -169,9 +169,9 @@ PerfFunctions::GetCounterInfo(GLuint queryId, GLuint counterId,
                               counterOffset, counterDataSize,
                               counterTypeEnum,
                               counterDataTypeEnum,
-                              rawCounterMaxValue);   
+                              rawCounterMaxValue);
 }
-  
+
 void
 PerfFunctions::CreateQuery(GLuint queryId, GLuint *queryHandle) {
   p_glCreatePerfQueryINTEL(queryId, queryHandle);

@@ -90,7 +90,7 @@ fips: $(fips_modules)
 # GL-wrapper library, libfips
 LIBRARY_LINK_FLAGS = -shared -Wl,--version-script=libfips.sym
 
-extra_cflags += -I$(srcdir) -I$(srcdir)/grafips -I$(srcdir)/grafips/os -I$(srcdir)/grafips/remote -I$(srcdir)/grafips/sources -fPIC
+extra_cflags += -I$(srcdir) -I$(srcdir)/grafips -I$(srcdir)/grafips/os -I$(srcdir)/grafips/remote -I$(srcdir)/grafips/sources -I$(srcdir)/grafips/controls -fPIC
 
 libfips_srcs = \
 	context.c \

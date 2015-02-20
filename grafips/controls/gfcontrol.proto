@@ -1,0 +1,33 @@
+package GrafipsControlProto;
+
+message ControlInvocation {
+    enum Method {
+        kSet = 0;
+        kSubscribe = 2;
+        kOnControlChanged = 3;
+        kFlush = 4;
+    }
+
+  message Set
+  {
+    required string key = 1;
+    required string value = 2;
+  };
+
+  message Subscribe
+  {
+    required string address = 1;
+    required int32 port = 2;
+  };
+
+  message OnControlChanged
+  {
+    required string key = 1;
+    required string value = 2;
+  };
+
+  required Method method = 1;
+  optional Set setArgs = 2;
+  optional Subscribe subscribeArgs = 3;
+  optional OnControlChanged OnControlChangedArgs = 4;
+}

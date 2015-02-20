@@ -126,19 +126,6 @@ PublisherSkeleton::Run() {
 }
 
 void
-PublisherSkeleton::WriteMessage(const GrafipsProto::PublisherInvocation &m) {
-  const uint32_t write_size = m.ByteSize();
-  m_socket->Write(write_size);
-
-  std::vector<unsigned char> buf;
-  buf.resize(write_size);
-  google::protobuf::io::ArrayOutputStream array_out(buf.data(), write_size);
-  google::protobuf::io::CodedOutputStream coded_out(&array_out);
-  m.SerializeToCodedStream(&coded_out);
-  m_socket->Write(buf.data(), write_size);
-}
-
-void
 PublisherSkeleton::Flush() const {
   if (m_subscriber)
     m_subscriber->Flush();

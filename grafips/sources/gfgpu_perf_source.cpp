@@ -31,12 +31,11 @@
 #include <GL/glext.h>
 #include <GL/glx.h>
 #include <assert.h>
+#include <string.h>
 
 #include <sstream>
 #include <string>
 #include <vector>
-#include <string.h>
-// #include <iostream>
 
 #include "os/gftraits.h"
 #include "remote/gfimetric_sink.h"
@@ -54,26 +53,6 @@ using Grafips::DataSet;
 using Grafips::DataPoint;
 using Grafips::get_ms_time;
 using Grafips::ScopedLock;
-
-// current metrics exported by this source:
-// gpu/intel/1/Render Engine Busy offset: 8 size: 4 type: 38132 data_type: 38138 max: 0
-// gpu/intel/2/EU Active offset: 20 size: 4 type: 38132 data_type: 38138 max: 0
-// gpu/intel/3/EU Stalled offset: 32 size: 4 type: 38132 data_type: 38138 max: 0
-// gpu/intel/4/VS EU Active offset: 44 size: 4 type: 38132 data_type: 38138 max: 0
-// gpu/intel/5/VS EU Stalled offset: 56 size: 4 type: 38132 data_type: 38138 max: 0
-// gpu/intel/6/Average Cycles per VS Thread offset: 68 size: 8 type: 38132 data_type: 38137 max: 0
-// gpu/intel/7/Average Stalled Cycles per VS Thread offset: 84 size: 8 type: 38132 data_type: 38137 max: 0
-// gpu/intel/24/PS EU Active offset: 324 size: 4 type: 38132 data_type: 38138 max: 0
-// gpu/intel/25/PS EU Stalled offset: 336 size: 4 type: 38132 data_type: 38138 max: 0
-// gpu/intel/26/Average Cycles per PS Thread offset: 348 size: 8 type: 38132 data_type: 38137 max: 0
-// gpu/intel/27/Average Stalled Cycles per PS Thread offset: 364 size: 8 type: 38132 data_type: 38137 max: 0
-// gpu/intel/28/GPU Timestamp offset: 380 size: 8 type: 38132 data_type: 38137 max: 0
-// gpu/intel/29/GPU Clock offset: 396 size: 8 type: 38132 data_type: 38137 max: 0
-// gpu/intel/1/IA_VERTICES_COUNT offset: 8 size: 8 type: 38132 data_type: 38137 max: 0
-// gpu/intel/2/IA_PRIMITIVES_COUNT offset: 24 size: 8 type: 38132 data_type: 38137 max: 0
-// gpu/intel/3/VS_INVOCATION_COUNT offset: 40 size: 8 type: 38132 data_type: 38137 max: 0
-// gpu/intel/10/PS_INVOCATION_COUNT offset: 152 size: 8 type: 38132 data_type: 38137 max: 0
-// gpu/intel/11/PS_DEPTH_COUNT offset: 168 size: 8 type: 38132 data_type: 38137 max: 0
 
 
 namespace {
@@ -325,17 +304,17 @@ PerfMetricGroup::Disable(int id) {
       }
       // If last metric is disabled, then flush queries and delete
       // them.  Also set m_current_query_handle to -1
-      // for (auto extant_query = m_extant_query_handles.rbegin();
-      //      extant_query != m_extant_query_handles.rend(); ++extant_query) {
-      //   GLuint bytes_written = 0;
-      //   PerfFunctions::GetQueryData(*extant_query, GL_PERFQUERY_WAIT_INTEL,
-      //                             m_data_size, m_data_buf.data(),
-      //                             &bytes_written);
-      //   //assert(bytes_written != 0);
-      //   PerfFunctions::DeleteQuery(*extant_query);
-      // }
-      // m_extant_query_handles.clear();
-      // m_current_query_handle = GL_INVALID_VALUE;
+      for (auto extant_query = m_extant_query_handles.rbegin();
+           extant_query != m_extant_query_handles.rend(); ++extant_query) {
+        GLuint bytes_written = 0;
+        PerfFunctions::GetQueryData(*extant_query, GL_PERFQUERY_WAIT_INTEL,
+                                  m_data_size, m_data_buf.data(),
+                                  &bytes_written);
+        // assert(bytes_written != 0);
+        PerfFunctions::DeleteQuery(*extant_query);
+      }
+      m_extant_query_handles.clear();
+      m_current_query_handle = GL_INVALID_VALUE;
 
       for (auto free_query =m_free_query_handles.begin();
            free_query != m_free_query_handles.end(); ++free_query)
@@ -375,7 +354,7 @@ PerfMetricGroup::SwapBuffers() {
   //   assert(number_instances == m_extant_query_handles.size());
   // }
 #endif
-  
+
   // reverse iteration, so we can remove entries without invalidating
   // the iterator
   for (auto extant_query = m_extant_query_handles.rbegin();

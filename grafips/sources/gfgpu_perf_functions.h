@@ -41,18 +41,22 @@ class PerfFunctions {
   static void GetNextQueryId(GLuint queryId,
                              GLuint *nextQueryId);
 
-  static void GetQueryInfo(GLuint queryId, GLuint queryNameLength, GLchar *queryName,
-                           GLuint *dataSize, GLuint *noCounters, GLuint *noInstances,
+  static void GetQueryInfo(GLuint queryId, GLuint queryNameLength,
+                           GLchar *queryName, GLuint *dataSize,
+                           GLuint *noCounters, GLuint *noInstances,
                            GLuint *capsMask);
 
   static void GetCounterInfo(GLuint queryId, GLuint counterId,
-                             GLuint counterNameLength, GLchar *counterName,
-                             GLuint counterDescLength, GLchar *counterDesc,
-                             GLuint *counterOffset, GLuint *counterDataSize,
+                             GLuint counterNameLength,
+                             GLchar *counterName,
+                             GLuint counterDescLength,
+                             GLchar *counterDesc,
+                             GLuint *counterOffset,
+                             GLuint *counterDataSize,
                              GLuint *counterTypeEnum,
                              GLuint *counterDataTypeEnum,
                              GLuint64 *rawCounterMaxValue);
-  
+
   static void CreateQuery(GLuint queryId, GLuint *queryHandle);
   static void DeleteQuery(GLuint queryHandle);
   static void BeginQuery(GLuint queryHandle);
@@ -60,9 +64,10 @@ class PerfFunctions {
   static void GetQueryData(GLuint queryHandle, GLuint flags,
                            GLsizei dataSize, GLvoid *data,
                            GLuint *bytesWritten);
+
  private:
   PerfFunctions();
 };
-}
+}  // namespace Grafips
 
 #endif  // SOURCES_GFGPU_PERF_FUNCTIONS_H_
