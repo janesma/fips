@@ -32,12 +32,19 @@
 
 #include <vector>
 
-#include "os/gfsocket.h"
 #include "./gfpublisher.pb.h"
+#include "error/gferror.h"
+#include "error/gflog.h"
+#include "os/gfsocket.h"
 #include "remote/gfipublisher.h"
 #include "remote/gfsubscriber_stub.h"
 
+using Grafips::Error;
+using Grafips::NoError;
 using Grafips::PublisherSkeleton;
+using Grafips::Raise;
+using Grafips::WARN;
+using Grafips::kSocketWriteFail;
 
 PublisherSkeleton::PublisherSkeleton(int port, PublisherInterface *target)
     : Thread("PublisherSkeleton"), m_server(new ServerSocket(port)),
@@ -49,6 +56,8 @@ PublisherSkeleton::~PublisherSkeleton() {
     delete m_socket;
   if (m_server)
     delete m_server;
+  if (m_subscriber)
+    delete m_subscriber;
 }
 
 void
@@ -61,13 +70,16 @@ PublisherSkeleton::Run() {
   bool running = true;
   while (running) {
     uint32_t msg_len;
-    if (!m_socket->Read(&msg_len))
+    if (!m_socket->Read(&msg_len)) {
+      // host is closed, stop processing
       break;
-
+    }
     // std::cout << "read len: " << msg_len << std::endl;
     buf.resize(msg_len);
-    if (!m_socket->ReadVec(&buf))
+    if (!m_socket->ReadVec(&buf)) {
+      // host is closed, stop processing
       break;
+    }
 
     // for (int i = 0; i < msg_len; ++i)
     // std::cout << " " << (int) buf[i] << " ";
@@ -87,7 +99,10 @@ PublisherSkeleton::Run() {
     using GrafipsProto::PublisherInvocation;
     switch (m.method()) {
       case PublisherInvocation::kFlush: {
-        m_socket->Write((uint32_t)0);
+        if (!m_socket->Write((uint32_t)0)) {
+          // host is closed, stop processing
+          running = false;
+        }
         break;
       }
       case PublisherInvocation::kEnable: {
@@ -120,8 +135,7 @@ PublisherSkeleton::Run() {
 
   // clean up subscriber stub
   if (m_subscriber) {
-    delete m_subscriber;
-    m_subscriber = NULL;
+    m_subscriber->Close();
   }
 }
 

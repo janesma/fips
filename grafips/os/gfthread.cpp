@@ -30,6 +30,8 @@
 #include <assert.h>
 #include <string>
 
+#include "error/gflog.h"
+
 using Grafips::Thread;
 
 Thread::Thread(const std::string &name) : m_name(name) {}
@@ -42,13 +44,16 @@ void *start_thread(void*ctx) {
 
 void
 Thread::Start() {
+  GFLOG("thread started: %s", m_name.c_str());
   const int result = pthread_create(&m_thread, NULL, &start_thread, this);
   assert(result == 0);
 }
 
 void
 Thread::Join() {
+  GFLOG("joining thread: %s", m_name.c_str());
   pthread_join(m_thread, NULL);
+  GFLOG("thread joined: %s", m_name.c_str());
 }
 
 

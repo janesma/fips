@@ -51,9 +51,10 @@ class SubscriberStub : public SubscriberInterface,
   void OnMetric(const DataSet &d);
   void OnDescriptions(const std::vector<MetricDescription> &descriptions);
   void Flush() const;
+  void Close();
  private:
   void WriteMessage(const GrafipsProto::SubscriberInvocation&m) const;
-  mutable Socket m_socket;
+  mutable Socket *m_socket;
   mutable std::vector<unsigned char> m_buf;
   mutable Mutex m_protect;
 };

@@ -36,16 +36,21 @@
 
 #include "./gfcontrol.pb.h"
 #include "controls/gfcontrol.h"
+#include "error/gferror.h"
 
-using Grafips::ControlStub;
 using Grafips::ControlSkel;
-using Grafips::ControlSubscriberStub;
+using Grafips::ControlStub;
 using Grafips::ControlSubscriberSkel;
+using Grafips::ControlSubscriberStub;
+using Grafips::Error;
+using Grafips::NoError;
+using Grafips::Raise;
+using Grafips::kSocketWriteFail;
 using GrafipsControlProto::ControlInvocation;
-using google::protobuf::io::ArrayOutputStream;
-using google::protobuf::io::CodedOutputStream;
 using google::protobuf::io::ArrayInputStream;
+using google::protobuf::io::ArrayOutputStream;
 using google::protobuf::io::CodedInputStream;
+using google::protobuf::io::CodedOutputStream;
 
 // TODO(majanes) there is a lot of replicated code between the various
 // stubs, skeletons, etc.  It would be good to factor it out, and
@@ -119,13 +124,15 @@ void
 ControlStub::WriteMessage(const ControlInvocation &m) const {
   const uint32_t write_size = m.ByteSize();
   m_protect.Lock();
-  m_socket->Write(write_size);
+  if (!m_socket->Write(write_size) )
+    Raise(Error(kSocketWriteFail, ERROR, "ControlStub wrote to closed socket"));
 
   m_buf.resize(write_size);
   ArrayOutputStream array_out(m_buf.data(), write_size);
   CodedOutputStream coded_out(&array_out);
   m.SerializeToCodedStream(&coded_out);
-  m_socket->Write(m_buf.data(), write_size);
+  if (!m_socket->Write(m_buf.data(), write_size))
+    Raise(Error(kSocketWriteFail, ERROR, "ControlStub wrote to closed socket"));
   m_protect.Unlock();
 }
 
@@ -152,15 +159,19 @@ ControlSkel::Run() {
 
   std::vector<unsigned char> buf;
   bool running = true;
-  while (running) {
+  while (running && NoError()) {
     uint32_t msg_len;
-    if (!m_socket->Read(&msg_len))
+    if (!m_socket->Read(&msg_len)) {
+      // host is closed, stop processing
       break;
+    }
 
     // std::cout << "read len: " << msg_len << std::endl;
     buf.resize(msg_len);
-    if (!m_socket->ReadVec(&buf))
+    if (!m_socket->ReadVec(&buf)) {
+      // host is closed, stop processing
       break;
+    }
 
     // for (int i = 0; i < msg_len; ++i)
     // std::cout << " " << (int) buf[i] << " ";
@@ -190,7 +201,9 @@ ControlSkel::Run() {
         break;
       }
       case ControlInvocation::kFlush: {
-        m_socket->Write(0);
+        if (!m_socket->Write(0))
+          // host is closed, stop processing
+          running = false;
         break;
       }
       default: {
@@ -236,13 +249,21 @@ void
 ControlSubscriberStub::WriteMessage(const ControlInvocation &m) const {
   const uint32_t write_size = m.ByteSize();
   m_protect.Lock();
-  m_socket->Write(write_size);
+  if (!m_socket->Write(write_size)) {
+    Raise(Error(kSocketWriteFail, ERROR,
+                "ControlSubscriberStub wrote to closed socket"));
+    return;
+  }
 
   m_buf.resize(write_size);
   ArrayOutputStream array_out(m_buf.data(), write_size);
   CodedOutputStream coded_out(&array_out);
   m.SerializeToCodedStream(&coded_out);
-  m_socket->Write(m_buf.data(), write_size);
+  if (!m_socket->Write(m_buf.data(), write_size)) {
+    Raise(Error(kSocketWriteFail, ERROR,
+                "ControlSubscriberStub wrote to closed socket"));
+    return;
+  }
   m_protect.Unlock();
 }
 
@@ -265,11 +286,15 @@ ControlSubscriberSkel::Run() {
   bool running = true;
   while (running) {
     uint32_t msg_len;
-    if (!m_socket->Read(&msg_len))
+    if (!m_socket->Read(&msg_len)) {
+      // target is closed, stop processing
       break;
+    }
     buf.resize(msg_len);
-    if (!m_socket->ReadVec(&buf))
+    if (!m_socket->ReadVec(&buf)) {
+      // target is closed, stop processing
       break;
+    }
 
     const size_t buf_size = buf.size();
     ArrayInputStream array_in(buf.data(), buf_size);
@@ -288,7 +313,10 @@ ControlSubscriberSkel::Run() {
         break;
       }
       case ControlInvocation::kFlush: {
-        m_socket->Write(0);
+        if (!m_socket->Write(0)) {
+          // target is closed, stop processing
+          running = false;
+        }
         break;
       }
       default: {
@@ -310,7 +338,11 @@ ControlSubscriberStub::Flush() {
   request.set_method(ControlInvocation::kFlush);
   WriteMessage(request);
   int response;
-  m_socket->Read(&response);
+  if (!m_socket->Read(&response)) {
+    Raise(Error(kSocketReadFail, ERROR,
+                "ControlSubscriberStub read from closed socket"));
+    return;
+  }
   assert(response == 0);
 }
 

@@ -25,38 +25,58 @@
 //  *   Mark Janes <mark.a.janes@intel.com>
 //  **********************************************************************/
 
-#ifndef REMOTE_GFPUBLISHER_SKEL_H_
-#define REMOTE_GFPUBLISHER_SKEL_H_
+#ifndef ERROR_GFERROR_H_
+#define ERROR_GFERROR_H_
 
-#include "os/gfthread.h"
-
-namespace GrafipsProto {
-class PublisherInvocation;
-}
+#include <string>
 
 namespace Grafips {
-class ServerSocket;
-class Socket;
-class PublisherInterface;
-class SubscriberStub;
-
-class PublisherSkeleton : public Thread {
- public:
-  PublisherSkeleton(int port, PublisherInterface *target);
-  ~PublisherSkeleton();
-  void Stop();
-  void Run();
-  void Flush() const;
-  int GetPort() const;
- private:
-  ServerSocket *m_server;
-  Socket *m_socket;
-  PublisherInterface *m_target;
-  bool m_running;
-
-  // on Subscribe(), this member is created to send publications remotely
-  SubscriberStub *m_subscriber;
+enum Severity {
+  DEBUG,   // if verbose, will be printed
+  INFO,    // will be printed, unless quiet mode
+  WARN,    // will be printed unless handled
+  ERROR,   // will result in error if unhandled
+  FATAL    // will terminate program, even if it is handled
 };
+
+enum ErrorTypes {
+  kSocketWriteFail,
+  kSocketReadFail,
+  kLogMsg,
+};
+
+class ErrorInterface {
+ public:
+  virtual ~ErrorInterface() {}
+  virtual const char *ToString() const = 0;
+  virtual uint32_t Type() const = 0;
+  virtual Severity Level() const = 0;
+};
+
+class Error : public ErrorInterface {
+ public:
+  Error(ErrorTypes type, Severity level, const char *msg);
+  const char *ToString() const { return m_msg.c_str(); }
+  uint32_t Type() const { return m_type; }
+  Severity Level() const { return m_level; }
+ private:
+  const ErrorTypes m_type;
+  const Severity m_level;
+  const std::string m_msg;
+};
+
+class ErrorHandler {
+ public:
+  ErrorHandler();
+  virtual ~ErrorHandler();
+  virtual bool OnError(const ErrorInterface &e) = 0;
+  void IncrementHandled() { ++m_handled_count; }
+ private:
+  int m_handled_count;
+};
+
+void Raise(const ErrorInterface &);
+bool NoError();
 }  // namespace Grafips
 
-#endif  // REMOTE_GFPUBLISHER_SKEL_H_
+#endif  // ERROR_GFERROR_H_

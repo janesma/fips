@@ -25,38 +25,41 @@
 //  *   Mark Janes <mark.a.janes@intel.com>
 //  **********************************************************************/
 
-#ifndef REMOTE_GFPUBLISHER_SKEL_H_
-#define REMOTE_GFPUBLISHER_SKEL_H_
+#ifndef ERROR_GFLOG_H_
+#define ERROR_GFLOG_H_
 
-#include "os/gfthread.h"
+#include <stdarg.h>
 
-namespace GrafipsProto {
-class PublisherInvocation;
-}
+#include "error/gferror.h"
 
 namespace Grafips {
-class ServerSocket;
-class Socket;
-class PublisherInterface;
-class SubscriberStub;
 
-class PublisherSkeleton : public Thread {
+class LogError : public ErrorInterface {
  public:
-  PublisherSkeleton(int port, PublisherInterface *target);
-  ~PublisherSkeleton();
-  void Stop();
-  void Run();
-  void Flush() const;
-  int GetPort() const;
+  LogError(const char *file, int line, const char *msg) {
+    snprintf(m_buf, BUF_SIZE, "%s:%d %s", file, line, msg);
+    m_buf[BUF_SIZE - 1] = '\0';
+  }
+const char *ToString() const { return m_buf; }
+  uint32_t Type() const { return kLogMsg; }
+  Severity Level() const { return INFO; }
  private:
-  ServerSocket *m_server;
-  Socket *m_socket;
-  PublisherInterface *m_target;
-  bool m_running;
-
-  // on Subscribe(), this member is created to send publications remotely
-  SubscriberStub *m_subscriber;
+  static const int BUF_SIZE = 255;
+  char m_buf[BUF_SIZE];
 };
+
 }  // namespace Grafips
 
-#endif  // REMOTE_GFPUBLISHER_SKEL_H_
+inline void log_message( const char *file, int line, const char *format, ... ) {
+  static const int BUF_SIZE = 255;
+  char buf[BUF_SIZE];
+  va_list ap;
+  va_start( ap, format );
+  vsnprintf( buf, BUF_SIZE, format, ap );
+  va_end(ap);
+  
+  Grafips::Raise(Grafips::LogError(file, line, buf));
+}
+
+#define GFLOG(format, ...) log_message( __FILE__, __LINE__, format, __VA_ARGS__);
+#endif  // ERROR_GFLOG_H_

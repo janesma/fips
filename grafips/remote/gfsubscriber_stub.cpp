@@ -34,15 +34,24 @@
 #include <vector>
 
 #include "./gfsubscriber.pb.h"
+#include "error/gferror.h"
 
+using Grafips::Error;
+using Grafips::Raise;
 using Grafips::SubscriberStub;
+using Grafips::WARN;
+using Grafips::kSocketWriteFail;
 
 SubscriberStub::SubscriberStub(const std::string &address,
                                int port)
-    : m_socket(address, port) {
+    : m_socket(new Socket(address, port)) {
 }
 
 SubscriberStub::~SubscriberStub() {
+  if (m_socket) {
+    delete m_socket;
+    m_socket = NULL;
+  }
 }
 
 void
@@ -52,7 +61,7 @@ SubscriberStub::Flush() const {
     WriteMessage(m);
 
     uint32_t response;
-    m_socket.Read(&response);
+    m_socket->Read(&response);
     assert(response == 0);
 }
 
@@ -71,15 +80,28 @@ typedef GrafipsProto::SubscriberInvocation GSubInv;
 void
 SubscriberStub::WriteMessage(const GSubInv &m) const {
     const uint32_t write_size = m.ByteSize();
-    m_protect.Lock();
-    m_socket.Write(write_size);
+    ScopedLock s(&m_protect);
+    if (!m_socket) {
+      Raise(Error(kSocketWriteFail, ERROR,
+                  "SubscriberStub wrote to closed socket"));
+      return;
+    }
+
+    if (!m_socket->Write(write_size)) {
+      Raise(Error(kSocketWriteFail, ERROR,
+                  "SubscriberStub wrote to closed socket"));
+      return;
+    }
 
     m_buf.resize(write_size);
     google::protobuf::io::ArrayOutputStream array_out(m_buf.data(), write_size);
     google::protobuf::io::CodedOutputStream coded_out(&array_out);
     m.SerializeToCodedStream(&coded_out);
-    m_socket.Write(m_buf.data(), write_size);
-    m_protect.Unlock();
+    if (!m_socket->Write(m_buf.data(), write_size)) {
+      Raise(Error(kSocketWriteFail, ERROR,
+                  "SubscriberStub wrote to closed socket"));
+      return;
+    }
 }
 
 typedef GrafipsProto::SubscriberInvocation::OnMetric GOnMet;
@@ -115,4 +137,11 @@ SubscriberStub::OnDescriptions(const std::vector<MetricDescription> &desc) {
     }
     WriteMessage(m);
     // asynchronous, no response
+}
+
+void
+SubscriberStub::Close() {
+  ScopedLock s(&m_protect);
+  delete m_socket;
+  m_socket = NULL;
 }

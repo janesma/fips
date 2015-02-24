@@ -8,6 +8,7 @@ grafips_srcs = \
 	gfcpu_clock_source.cpp \
 	gfcpu_freq_control.cpp \
 	gfcpu_source.cpp \
+	gferror.cpp \
 	gfgl_source.cpp \
 	gfgpu_perf_functions.cpp \
 	gfgpu_perf_source.cpp \
@@ -32,7 +33,7 @@ grafips_proto_gen_cc = $(grafips_proto:%.proto=%.pb.cc)
 grafips_32_modules = $(grafips_srcs:.cpp=-32.o) $(grafips_proto_gen_cc:.cc=-32.o)
 grafips_64_modules = $(grafips_srcs:.cpp=-64.o) $(grafips_proto_gen_cc:.cc=-64.o)
 
-VPATH = $(gdir)/sources:$(gdir)/remote:$(gdir)/os:$(gdir)/controls:$(gdir)
+VPATH = $(gdir)/error:$(gdir)/sources:$(gdir)/remote:$(gdir)/os:$(gdir)/controls:$(gdir)
 
 gen: $(grafips_proto_gen_cc) $(grafips_proto_gen_h)
 

@@ -60,7 +60,7 @@ namespace {
 class PerfMetric : public NoCopy, NoAssign {
  public:
   PerfMetric(int query_id, int counter_num, MetricSinkInterface *sink);
-  ~PerfMetric() {}
+  ~PerfMetric() { delete m_grafips_desc; }
   void AppendDescription(MetricDescriptionSet *descriptions);
   bool Enable(int id);
   bool Disable(int id);
@@ -125,6 +125,8 @@ GpuPerfSource::GpuPerfSource()
 }
 
 GpuPerfSource::~GpuPerfSource() {
+  if (m_metrics)
+    delete m_metrics;
 }
 
 void
