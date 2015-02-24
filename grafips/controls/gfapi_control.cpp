@@ -25,43 +25,65 @@
 //  *   Mark Janes <mark.a.janes@intel.com>
 //  **********************************************************************/
 
-#ifndef ERROR_GFLOG_H_
-#define ERROR_GFLOG_H_
+#include "controls/gfapi_control.h"
 
-#include <stdarg.h>
+#include <GL/gl.h>
+#include <assert.h>
 
-#include "error/gferror.h"
+#include <string>
+#include <vector>
 
-namespace Grafips {
+#include "error/gflog.h"
 
-class LogError : public ErrorInterface {
- public:
-  LogError(const char *file, int line, const char *msg) {
-    snprintf(m_buf, BUF_SIZE, "%s:%d %s", file, line, msg);
-    m_buf[BUF_SIZE - 1] = '\0';
-  }
-const char *ToString() const { return m_buf; }
-  uint32_t Type() const { return kLogMsg; }
-  Severity Level() const { return INFO; }
- private:
-  static const int BUF_SIZE = 255;
-  char m_buf[BUF_SIZE];
-};
+using Grafips::ApiControl;
+using Grafips::ScopedLock;
 
-}  // namespace Grafips
-
-inline void log_message(const char *file, int line, const char *format, ... ) {
-  static const int BUF_SIZE = 255;
-  char buf[BUF_SIZE];
-  va_list ap;
-  va_start(ap, format);
-  vsnprintf(buf, BUF_SIZE, format, ap);
-  va_end(ap);
-  Grafips::Raise(Grafips::LogError(file, line, buf));
+ApiControl::ApiControl() : m_scissorEnabled(false), m_subscriber(NULL) {
 }
 
-#define GFLOGF(format, ...) log_message(__FILE__, __LINE__, \
-                                       format, __VA_ARGS__);
-#define GFLOG(format) log_message(__FILE__, __LINE__, \
-                                       format);
-#endif  // ERROR_GFLOG_H_
+ApiControl::~ApiControl() {
+}
+
+void
+ApiControl::Set(const std::string &key, const std::string &value) {
+  ScopedLock s(&m_protect);
+  if (key == "ScissorExperiment") {
+    if (value == "true") {
+      GFLOG("ApiControl ScissorExperiment: true");
+      m_scissorEnabled = true;
+    } else {
+      GFLOG("ApiControl ScissorExperiment: false");
+      m_scissorEnabled = false;
+    }
+  } else {
+    // key is not meant for this control
+    return;
+  }
+  Publish();
+}
+
+void
+ApiControl::Subscribe(ControlSubscriberInterface *sub) {
+  ScopedLock s(&m_protect);
+  m_subscriber = sub;
+  Publish();
+}
+
+void
+ApiControl::Publish() {
+  if (!m_subscriber) {
+    GFLOG("ApiControl Publish without subscriber");
+    return;
+  }
+  m_subscriber->OnControlChanged("ScissorExperiment",
+                                 m_scissorEnabled ? "true" : "false");
+}
+
+void
+ApiControl::PerformDrawExperminents() const {
+  ScopedLock s(&m_protect);
+  if (m_scissorEnabled) {
+    glEnable(GL_SCISSOR_TEST);
+    glScissor(0, 0, 1, 1);
+  }
+}

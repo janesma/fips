@@ -25,43 +25,32 @@
 //  *   Mark Janes <mark.a.janes@intel.com>
 //  **********************************************************************/
 
-#ifndef ERROR_GFLOG_H_
-#define ERROR_GFLOG_H_
+#ifndef CONTROLS_GFAPI_CONTROL_H_
+#define CONTROLS_GFAPI_CONTROL_H_
 
-#include <stdarg.h>
+#include <string>
+#include <vector>
 
-#include "error/gferror.h"
+#include "controls/gficontrol.h"
+#include "os/gfmutex.h"
 
 namespace Grafips {
 
-class LogError : public ErrorInterface {
+class ApiControl : public ControlInterface {
  public:
-  LogError(const char *file, int line, const char *msg) {
-    snprintf(m_buf, BUF_SIZE, "%s:%d %s", file, line, msg);
-    m_buf[BUF_SIZE - 1] = '\0';
-  }
-const char *ToString() const { return m_buf; }
-  uint32_t Type() const { return kLogMsg; }
-  Severity Level() const { return INFO; }
+  ApiControl();
+  ~ApiControl();
+  void Set(const std::string &key, const std::string &value);
+  void Subscribe(ControlSubscriberInterface *sub);
+  void PerformDrawExperminents() const;
  private:
-  static const int BUF_SIZE = 255;
-  char m_buf[BUF_SIZE];
+  void Publish();
+
+  bool m_scissorEnabled;
+  ControlSubscriberInterface *m_subscriber;
+  mutable Mutex m_protect;
 };
 
 }  // namespace Grafips
 
-inline void log_message(const char *file, int line, const char *format, ... ) {
-  static const int BUF_SIZE = 255;
-  char buf[BUF_SIZE];
-  va_list ap;
-  va_start(ap, format);
-  vsnprintf(buf, BUF_SIZE, format, ap);
-  va_end(ap);
-  Grafips::Raise(Grafips::LogError(file, line, buf));
-}
-
-#define GFLOGF(format, ...) log_message(__FILE__, __LINE__, \
-                                       format, __VA_ARGS__);
-#define GFLOG(format) log_message(__FILE__, __LINE__, \
-                                       format);
-#endif  // ERROR_GFLOG_H_
+#endif  // CONTROLS_GFAPI_CONTROL_H_

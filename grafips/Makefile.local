@@ -3,6 +3,7 @@
 gdir := grafips
 
 grafips_srcs = \
+	gfapi_control.cpp \
 	gfcontrol.cpp \
 	gfcontrol_stub.cpp \
 	gfcpu_clock_source.cpp \
