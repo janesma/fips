@@ -2,6 +2,7 @@
 
 #include <stddef.h>
 #include <stdio.h>
+#include <GL/gl.h>
 
 #include "gfcontrol.h"
 #include "gfcontrol_stub.h"
@@ -133,4 +134,10 @@ void grafips_context_init()
 {
 	if (publishers)
 		publishers->MakeContextCurrent();
+}
+
+void perform_draw_experiments()
+{
+	// glEnable(GL_SCISSOR_TEST);
+	// glScissor(0,0,1,1);
 }

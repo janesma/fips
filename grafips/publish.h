@@ -7,6 +7,7 @@ extern "C" {
 	void create_publishers();
 	void publish();
 	void grafips_context_init();
+	void perform_draw_experiments();
 #ifdef __cplusplus
 }
 #endif
