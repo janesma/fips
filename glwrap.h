@@ -22,9 +22,15 @@
 #ifndef GLWRAP_H
 #define GLWRAP_H
 
+#ifdef __cplusplus
+extern "C" {
+#endif
 /* Lookup a function named 'name' in the underlying, real, libGL.so */
 void *
-fips_lookup (char *name);
+fips_lookup (const char *name);
+#ifdef __cplusplus
+}
+#endif
 
 /* Defer to the real 'function' (from libGL.so) to do the real work.
  * The symbol is looked up once and cached in a static variable for

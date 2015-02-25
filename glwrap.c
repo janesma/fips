@@ -106,7 +106,7 @@ open_lib(char *env_name)
 }
 
 void *
-fips_lookup (char *name)
+fips_lookup (const char *name)
 {
 	static void *libgl_handle = NULL, *libegl_handle = NULL;
 	void *ret;
@@ -1762,4 +1762,10 @@ void glDrawTransformFeedbackStreamInstanced (GLenum mode, GLuint id, GLuint stre
 {
 	perform_draw_experiments();
 	FIPS_DEFER(glDrawTransformFeedbackStreamInstanced, mode, id, stream, instancecount);
+}
+
+void glBindTexture( GLenum target, GLuint texture )
+{
+	FIPS_DEFER(glBindTexture, target, texture);
+	perform_bind_texture_experiment(target);
 }
