@@ -38,7 +38,10 @@
 using Grafips::ApiControl;
 using Grafips::ScopedLock;
 
-ApiControl::ApiControl() : m_scissorEnabled(false), m_subscriber(NULL) {
+ApiControl::ApiControl() : m_scissorEnabled(false),
+                           m_2x2TextureEnabled(false),
+                           m_2x2Texture(0),
+                           m_subscriber(NULL) {
 }
 
 ApiControl::~ApiControl() {
@@ -54,6 +57,15 @@ ApiControl::Set(const std::string &key, const std::string &value) {
     } else {
       GFLOG("ApiControl ScissorExperiment: false");
       m_scissorEnabled = false;
+    }
+  } else if (key == "2x2TextureExperiment") {
+    // disable for now, it doesn't work
+    if (value == "true") {
+      GFLOG("ApiControl 2x2TextureExperiment: true");
+      // m_2x2TextureEnabled = true;
+    } else {
+      GFLOG("ApiControl 2x2TextureExperiment: false");
+      // m_2x2TextureEnabled = false;
     }
   } else {
     // key is not meant for this control
@@ -77,6 +89,8 @@ ApiControl::Publish() {
   }
   m_subscriber->OnControlChanged("ScissorExperiment",
                                  m_scissorEnabled ? "true" : "false");
+  m_subscriber->OnControlChanged("2x2TextureExperiment",
+                                 m_2x2TextureEnabled ? "true" : "false");
 }
 
 void
@@ -86,4 +100,40 @@ ApiControl::PerformDrawExperminents() const {
     glEnable(GL_SCISSOR_TEST);
     glScissor(0, 0, 1, 1);
   }
+}
+
+typedef void (*glBindTexture_fn)( GLenum target, GLuint texture );
+
+void
+ApiControl::PerformBindTextureExperiment(int target, void *bind_texture_fn) {
+  ScopedLock s(&m_protect);
+  if (!m_2x2TextureEnabled)
+    return;
+
+  if (!bind_texture_fn) {
+    GFLOG("ApiControl null bind texture function");
+    return;
+  }
+
+  if (!m_2x2Texture) {
+    unsigned char data[] {
+      255, 0, 0, 0,
+          0, 255, 0, 0,
+          0, 0, 255, 0,
+          0, 0, 0, 0
+          };
+    GLuint t;
+    glGenTextures(1, &t);
+    m_2x2Texture = t;
+
+    (*(glBindTexture_fn)bind_texture_fn)(GL_TEXTURE_2D, m_2x2Texture);
+    glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA8, 2, 2, 0, GL_RGBA,
+                 GL_UNSIGNED_INT_8_8_8_8, data);
+    if (glGetError() != GL_NO_ERROR)
+      GFLOG("teximag2d fail");
+  }
+
+  (*(glBindTexture_fn)bind_texture_fn)(target, m_2x2Texture);
+    if (glGetError() != GL_NO_ERROR)
+      GFLOG("bind fail");
 }

@@ -2,19 +2,20 @@
 
 #include <stddef.h>
 #include <stdio.h>
-#include <GL/gl.h>
 
+#include "gfapi_control.h"
 #include "gfcontrol.h"
 #include "gfcontrol_stub.h"
 #include "gfcpu_clock_source.h"
 #include "gfcpu_freq_control.h"
-#include "gfapi_control.h"
 #include "gfcpu_source.h"
 #include "gferror.h"
 #include "gfgl_source.h"
 #include "gfgpu_perf_source.h"
 #include "gfpublisher.h"
 #include "gfpublisher_skel.h"
+#include "glwrap.h"
+#include "gflog.h"
 
 using Grafips::ApiControl;
 using Grafips::ControlRouterTarget;
@@ -56,6 +57,7 @@ public:
 		m_target = new ControlRouterTarget;
 		m_target->AddControl("CpuFrequencyPolicy", m_freq_control);
 		m_target->AddControl("ScissorExperiment", m_api_control);
+		m_target->AddControl("2x2TextureExperiment", m_api_control);
 		m_control_skel = new ControlSkel(53136 + 1, m_target);
 		m_control_skel->Start();
 	}
@@ -82,7 +84,10 @@ public:
 	void PerformExperiments() {
 		m_api_control->PerformDrawExperminents();
 	}
-
+	void PerformBindTextureExperiment(GLenum target) {
+		static void *real_bind_function = fips_lookup("glBindTexture");
+		m_api_control->PerformBindTextureExperiment(target, real_bind_function);
+	}
 	void Publish() {
 		if (NoError())
 			m_prov->Poll();
@@ -150,4 +155,12 @@ void perform_draw_experiments()
 {
 	if (publishers)
 		publishers->PerformExperiments();
+}
+
+void perform_bind_texture_experiment(GLenum target)
+{
+	if (publishers)
+	{
+		publishers->PerformBindTextureExperiment(target);
+	}
 }

@@ -32,6 +32,7 @@
 #include <string>
 
 #include "controls/gfcontrol_stub.h"
+#include "error/gflog.h"
 
 using Grafips::ControlRouterTarget;
 
@@ -41,8 +42,10 @@ ControlRouterTarget::ControlRouterTarget()
 bool
 ControlRouterTarget::Set(const std::string &key, const std::string &value) {
   auto i = m_targets.find(key);
-  if (i == m_targets.end())
+  if (i == m_targets.end()) {
+    GFLOGF("ControlRouterTarget failed to set: %s", key.c_str());
     return false;
+  }
   i->second->Set(key, value);
   return true;
 }

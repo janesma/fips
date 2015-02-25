@@ -43,10 +43,13 @@ class ApiControl : public ControlInterface {
   void Set(const std::string &key, const std::string &value);
   void Subscribe(ControlSubscriberInterface *sub);
   void PerformDrawExperminents() const;
+  void PerformBindTextureExperiment(int target, void *bind_texture_fn);
  private:
   void Publish();
 
   bool m_scissorEnabled;
+  bool m_2x2TextureEnabled;
+  int m_2x2Texture;
   ControlSubscriberInterface *m_subscriber;
   mutable Mutex m_protect;
 };
