@@ -86,8 +86,21 @@ public:
 	}
 	void PerformBindTextureExperiment(GLenum target) {
 		static void *real_bind_function = fips_lookup("glBindTexture");
-		m_api_control->PerformBindTextureExperiment(target, real_bind_function);
+		m_api_control->OnBindTexture(target, real_bind_function);
 	}
+	void OnLinkProgram(GLint program) {
+		static void *real_link_function = fips_lookup("glLinkProgram");
+		m_api_control->OnLinkProgram(program, real_link_function);
+	}
+	void OnUseProgram(GLint program) {
+		static void *real_link_function = fips_lookup("glUseProgram");
+		m_api_control->OnUseProgram(program, real_link_function);
+	}
+
+	void OnContext(int context) {
+		m_api_control->OnContext(context);
+	}
+
 	void Publish() {
 		if (NoError())
 			m_prov->Poll();
@@ -163,4 +176,21 @@ void perform_bind_texture_experiment(GLenum target)
 	{
 		publishers->PerformBindTextureExperiment(target);
 	}
+}
+
+void on_link_program(GLint program)
+{
+	if (publishers)
+		publishers->OnLinkProgram(program);
+}
+void on_use_program(GLint program)
+{
+	if(publishers)
+		publishers->OnUseProgram(program);
+}
+
+void on_context(int context)
+{
+	// if(publishers)
+	// 	publishers->OnContext(context);
 }

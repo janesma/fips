@@ -28,6 +28,7 @@
 #ifndef CONTROLS_GFAPI_CONTROL_H_
 #define CONTROLS_GFAPI_CONTROL_H_
 
+#include <map>
 #include <string>
 #include <vector>
 
@@ -43,14 +44,21 @@ class ApiControl : public ControlInterface {
   void Set(const std::string &key, const std::string &value);
   void Subscribe(ControlSubscriberInterface *sub);
   void PerformDrawExperminents() const;
-  void PerformBindTextureExperiment(int target, void *bind_texture_fn);
+  void OnContext(int context);
+  void OnBindTexture(int target, void *bind_texture_fn);
+  void OnLinkProgram(int prog, void *link_program_fn);
+  void OnUseProgram(int prog, void *use_program_fun);
+  void PerformSimpleShaderExperiment(void *use_program_fn);
  private:
   void Publish();
 
   bool m_scissorEnabled;
   bool m_2x2TextureEnabled;
   int m_2x2Texture;
+  bool m_simpleShaderEnabled;
   ControlSubscriberInterface *m_subscriber;
+  std::map<int, int> m_program_to_simple_shader;
+  int m_simpleShader;
   mutable Mutex m_protect;
 };
 

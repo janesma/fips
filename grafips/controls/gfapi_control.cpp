@@ -27,8 +27,9 @@
 
 #include "controls/gfapi_control.h"
 
-#include <GL/gl.h>
+#include <GLES2/gl2.h>
 #include <assert.h>
+#include <string.h>
 
 #include <string>
 #include <vector>
@@ -41,7 +42,9 @@ using Grafips::ScopedLock;
 ApiControl::ApiControl() : m_scissorEnabled(false),
                            m_2x2TextureEnabled(false),
                            m_2x2Texture(0),
-                           m_subscriber(NULL) {
+                           m_simpleShaderEnabled(false),
+                           m_subscriber(NULL),
+                           m_simpleShader(0) {
 }
 
 ApiControl::~ApiControl() {
@@ -62,10 +65,10 @@ ApiControl::Set(const std::string &key, const std::string &value) {
     // disable for now, it doesn't work
     if (value == "true") {
       GFLOG("ApiControl 2x2TextureExperiment: true");
-      // m_2x2TextureEnabled = true;
+      m_2x2TextureEnabled = true;
     } else {
       GFLOG("ApiControl 2x2TextureExperiment: false");
-      // m_2x2TextureEnabled = false;
+      m_2x2TextureEnabled = false;
     }
   } else {
     // key is not meant for this control
@@ -105,7 +108,7 @@ ApiControl::PerformDrawExperminents() const {
 typedef void (*glBindTexture_fn)( GLenum target, GLuint texture );
 
 void
-ApiControl::PerformBindTextureExperiment(int target, void *bind_texture_fn) {
+ApiControl::OnBindTexture(int target, void *bind_texture_fn) {
   ScopedLock s(&m_protect);
   if (!m_2x2TextureEnabled)
     return;
@@ -116,24 +119,107 @@ ApiControl::PerformBindTextureExperiment(int target, void *bind_texture_fn) {
   }
 
   if (!m_2x2Texture) {
-    unsigned char data[] {
-      255, 0, 0, 0,
-          0, 255, 0, 0,
-          0, 0, 255, 0,
-          0, 0, 0, 0
-          };
-    GLuint t;
-    glGenTextures(1, &t);
-    m_2x2Texture = t;
+    glEnable(GL_TEXTURE_2D);
+    unsigned char data[] {255, 0, 0, 0, 0, 255, 0, 0,
+          0, 0, 255, 0, 0, 0, 0, 255};
+    glGenTextures(1, reinterpret_cast<GLuint*>(&m_2x2Texture));
 
     (*(glBindTexture_fn)bind_texture_fn)(GL_TEXTURE_2D, m_2x2Texture);
-    glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA8, 2, 2, 0, GL_RGBA,
-                 GL_UNSIGNED_INT_8_8_8_8, data);
+    glActiveTexture(GL_TEXTURE0);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
+    glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, 2, 2, 0, GL_RGBA,
+                 GL_UNSIGNED_INT, data);
     if (glGetError() != GL_NO_ERROR)
       GFLOG("teximag2d fail");
+    (*(glBindTexture_fn)bind_texture_fn)(GL_TEXTURE_2D, 0);
   }
 
   (*(glBindTexture_fn)bind_texture_fn)(target, m_2x2Texture);
-    if (glGetError() != GL_NO_ERROR)
-      GFLOG("bind fail");
+}
+
+typedef void (*glLinkProgram_fn)(GLuint program);
+
+static void
+CheckError(const char * file, int line) {
+  const int error = glGetError();
+  if ( error == GL_NO_ERROR)
+    return;
+  printf("ERROR: %x %s:%i\n", error, file, line);
+  exit(-1);
+}
+
+#define GL_CHECK() CheckError(__FILE__, __LINE__)
+
+void
+ApiControl::OnLinkProgram(int prog, void *link_program_fn) {
+  return;
+  ScopedLock s(&m_protect);
+  GFLOGF("OnLinkProgram: %d", prog);
+  if (m_simpleShader == 0) {
+    m_simpleShader = glCreateShader(GL_FRAGMENT_SHADER);
+    GL_CHECK();
+
+    static const char * fshader_simple =
+        "void main(void) {\n"
+        "  gl_FragColor = vec4(1,0,1,1);\n"
+        "}";
+    const int len = strlen(fshader_simple);
+
+    glShaderSource(m_simpleShader, 1, &fshader_simple, &len);
+    GL_CHECK();
+  }
+
+  // TODO(majanes) track contexts
+  // assert(m_program_to_simple_shader.find(prog) ==
+  //        m_program_to_simple_shader.end());
+
+  const int simple_prog = glCreateProgram();
+  GL_CHECK();
+
+  int shader_count;
+  glGetProgramiv(prog, GL_ATTACHED_SHADERS, &shader_count);
+  GL_CHECK();
+  std::vector<unsigned int> shaders(shader_count);
+  glGetAttachedShaders(prog, shader_count, NULL, shaders.data());
+  for (auto shaderp = shaders.begin(); shaderp != shaders.end(); ++shaderp) {
+    int shader_type;
+    glGetShaderiv(*shaderp, GL_SHADER_TYPE, &shader_type);
+    GL_CHECK();
+    if (shader_type == GL_FRAGMENT_SHADER) {
+      GFLOGF("OnLinkProgram found fragment shader: %d", *shaderp);
+      continue;
+    }
+    glAttachShader(simple_prog, *shaderp);
+    GL_CHECK();
+  }
+  glAttachShader(simple_prog, m_simpleShader);
+  GL_CHECK();
+  (*(glLinkProgram_fn)link_program_fn)(simple_prog);
+  GL_CHECK();
+  m_program_to_simple_shader[prog] = simple_prog;
+  GFLOGF("Linking %d to %d", prog, simple_prog);
+}
+
+typedef void (*glUseProgram_fn)(GLuint program);
+void
+ApiControl::OnUseProgram(int prog, void *use_program_fun) {
+  if (!prog)
+    return;
+
+  ScopedLock s(&m_protect);
+  GFLOGF("OnUseProgram: %d", prog);
+  // if (!m_simpleShaderEnabled)
+  //   return;
+
+  auto simple_prog = m_program_to_simple_shader.find(prog);
+  assert(simple_prog != m_program_to_simple_shader.end());
+  GFLOGF("Using %d", simple_prog->second);
+  //(*(glUseProgram_fn)use_program_fun)(simple_prog->second);
+  GL_CHECK();
+}
+
+void
+ApiControl::OnContext(int context) {
+  GFLOGF("OnContext %d", context);
 }

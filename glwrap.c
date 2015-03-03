@@ -138,6 +138,7 @@ glUseProgram (GLuint program)
 	SWITCH_METRICS_OP (METRICS_OP_SHADER + program);
 
 	FIPS_DEFER(glUseProgram, program);
+	on_use_program(program);
 }
 
 void
@@ -1769,3 +1770,10 @@ void glBindTexture( GLenum target, GLuint texture )
 	FIPS_DEFER(glBindTexture, target, texture);
 	perform_bind_texture_experiment(target);
 }
+
+void glLinkProgram (GLuint program)
+{
+	FIPS_DEFER(glLinkProgram, program);
+	on_link_program(program);
+}
+
