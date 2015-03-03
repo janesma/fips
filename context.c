@@ -71,6 +71,8 @@ context_enter (fips_api_t api, void *system_context_id)
 {
 	/* Do nothing if the application is setting the same context
 	 * as is already current. */
+	publish_context(system_context_id);
+
 	if (current_context && current_context->system_id == system_context_id)
 		return;
 
@@ -82,7 +84,6 @@ context_enter (fips_api_t api, void *system_context_id)
 	metrics_set_current_op (current_context->metrics,
 				METRICS_OP_SHADER + 0);
 	//metrics_counter_start (current_context->metrics);
-	on_context(*(int*)(current_context->system_id));
 }
 
 void

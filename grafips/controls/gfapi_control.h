@@ -44,7 +44,7 @@ class ApiControl : public ControlInterface {
   void Set(const std::string &key, const std::string &value);
   void Subscribe(ControlSubscriberInterface *sub);
   void PerformDrawExperminents() const;
-  void OnContext(int context);
+  void OnContext(void *context);
   void OnBindTexture(int target, void *bind_texture_fn);
   void OnLinkProgram(int prog, void *link_program_fn);
   void OnUseProgram(int prog, void *use_program_fun);
@@ -52,12 +52,21 @@ class ApiControl : public ControlInterface {
  private:
   void Publish();
 
+  class ProgramKey {
+   public:
+    ProgramKey(void *c, int p) : context(c), program(p) {}
+    void* context;
+    int program;
+    bool operator<(const ProgramKey&o) const;
+  };
+
   bool m_scissorEnabled;
   bool m_2x2TextureEnabled;
-  int m_2x2Texture;
+  std::map<void *, int> m_2x2Textures;
   bool m_simpleShaderEnabled;
+  void* m_current_context;
   ControlSubscriberInterface *m_subscriber;
-  std::map<int, int> m_program_to_simple_shader;
+  std::map<ProgramKey, int> m_program_to_simple_shader;
   int m_simpleShader;
   mutable Mutex m_protect;
 };

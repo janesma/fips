@@ -97,7 +97,7 @@ public:
 		m_api_control->OnUseProgram(program, real_link_function);
 	}
 
-	void OnContext(int context) {
+	void OnContext(void *context) {
 		m_api_control->OnContext(context);
 	}
 
@@ -189,8 +189,8 @@ void on_use_program(GLint program)
 		publishers->OnUseProgram(program);
 }
 
-void on_context(int context)
+void publish_context(void* context)
 {
-	// if(publishers)
-	// 	publishers->OnContext(context);
+	if(publishers)
+	 	publishers->OnContext(context);
 }
