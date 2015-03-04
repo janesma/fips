@@ -70,6 +70,14 @@ ApiControl::Set(const std::string &key, const std::string &value) {
       GFLOG("ApiControl 2x2TextureExperiment: false");
       m_2x2TextureEnabled = false;
     }
+  } else if (key == "SimpleShaderExperiment") {
+    if (value == "true") {
+      GFLOG("ApiControl SimpleShaderExperiment: true");
+      m_simpleShaderEnabled = true;
+    } else {
+      GFLOG("ApiControl SimpleShaderExperiment: false");
+      m_simpleShaderEnabled = false;
+    }
   } else {
     // key is not meant for this control
     return;
@@ -94,6 +102,8 @@ ApiControl::Publish() {
                                  m_scissorEnabled ? "true" : "false");
   m_subscriber->OnControlChanged("2x2TextureExperiment",
                                  m_2x2TextureEnabled ? "true" : "false");
+  m_subscriber->OnControlChanged("SimpleShaderExperiment",
+                                 m_simpleShaderEnabled ? "true" : "false");
 }
 
 void
