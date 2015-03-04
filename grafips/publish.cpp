@@ -59,6 +59,7 @@ public:
 		m_target->AddControl("ScissorExperiment", m_api_control);
 		m_target->AddControl("2x2TextureExperiment", m_api_control);
 		m_target->AddControl("SimpleShaderExperiment", m_api_control);
+		m_target->AddControl("DisableDrawExperiment", m_api_control);
 		m_control_skel = new ControlSkel(53136 + 1, m_target);
 		m_control_skel->Start();
 	}
@@ -82,8 +83,8 @@ public:
 	void MakeContextCurrent() {
 		m_gpu_source->MakeContextCurrent();
 	}
-	void PerformExperiments() {
-		m_api_control->PerformDrawExperminents();
+	bool PerformExperiments() {
+		return m_api_control->PerformDrawExperminents();
 	}
 	void PerformBindTextureExperiment(GLenum target) {
 		static void *real_bind_function = fips_lookup("glBindTexture");
@@ -165,10 +166,11 @@ void grafips_context_init()
 		publishers->MakeContextCurrent();
 }
 
-void perform_draw_experiments()
+bool perform_draw_experiments()
 {
 	if (publishers)
-		publishers->PerformExperiments();
+		return publishers->PerformExperiments();
+	return true;
 }
 
 void perform_bind_texture_experiment(GLenum target)

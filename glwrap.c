@@ -1614,155 +1614,155 @@ glMultiTexSubImage3DEXT (GLenum texunit, GLenum target, GLint level,
 
 void glDrawArrays( GLenum mode, GLint first, GLsizei count )
 {
-	perform_draw_experiments();
-	FIPS_DEFER(glDrawArrays, mode, first, count );
+	if (perform_draw_experiments())
+		FIPS_DEFER(glDrawArrays, mode, first, count );
 }
 
 void glDrawArraysEXT (GLenum mode, GLint first, GLsizei count)
 {
-	perform_draw_experiments();
-	FIPS_DEFER(glDrawArraysEXT, mode, first, count);
+	if (perform_draw_experiments())
+		FIPS_DEFER(glDrawArraysEXT, mode, first, count);
 }	
 
 void glDrawArraysIndirect (GLenum mode, const void *indirect)
 {
-	perform_draw_experiments();
-	FIPS_DEFER(glDrawArraysIndirect, mode, indirect);
+	if (perform_draw_experiments())
+		FIPS_DEFER(glDrawArraysIndirect, mode, indirect);
 }
 
 void glDrawArraysInstanced (GLenum mode, GLint first, GLsizei count, GLsizei instancecount)
 {
-	perform_draw_experiments();
-	FIPS_DEFER(glDrawArraysInstanced, mode, first, count, instancecount);
+	if (perform_draw_experiments())
+		FIPS_DEFER(glDrawArraysInstanced, mode, first, count, instancecount);
 }
 
 void glDrawArraysInstancedARB (GLenum mode, GLint first, GLsizei count, GLsizei primcount)
 {
-	perform_draw_experiments();
-	FIPS_DEFER(glDrawArraysInstancedARB, mode, first, count, primcount);
+	if (perform_draw_experiments())
+		FIPS_DEFER(glDrawArraysInstancedARB, mode, first, count, primcount);
 }
 
 void glDrawArraysInstancedBaseInstance (GLenum mode, GLint first, GLsizei count, GLsizei instancecount, GLuint baseinstance)
 {
-	perform_draw_experiments();
-	FIPS_DEFER(glDrawArraysInstancedBaseInstance, mode, first, count, instancecount, baseinstance);
+	if (perform_draw_experiments())
+		FIPS_DEFER(glDrawArraysInstancedBaseInstance, mode, first, count, instancecount, baseinstance);
 }
 
 void glDrawArraysInstancedEXT (GLenum mode, GLint start, GLsizei count, GLsizei primcount)
 {
-	perform_draw_experiments();
-	FIPS_DEFER(glDrawArraysInstancedEXT, mode, start, count, primcount);
+	if (perform_draw_experiments())
+		FIPS_DEFER(glDrawArraysInstancedEXT, mode, start, count, primcount);
 }
 
 void glDrawElements( GLenum mode, GLsizei count, GLenum type, const GLvoid *indices )
 {
-	perform_draw_experiments();
-	FIPS_DEFER(glDrawElements, mode, count, type, indices );
+	if (perform_draw_experiments())
+		FIPS_DEFER(glDrawElements, mode, count, type, indices );
 }
 void glDrawElementsBaseVertex (GLenum mode, GLsizei count, GLenum type, const void *indices, GLint basevertex)
 {
-	perform_draw_experiments();
-	FIPS_DEFER(glDrawElementsBaseVertex, mode, count, type, indices, basevertex);
+	if (perform_draw_experiments())
+		FIPS_DEFER(glDrawElementsBaseVertex, mode, count, type, indices, basevertex);
 }
 void glDrawElementsIndirect (GLenum mode, GLenum type, const void *indirect)
 {
-	perform_draw_experiments();
-	FIPS_DEFER(glDrawElementsIndirect, mode, type, indirect);
+	if (perform_draw_experiments())
+		FIPS_DEFER(glDrawElementsIndirect, mode, type, indirect);
 }
 
 void glDrawElementsInstanced (GLenum mode, GLsizei count, GLenum type, const void *indices, GLsizei instancecount)
 {
-	perform_draw_experiments();
-	FIPS_DEFER(glDrawElementsInstanced, mode, count, type, indices, instancecount);
+	if (perform_draw_experiments())
+		FIPS_DEFER(glDrawElementsInstanced, mode, count, type, indices, instancecount);
 }
 
 void glDrawElementsInstancedARB (GLenum mode, GLsizei count, GLenum type, const void *indices, GLsizei primcount)
 {
-	perform_draw_experiments();
-	FIPS_DEFER(glDrawElementsInstancedARB, mode, count, type, indices, primcount);
+	if (perform_draw_experiments())
+		FIPS_DEFER(glDrawElementsInstancedARB, mode, count, type, indices, primcount);
 }
 void glDrawElementsInstancedBaseInstance (GLenum mode, GLsizei count, GLenum type, const void *indices, GLsizei instancecount, GLuint baseinstance)
 {
-	perform_draw_experiments();
-	FIPS_DEFER(glDrawElementsInstancedBaseInstance, mode, count, type, indices, instancecount, baseinstance);
+	if (perform_draw_experiments())
+		FIPS_DEFER(glDrawElementsInstancedBaseInstance, mode, count, type, indices, instancecount, baseinstance);
 }
 
 void glDrawElementsInstancedBaseVertex (GLenum mode, GLsizei count, GLenum type, const void *indices, GLsizei instancecount, GLint basevertex)
 {
-	perform_draw_experiments();
-	FIPS_DEFER(glDrawElementsInstancedBaseVertex, mode, count, type, indices, instancecount, basevertex);
+	if (perform_draw_experiments())
+		FIPS_DEFER(glDrawElementsInstancedBaseVertex, mode, count, type, indices, instancecount, basevertex);
 }
 
 void glDrawElementsInstancedBaseVertexBaseInstance (GLenum mode, GLsizei count, GLenum type, const void *indices, GLsizei instancecount, GLint basevertex, GLuint baseinstance)
 {
-	perform_draw_experiments();
-	FIPS_DEFER(glDrawElementsInstancedBaseVertexBaseInstance, mode, count, type, indices, instancecount, basevertex, baseinstance);
+	if (perform_draw_experiments())
+		FIPS_DEFER(glDrawElementsInstancedBaseVertexBaseInstance, mode, count, type, indices, instancecount, basevertex, baseinstance);
 }
 
 void glDrawElementsInstancedEXT (GLenum mode, GLsizei count, GLenum type, const void *indices, GLsizei primcount)
 {
-	perform_draw_experiments();
-	FIPS_DEFER(glDrawElementsInstancedEXT, mode, count, type, indices, primcount);
+	if (perform_draw_experiments())
+		FIPS_DEFER(glDrawElementsInstancedEXT, mode, count, type, indices, primcount);
 }
 
 void glDrawRangeElementArrayAPPLE (GLenum mode, GLuint start, GLuint end, GLint first, GLsizei count)
 {
-	perform_draw_experiments();
-	FIPS_DEFER(glDrawRangeElementArrayAPPLE, mode, start, end, first, count);
+	if (perform_draw_experiments())
+		FIPS_DEFER(glDrawRangeElementArrayAPPLE, mode, start, end, first, count);
 }
 
 void glDrawRangeElementArrayATI (GLenum mode, GLuint start, GLuint end, GLsizei count)
 {
-	perform_draw_experiments();
-	FIPS_DEFER(glDrawRangeElementArrayATI, mode, start, end, count);
+	if (perform_draw_experiments())
+		FIPS_DEFER(glDrawRangeElementArrayATI, mode, start, end, count);
 }
 
 void glDrawRangeElements (GLenum mode, GLuint start, GLuint end, GLsizei count, GLenum type, const void *indices)
 {
-	perform_draw_experiments();
-	FIPS_DEFER(glDrawRangeElements, mode, start, end, count, type, indices);
+	if (perform_draw_experiments())
+		FIPS_DEFER(glDrawRangeElements, mode, start, end, count, type, indices);
 }
 
 void glDrawRangeElementsBaseVertex (GLenum mode, GLuint start, GLuint end, GLsizei count, GLenum type, const void *indices, GLint basevertex)
 {
-	perform_draw_experiments();
-	FIPS_DEFER(glDrawRangeElementsBaseVertex, mode, start, end, count, type, indices, basevertex);
+	if (perform_draw_experiments())
+		FIPS_DEFER(glDrawRangeElementsBaseVertex, mode, start, end, count, type, indices, basevertex);
 }
 
 void glDrawRangeElementsEXT (GLenum mode, GLuint start, GLuint end, GLsizei count, GLenum type, const void *indices)
 {
-	perform_draw_experiments();
-	FIPS_DEFER(glDrawRangeElementsEXT, mode, start, end, count, type, indices);
+	if (perform_draw_experiments())
+		FIPS_DEFER(glDrawRangeElementsEXT, mode, start, end, count, type, indices);
 }
 
 void glDrawTransformFeedback (GLenum mode, GLuint id)
 {
-	perform_draw_experiments();
-	FIPS_DEFER(glDrawTransformFeedback, mode, id);
+	if (perform_draw_experiments())
+		FIPS_DEFER(glDrawTransformFeedback, mode, id);
 }
 
 void glDrawTransformFeedbackInstanced (GLenum mode, GLuint id, GLsizei instancecount)
 {
-	perform_draw_experiments();
-	FIPS_DEFER(glDrawTransformFeedbackInstanced, mode, id, instancecount);
+	if (perform_draw_experiments())
+		FIPS_DEFER(glDrawTransformFeedbackInstanced, mode, id, instancecount);
 }
 
 void glDrawTransformFeedbackNV (GLenum mode, GLuint id)
 {
-	perform_draw_experiments();
-	FIPS_DEFER(glDrawTransformFeedbackNV, mode, id);
+	if (perform_draw_experiments())
+		FIPS_DEFER(glDrawTransformFeedbackNV, mode, id);
 }
 
 void glDrawTransformFeedbackStream (GLenum mode, GLuint id, GLuint stream)
 {
-	perform_draw_experiments();
-	FIPS_DEFER(glDrawTransformFeedbackStream, mode, id, stream);
+	if (perform_draw_experiments())
+		FIPS_DEFER(glDrawTransformFeedbackStream, mode, id, stream);
 }
 
 void glDrawTransformFeedbackStreamInstanced (GLenum mode, GLuint id, GLuint stream, GLsizei instancecount)
 {
-	perform_draw_experiments();
-	FIPS_DEFER(glDrawTransformFeedbackStreamInstanced, mode, id, stream, instancecount);
+	if (perform_draw_experiments())
+		FIPS_DEFER(glDrawTransformFeedbackStreamInstanced, mode, id, stream, instancecount);
 }
 
 void glBindTexture( GLenum target, GLuint texture )

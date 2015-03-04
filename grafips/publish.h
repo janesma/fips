@@ -9,7 +9,7 @@ extern "C" {
 	void create_publishers();
 	void publish();
 	void grafips_context_init();
-	void perform_draw_experiments();
+	bool perform_draw_experiments();
 	void perform_bind_texture_experiment(GLenum target);
 	void publish_context(void *context);
 	void on_link_program(GLint program);

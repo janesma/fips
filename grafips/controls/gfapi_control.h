@@ -43,7 +43,7 @@ class ApiControl : public ControlInterface {
   ~ApiControl();
   void Set(const std::string &key, const std::string &value);
   void Subscribe(ControlSubscriberInterface *sub);
-  void PerformDrawExperminents() const;
+  bool PerformDrawExperminents() const;
   void OnContext(void *context);
   void OnBindTexture(int target, void *bind_texture_fn);
   void OnLinkProgram(int prog, void *link_program_fn);
@@ -64,6 +64,7 @@ class ApiControl : public ControlInterface {
   bool m_2x2TextureEnabled;
   std::map<void *, int> m_2x2Textures;
   bool m_simpleShaderEnabled;
+  bool m_disableDraw;
   void* m_current_context;
   ControlSubscriberInterface *m_subscriber;
   std::map<ProgramKey, int> m_program_to_simple_shader;
