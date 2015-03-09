@@ -27,13 +27,14 @@
 
 #include "./gfsocket.h"
 
-#include <sys/types.h>
-#include <sys/socket.h>
-#include <netdb.h>
-#include <unistd.h>
-#include <string.h>
+#include <arpa/inet.h>
 #include <assert.h>
+#include <netdb.h>
 #include <netinet/tcp.h>
+#include <string.h>
+#include <sys/socket.h>
+#include <sys/types.h>
+#include <unistd.h>
 
 #include <string>
 
@@ -83,7 +84,8 @@ class FreeAddrInfo {
   addrinfo *m_p;
 };
 
-Socket::Socket(const std::string &address, int port) {
+Socket::Socket(const std::string &address, int port)
+    : m_address(address) {
   struct addrinfo hints;
   memset(&hints, 0, sizeof (hints));
   hints.ai_family = AF_INET;
@@ -167,7 +169,8 @@ ServerSocket::Accept() {
 
   // now that we have a connected server socket, we don't need to listen for
   // subsequent connections.
-  return new Socket(socket_fd);
+  
+  return new Socket(socket_fd, inet_ntoa(client_address.sin_addr));
 }
 
 ServerSocket::~ServerSocket() {

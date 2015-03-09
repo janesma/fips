@@ -55,10 +55,18 @@ class Socket : NoAssign, NoCopy, NoMove {
     return Write(vec.data(), sizeof(T) * vec.size());
   }
 
+  const std::string &Address() const { return m_address; }
+
  private:
   friend class ServerSocket;
-  // establishes a server, waits for a client to connect
-  explicit Socket(int fd) : m_socket_fd(fd) {}
+  // this constructor only called by ServerSocket, when connection is
+  // accepted.
+  Socket(int fd, const std::string &address)
+      : m_address(address), m_socket_fd(fd) {}
+
+  // address is stored so a server process can query the address of a
+  // connected client.
+  const std::string m_address;
   int m_socket_fd;
 };
 

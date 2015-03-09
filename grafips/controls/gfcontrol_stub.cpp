@@ -95,14 +95,6 @@ ControlStub::Subscribe(ControlSubscriberInterface *value) {
   request.set_method(ControlInvocation::kSubscribe);
   ControlInvocation::Subscribe *args = request.mutable_subscribeargs();
   // TODO(majanes): detect local ip and use a real address
-  std::vector<char> hostname(HOST_NAME_MAX + 1);
-  gethostname(hostname.data(), HOST_NAME_MAX);
-  hostname[HOST_NAME_MAX] = '\0';
-
-  std::string mdns_address = hostname.data();
-  mdns_address += ".local";
-
-  args->set_address(mdns_address);
   args->set_port(port);
   WriteMessage(request);
 
@@ -196,7 +188,7 @@ ControlSkel::Run() {
       case ControlInvocation::kSubscribe: {
         assert(m_subscriber == NULL);
         const ControlInvocation::Subscribe& args = m.subscribeargs();
-        m_subscriber = new ControlSubscriberStub(args.address(), args.port());
+        m_subscriber = new ControlSubscriberStub(m_socket->Address(), args.port());
         m_target->Subscribe(m_subscriber);
         break;
       }

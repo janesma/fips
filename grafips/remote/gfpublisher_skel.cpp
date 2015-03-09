@@ -121,7 +121,7 @@ PublisherSkeleton::Run() {
         assert(m_subscriber == NULL);
         typedef GrafipsProto::PublisherInvocation_Subscribe Subscribe;
         const Subscribe& args = m.subscribeargs();
-        m_subscriber = new SubscriberStub(args.address(), args.port());
+        m_subscriber = new SubscriberStub(m_socket->Address(), args.port());
         m_target->Subscribe(m_subscriber);
         break;
       }

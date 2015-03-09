@@ -237,7 +237,9 @@ ApiControl::OnLinkProgram(int prog, void *link_program_fn) {
   }
   glAttachShader(simple_prog, m_simpleShader);
   GL_CHECK();
-  GFLOGF("OnLinkProgram attached prog:%d, shader:%d", simple_prog, m_simpleShader);
+  GFLOGF("OnLinkProgram attached prog:%d, shader:%d",
+         simple_prog,
+         m_simpleShader);
 
   (*(glLinkProgram_fn)link_program_fn)(simple_prog);
   GL_CHECK();
@@ -257,7 +259,8 @@ ApiControl::OnUseProgram(int prog, void *use_program_fun) {
     return;
 
   glGetError();
-  auto simple_prog = m_program_to_simple_shader.find(ProgramKey(m_current_context, prog));
+  auto simple_prog =
+      m_program_to_simple_shader.find(ProgramKey(m_current_context, prog));
   assert(simple_prog != m_program_to_simple_shader.end());
   // GFLOGF("Using %d instead of %d", simple_prog->second, prog);
   (*(glUseProgram_fn)use_program_fun)(simple_prog->second);

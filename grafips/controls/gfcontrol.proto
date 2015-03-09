@@ -1,12 +1,12 @@
 package GrafipsControlProto;
 
 message ControlInvocation {
-    enum Method {
-        kSet = 0;
-        kSubscribe = 2;
-        kOnControlChanged = 3;
-        kFlush = 4;
-    }
+  enum Method {
+    kSet = 0;
+    kSubscribe = 2;
+    kOnControlChanged = 3;
+    kFlush = 4;
+  }
 
   message Set
   {
@@ -16,7 +16,6 @@ message ControlInvocation {
 
   message Subscribe
   {
-    required string address = 1;
     required int32 port = 2;
   };
 

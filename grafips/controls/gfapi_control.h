@@ -49,6 +49,7 @@ class ApiControl : public ControlInterface {
   void OnLinkProgram(int prog, void *link_program_fn);
   void OnUseProgram(int prog, void *use_program_fun);
   void PerformSimpleShaderExperiment(void *use_program_fn);
+
  private:
   void Publish();
 
