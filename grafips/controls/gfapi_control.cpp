@@ -27,7 +27,9 @@
 
 #include "controls/gfapi_control.h"
 
-#include <GLES2/gl2.h>
+#define GL_GLEXT_PROTOTYPES
+#include <GL/gl.h>
+#include <GL/glext.h>
 #include <assert.h>
 #include <string.h>
 
@@ -43,6 +45,7 @@ ApiControl::ApiControl() : m_scissorEnabled(false),
                            m_2x2TextureEnabled(false),
                            m_simpleShaderEnabled(false),
                            m_disableDraw(false),
+                           m_wireframeEnabled(false),
                            m_current_context(0),
                            m_subscriber(NULL),
                            m_simpleShader(0) {
@@ -87,6 +90,14 @@ ApiControl::Set(const std::string &key, const std::string &value) {
       GFLOG("ApiControl DisableDrawExperiment: false");
       m_disableDraw = false;
     }
+  } else if (key == "WireframeExperiment") {
+    if (value == "true") {
+      GFLOG("ApiControl WireframeExperiment: true");
+      m_wireframeEnabled = true;
+    } else {
+      GFLOG("ApiControl WireframeExperiment: false");
+      m_wireframeEnabled = false;
+    }
   } else {
     // key is not meant for this control
     return;
@@ -123,6 +134,9 @@ ApiControl::PerformDrawExperminents() const {
   if (m_scissorEnabled) {
     glEnable(GL_SCISSOR_TEST);
     glScissor(0, 0, 1, 1);
+  }
+  if (m_wireframeEnabled) {
+    glPolygonMode( GL_FRONT_AND_BACK, GL_LINE );
   }
   return true;
 }

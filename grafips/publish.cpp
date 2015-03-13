@@ -60,6 +60,7 @@ public:
 		m_target->AddControl("2x2TextureExperiment", m_api_control);
 		m_target->AddControl("SimpleShaderExperiment", m_api_control);
 		m_target->AddControl("DisableDrawExperiment", m_api_control);
+		m_target->AddControl("WireframeExperiment", m_api_control);
 		m_control_skel = new ControlSkel(53136 + 1, m_target);
 		m_control_skel->Start();
 	}

@@ -66,6 +66,7 @@ class ApiControl : public ControlInterface {
   std::map<void *, int> m_2x2Textures;
   bool m_simpleShaderEnabled;
   bool m_disableDraw;
+  bool m_wireframeEnabled;
   void* m_current_context;
   ControlSubscriberInterface *m_subscriber;
   std::map<ProgramKey, int> m_program_to_simple_shader;
