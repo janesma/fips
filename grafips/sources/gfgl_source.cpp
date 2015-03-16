@@ -82,18 +82,18 @@ GlSource::GetDescriptions(MetricDescriptionSet *descriptions) {
 }
 
 void
-GlSource::Enable(int id) {
-  m_enabled_ids.insert(id);
+GlSource::Activate(int id) {
+  m_active_ids.insert(id);
 }
 
 void
-GlSource::Disable(int id) {
-  m_enabled_ids.erase(id);
+GlSource::Deactivate(int id) {
+  m_active_ids.erase(id);
 }
 
 void
 GlSource::glSwapBuffers() {
-  if (m_enabled_ids.empty())
+  if (m_active_ids.empty())
     return;
 
   struct timespec ts;
@@ -118,11 +118,11 @@ GlSource::glSwapBuffers() {
 
   DataSet d;
   const unsigned int ms = get_ms_time();
-  if (m_enabled_ids.find(kfps_id) !=  m_enabled_ids.end()) {
+  if (m_active_ids.find(kfps_id) !=  m_active_ids.end()) {
     const float fps = 1000.0 / frame_time_ms;
     d.push_back(DataPoint(ms, kfps_id, fps));
   }
-  if (m_enabled_ids.find(kframe_time_id) !=  m_enabled_ids.end()) {
+  if (m_active_ids.find(kframe_time_id) !=  m_active_ids.end()) {
     d.push_back(DataPoint(ms, kframe_time_id, frame_time_ms));
   }
 

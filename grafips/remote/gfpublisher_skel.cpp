@@ -105,16 +105,16 @@ PublisherSkeleton::Run() {
         }
         break;
       }
-      case PublisherInvocation::kEnable: {
-        typedef GrafipsProto::PublisherInvocation_Enable Enable;
-        const Enable& args= m.enableargs();
-        m_target->Enable(args.id());
+      case PublisherInvocation::kActivate: {
+        typedef GrafipsProto::PublisherInvocation_Activate Activate;
+        const Activate& args= m.activateargs();
+        m_target->Activate(args.id());
         break;
       }
-      case PublisherInvocation::kDisable: {
-        typedef GrafipsProto::PublisherInvocation_Disable Disable;
-        const Disable& args= m.disableargs();
-        m_target->Disable(args.id());
+      case PublisherInvocation::kDeactivate: {
+        typedef GrafipsProto::PublisherInvocation_Deactivate Deactivate;
+        const Deactivate& args= m.deactivateargs();
+        m_target->Deactivate(args.id());
         break;
       }
       case PublisherInvocation::kSubscribe: {

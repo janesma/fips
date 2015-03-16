@@ -62,8 +62,8 @@ class PerfMetric : public NoCopy, NoAssign {
   PerfMetric(int query_id, int counter_num, MetricSinkInterface *sink);
   ~PerfMetric() { delete m_grafips_desc; }
   void AppendDescription(MetricDescriptionSet *descriptions);
-  bool Enable(int id);
-  bool Disable(int id);
+  bool Activate(int id);
+  bool Deactivate(int id);
   void Publish(const std::vector<unsigned char> &data);
  private:
   const int m_query_id, m_counter_num;
@@ -80,8 +80,8 @@ class PerfMetricGroup : public NoCopy, NoAssign {
   PerfMetricGroup(int query_id, MetricSinkInterface *sink);
   ~PerfMetricGroup();
   void AppendDescriptions(MetricDescriptionSet *descriptions);
-  bool Enable(int id);
-  bool Disable(int id);
+  bool Activate(int id);
+  bool Deactivate(int id);
   void SwapBuffers();
 
  private:
@@ -94,8 +94,8 @@ class PerfMetricGroup : public NoCopy, NoAssign {
 
   std::vector<PerfMetric *> m_metrics;
 
-  // indicates offset in m_metrics of enabled metrics
-  std::vector<int> m_enabled_metric_indices;
+  // indicates offset in m_metrics of active metrics
+  std::vector<int> m_active_metric_indices;
 
   // represent queries that have not produced results
   std::vector<unsigned int> m_extant_query_handles;
@@ -110,13 +110,13 @@ class PerfMetricSet : public NoCopy, NoAssign {
   explicit PerfMetricSet(MetricSinkInterface *sink);
   ~PerfMetricSet();
   void GetDescriptions(MetricDescriptionSet *descriptions);
-  void Enable(int id);
-  void Disable(int id);
+  void Activate(int id);
+  void Deactivate(int id);
   void SwapBuffers();
  private:
   std::vector<PerfMetricGroup *> m_metric_groups;
-  int m_enabled_group;
-  int m_enable_count;
+  int m_active_group;
+  int m_active_count;
 };
 
 
@@ -145,17 +145,17 @@ GpuPerfSource::GetDescriptions(MetricDescriptionSet *descriptions) {
 }
 
 void
-GpuPerfSource::Enable(int id) {
+GpuPerfSource::Activate(int id) {
   ScopedLock l(&m_protect);
   if (m_metrics)
-    m_metrics->Enable(id);
+    m_metrics->Activate(id);
 }
 
 void
-GpuPerfSource::Disable(int id) {
+GpuPerfSource::Deactivate(int id) {
   ScopedLock l(&m_protect);
   if (m_metrics)
-    m_metrics->Disable(id);
+    m_metrics->Deactivate(id);
 }
 
 void
@@ -181,7 +181,7 @@ GpuPerfSource::glSwapBuffers() {
 
 
 PerfMetricSet::PerfMetricSet(MetricSinkInterface *sink)
-    : m_enabled_group(-1), m_enable_count(0) {
+    : m_active_group(-1), m_active_count(0) {
   unsigned int query_id = 0;
   PerfFunctions::GetFirstQueryId(&query_id);
 
@@ -210,37 +210,37 @@ PerfMetricSet::~PerfMetricSet() {
 }
 
 void
-PerfMetricSet::Enable(int id) {
-  if (m_enabled_group != -1) {
-    if (m_metric_groups[m_enabled_group]->Enable(id))
-      ++m_enable_count;
+PerfMetricSet::Activate(int id) {
+  if (m_active_group != -1) {
+    if (m_metric_groups[m_active_group]->Activate(id))
+      ++m_active_count;
     return;
   }
 
   for (unsigned int i = 0; i < m_metric_groups.size(); ++i) {
-    if (!m_metric_groups[i]->Enable(id))
+    if (!m_metric_groups[i]->Activate(id))
       continue;
-    m_enabled_group = i;
-    m_enable_count = 1;
+    m_active_group = i;
+    m_active_count = 1;
     return;
   }
 }
 
 void
-PerfMetricSet::Disable(int id) {
-  if (m_enabled_group == -1)
+PerfMetricSet::Deactivate(int id) {
+  if (m_active_group == -1)
     return;
-  if (m_metric_groups[m_enabled_group]->Disable(id) == true) {
-    --m_enable_count;
-    if (0 == m_enable_count)
-      m_enabled_group = -1;
+  if (m_metric_groups[m_active_group]->Deactivate(id) == true) {
+    --m_active_count;
+    if (0 == m_active_count)
+      m_active_group = -1;
   }
 }
 
 void
 PerfMetricSet::SwapBuffers() {
-  if (m_enabled_group != -1)
-    m_metric_groups[m_enabled_group]->SwapBuffers();
+  if (m_active_group != -1)
+    m_metric_groups[m_active_group]->SwapBuffers();
 }
 
 void
@@ -277,12 +277,12 @@ PerfMetricGroup::~PerfMetricGroup() {
 }
 
 bool
-PerfMetricGroup::Enable(int id) {
+PerfMetricGroup::Activate(int id) {
   int index = 0;
   for (auto i = m_metrics.begin(); i != m_metrics.end(); ++i, ++index) {
     {
-      if ((*i)->Enable(id)) {
-        m_enabled_metric_indices.push_back(index);
+      if ((*i)->Activate(id)) {
+        m_active_metric_indices.push_back(index);
         return true;
       }
     }
@@ -291,16 +291,16 @@ PerfMetricGroup::Enable(int id) {
 }
 
 bool
-PerfMetricGroup::Disable(int id) {
+PerfMetricGroup::Deactivate(int id) {
   int index = 0;
   for (auto i = m_metrics.begin(); i != m_metrics.end(); ++i, ++index) {
-    if ((*i)->Disable(id)) {
-      // remove the index from the list of enabled indices
-      for (auto j = m_enabled_metric_indices.begin();
-           j != m_enabled_metric_indices.end(); ++j) {
+    if ((*i)->Deactivate(id)) {
+      // remove the index from the list of active indices
+      for (auto j = m_active_metric_indices.begin();
+           j != m_active_metric_indices.end(); ++j) {
         if (*j == index) {
-          *j = m_enabled_metric_indices.back();
-          m_enabled_metric_indices.pop_back();
+          *j = m_active_metric_indices.back();
+          m_active_metric_indices.pop_back();
           break;
         }
       }
@@ -331,7 +331,7 @@ PerfMetricGroup::Disable(int id) {
 
 void
 PerfMetricGroup::SwapBuffers() {
-  if (m_enabled_metric_indices.empty())
+  if (m_active_metric_indices.empty())
     return;
 
   if (m_current_query_handle != GL_INVALID_VALUE) {
@@ -371,8 +371,8 @@ PerfMetricGroup::SwapBuffers() {
     }
 
     // TODO(majanes) pass bytes down to the metric for publication
-    for (auto i = m_enabled_metric_indices.begin();
-         i != m_enabled_metric_indices.end(); ++i) {
+    for (auto i = m_active_metric_indices.begin();
+         i != m_active_metric_indices.end(); ++i) {
       m_metrics[*i]->Publish(m_data_buf);
     }
 
@@ -453,14 +453,14 @@ PerfMetric::AppendDescription(MetricDescriptionSet *desc) {
 }
 
 bool
-PerfMetric::Enable(int id) {
+PerfMetric::Activate(int id) {
   if (id != m_grafips_desc->id())
     return false;
   return true;
 }
 
 bool
-PerfMetric::Disable(int id) {
+PerfMetric::Deactivate(int id) {
   if (id != m_grafips_desc->id())
     return false;
   return true;

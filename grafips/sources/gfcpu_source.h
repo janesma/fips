@@ -46,8 +46,8 @@ class CpuSource : public MetricSourceInterface {
   ~CpuSource();
 
   void Subscribe(MetricSinkInterface *sink);
-  void Enable(int id);
-  void Disable(int id);
+  void Activate(int id);
+  void Deactivate(int id);
   void Poll();
 
   friend class CpuSourceFixture;
@@ -74,7 +74,7 @@ class CpuSource : public MetricSourceInterface {
   };
 
   void GetDescriptions(std::vector<MetricDescription> *descriptions);
-  bool IsEnabled() const;
+  bool IsActivated() const;
   void Refresh();
   void ParseCpuLine(CpuLine *dest, char **savePtr);
   void Publish(unsigned int ms);
@@ -93,7 +93,7 @@ class CpuSource : public MetricSourceInterface {
   MetricSinkInterface *m_metric_sink;
 
   // tracks subscriptions
-  std::set<int> m_enabled_cores;
+  std::set<int> m_active_cores;
 
   // translates metric ids to offsets
   int m_sysId;

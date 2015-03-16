@@ -125,8 +125,8 @@ CpuSource::ParseCpuLine(CpuLine *dest, char **savePtr) {
 }
 
 bool
-CpuSource::IsEnabled() const {
-    return !m_enabled_cores.empty();
+CpuSource::IsActivated() const {
+    return !m_active_cores.empty();
 }
 
 void
@@ -164,30 +164,30 @@ CpuSource::GetDescriptions(std::vector<MetricDescription> *descriptions) {
 }
 
 void
-CpuSource::Enable(int id) {
+CpuSource::Activate(int id) {
   ScopedLock s(&m_protect);
     if (id == m_sysId) {
-        m_enabled_cores.insert(-1);
+        m_active_cores.insert(-1);
         return;
     }
     for (unsigned int i = 0; i < m_ids.size(); ++i) {
         if (m_ids[i] == id) {
-            m_enabled_cores.insert(i);
+            m_active_cores.insert(i);
             return;
         }
     }
 }
 
 void
-CpuSource::Disable(int id) {
+CpuSource::Deactivate(int id) {
   ScopedLock s(&m_protect);
     if (id == m_sysId) {
-        m_enabled_cores.erase(-1);
+        m_active_cores.erase(-1);
         return;
     }
     for (unsigned int i = 0; i < m_ids.size(); ++i) {
         if (m_ids[i] == id) {
-            m_enabled_cores.erase(i);
+            m_active_cores.erase(i);
             return;
         }
     }
@@ -196,7 +196,7 @@ CpuSource::Disable(int id) {
 void
 CpuSource::Poll() {
   ScopedLock s(&m_protect);
-    if (!IsEnabled())
+    if (!IsActivated())
         return;
 
     const unsigned int ms = get_ms_time();
@@ -215,11 +215,11 @@ CpuSource::Publish(unsigned int ms) {
 
     DataSet d;
 
-    if (m_enabled_cores.count(-1) != 0)
+    if (m_active_cores.count(-1) != 0)
         d.push_back(DataPoint(ms, m_sysId, m_systemStats.utilization));
 
     for (unsigned int i = 0; i < m_ids.size(); ++i) {
-        if (m_enabled_cores.count(i) == 0)
+        if (m_active_cores.count(i) == 0)
             continue;
         d.push_back(DataPoint(ms, m_ids[i], m_core_stats[i].utilization));
     }

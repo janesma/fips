@@ -3,27 +3,27 @@ package GrafipsProto;
 message PublisherInvocation {
   enum Method {
     kFlush = 0;
-    kEnable = 1;
-    kDisable = 2;
+    kActivate = 1;
+    kDeactivate = 2;
     kSubscribe = 3;
   }
 
   required Method method = 1;
 
   // "Clear" is reserved in protocol buffers, which defines a method called Clear in each message
-  message Enable
+  message Activate
   {
     required int32 id = 1;
   }
     
-  optional Enable enableArgs= 2;
+  optional Activate activateArgs= 2;
 
-  message Disable
+  message Deactivate
   {
     required int32 id = 1;
   }
     
-  optional Disable disableArgs= 3;
+  optional Deactivate deactivateArgs= 3;
 
   message Subscribe
   {

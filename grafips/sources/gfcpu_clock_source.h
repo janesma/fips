@@ -48,16 +48,16 @@ class CpuFreqSource : public MetricSourceInterface {
   CpuFreqSource();
   ~CpuFreqSource();
   void Subscribe(MetricSinkInterface *sink);
-  void Enable(int id);
-  void Disable(int id);
+  void Activate(int id);
+  void Deactivate(int id);
   void Poll();
  private:
   MetricSinkInterface *m_sink;
   unsigned int m_last_publish_ms;
   int m_frame_count;
-  std::set<int> m_enabled_ids;
+  std::set<int> m_active_ids;
   std::vector<int> m_core_freq_handles;
-  // reverse lookup for enable
+  // reverse lookup for activate
   std::map<int, int> m_index_to_id;
   MetricDescriptionSet m_descriptions;
   static const int BUF_SIZE = 100;

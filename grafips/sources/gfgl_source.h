@@ -41,8 +41,8 @@ class GlSource : public MetricSourceInterface {
   explicit GlSource(int ms_interval = 1000);
   ~GlSource();
   void Subscribe(MetricSinkInterface *sink);
-  void Enable(int id);
-  void Disable(int id);
+  void Activate(int id);
+  void Deactivate(int id);
   void glSwapBuffers();
  private:
   void GetDescriptions(MetricDescriptionSet *descriptions);
@@ -50,7 +50,7 @@ class GlSource : public MetricSourceInterface {
   MetricSinkInterface *m_sink;
   uint64_t m_last_time_ns;
   int m_frame_count, m_ms_interval;
-  std::set<int> m_enabled_ids;
+  std::set<int> m_active_ids;
 };
 }  // end namespace Grafips
 #endif  // SOURCES_GFGL_SOURCE_H_

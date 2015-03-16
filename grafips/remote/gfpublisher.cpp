@@ -58,16 +58,16 @@ PublisherImpl::OnMetric(const DataSet &d) {
 }
 
 void
-PublisherImpl::Enable(int id) {
+PublisherImpl::Activate(int id) {
   for (unsigned int i = 0; i < m_sources.size(); ++i) {
-    m_sources[i]->Enable(id);
+    m_sources[i]->Activate(id);
   }
 }
 
 void
-PublisherImpl::Disable(int id) {
+PublisherImpl::Deactivate(int id) {
   for (unsigned int i = 0; i < m_sources.size(); ++i) {
-    m_sources[i]->Disable(id);
+    m_sources[i]->Deactivate(id);
   }
   m_subscriber->Clear(id);
 }

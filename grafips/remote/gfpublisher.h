@@ -49,8 +49,8 @@ class PublisherImpl : public PublisherInterface,
   ~PublisherImpl();
   void RegisterSource(MetricSourceInterface *p);
   void OnMetric(const DataSet &d);
-  void Enable(int id);
-  void Disable(int id);
+  void Activate(int id);
+  void Deactivate(int id);
   void OnDescriptions(const std::vector<MetricDescription> &descriptions);
  private:
   SubscriberInterface *m_subscriber;

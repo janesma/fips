@@ -101,16 +101,16 @@ CpuFreqSource::Subscribe(MetricSinkInterface *sink) {
 }
 
 void
-CpuFreqSource::Enable(int id) {
-  m_enabled_ids.emplace(id);
+CpuFreqSource::Activate(int id) {
+  m_active_ids.emplace(id);
 }
 
 void
-CpuFreqSource::Disable(int id) {
-  auto i = m_enabled_ids.find(id);
-  if (i == m_enabled_ids.end())
+CpuFreqSource::Deactivate(int id) {
+  auto i = m_active_ids.find(id);
+  if (i == m_active_ids.end())
     return;
-  m_enabled_ids.erase(i);
+  m_active_ids.erase(i);
 }
 
 void
@@ -125,7 +125,7 @@ CpuFreqSource::Poll() {
   DataSet dset;
   for (unsigned int i = 0; i < m_core_freq_handles.size(); ++i) {
     const int id = m_index_to_id[i];
-    if (m_enabled_ids.find(id) == m_enabled_ids.end())
+    if (m_active_ids.find(id) == m_active_ids.end())
       continue;
 
     const int fh = m_core_freq_handles[i];

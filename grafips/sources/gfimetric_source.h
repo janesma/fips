@@ -43,8 +43,8 @@ class MetricSourceInterface {
  public:
   virtual ~MetricSourceInterface() {}
   virtual void Subscribe(MetricSinkInterface *sink) = 0;
-  virtual void Enable(int id) = 0;
-  virtual void Disable(int id) = 0;
+  virtual void Activate(int id) = 0;
+  virtual void Deactivate(int id) = 0;
 };
 }  // namespace Grafips
 

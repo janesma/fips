@@ -42,8 +42,8 @@ class SubscriberInterface;
 class PublisherInterface {
  public:
   virtual ~PublisherInterface() {}
-  virtual void Enable(int id) = 0;
-  virtual void Disable(int id) = 0;
+  virtual void Activate(int id) = 0;
+  virtual void Deactivate(int id) = 0;
   virtual void Subscribe(SubscriberInterface *s) = 0;
 };
 }  // namespace Grafips
