@@ -424,7 +424,7 @@ PerfMetric::PerfMetric(int query_id, int counter_num, MetricSinkInterface *sink)
   std::stringstream path;
   path << "gpu/intel/" << m_counter_num << "/" << m_name;
   m_grafips_desc = new MetricDescription(path.str(),
-                                         "", m_name,
+                                         m_description, m_name,
                                          Grafips::GR_METRIC_COUNT);
 }
 

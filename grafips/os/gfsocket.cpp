@@ -169,7 +169,7 @@ ServerSocket::Accept() {
 
   // now that we have a connected server socket, we don't need to listen for
   // subsequent connections.
-  
+
   return new Socket(socket_fd, inet_ntoa(client_address.sin_addr));
 }
 

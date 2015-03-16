@@ -136,7 +136,7 @@ ApiControl::PerformDrawExperminents() const {
     glScissor(0, 0, 1, 1);
   }
   if (m_wireframeEnabled) {
-    glPolygonMode( GL_FRONT_AND_BACK, GL_LINE );
+    glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
   }
   return true;
 }

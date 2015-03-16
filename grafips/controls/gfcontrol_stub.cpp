@@ -188,7 +188,8 @@ ControlSkel::Run() {
       case ControlInvocation::kSubscribe: {
         assert(m_subscriber == NULL);
         const ControlInvocation::Subscribe& args = m.subscribeargs();
-        m_subscriber = new ControlSubscriberStub(m_socket->Address(), args.port());
+        m_subscriber = new ControlSubscriberStub(m_socket->Address(),
+                                                 args.port());
         m_target->Subscribe(m_subscriber);
         break;
       }

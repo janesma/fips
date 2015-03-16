@@ -53,6 +53,7 @@ class MetricDescription {
   std::string help_text;
   std::string display_name;
   MetricType type;
+  bool enabled;
 };
 
 inline unsigned int
