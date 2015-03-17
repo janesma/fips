@@ -45,10 +45,10 @@ class ApiControl : public ControlInterface {
   void Subscribe(ControlSubscriberInterface *sub);
   bool PerformDrawExperminents() const;
   void OnContext(void *context);
-  void OnBindTexture(int target, void *bind_texture_fn);
-  void OnLinkProgram(int prog, void *link_program_fn);
-  void OnUseProgram(int prog, void *use_program_fun);
-  void PerformSimpleShaderExperiment(void *use_program_fn);
+  void OnBindTexture(int target);
+  void OnLinkProgram(int prog);
+  void OnUseProgram(int prog);
+  void PerformSimpleShaderExperiment();
 
  private:
   void Publish();

@@ -28,14 +28,16 @@
 #ifndef SOURCES_GFGPU_PERF_FUNCTIONS_H_
 #define SOURCES_GFGPU_PERF_FUNCTIONS_H_
 
+#ifndef FIPS_DISPATCH_GL_H
 #include <GL/gl.h>
 #include <GL/glext.h>
+#endif
 
 namespace Grafips {
 
 class PerfFunctions {
  public:
-  static void Init();
+  static void Init(void *lookup_fn = NULL);
   static void GetFirstQueryId(GLuint *queryId);
 
   static void GetNextQueryId(GLuint queryId,
@@ -65,8 +67,35 @@ class PerfFunctions {
                            GLsizei dataSize, GLvoid *data,
                            GLuint *bytesWritten);
 
+  static GLuint CreateProgram (void);
+  static GLuint CreateShader (GLenum type);
+  static void ShaderSource (GLuint shader, GLsizei count,
+                            const GLchar *const*string,
+                            const GLint *length);
+  static void CompileShader (GLuint shader);
+  static void GetProgramiv (GLuint program, GLenum pname, GLint *params);
+  static void GetAttachedShaders (GLuint program, GLsizei maxCount, GLsizei *count, GLuint *shaders);
+  static void GetShaderiv (GLuint shader, GLenum pname, GLint *params);
+  static void AttachShader (GLuint program, GLuint shader);
+  static void LinkProgram (GLuint program);
+  static void Enable( GLenum cap );
+  static void UseProgram (GLuint program);
+  static void Scissor( GLint x, GLint y, GLsizei width, GLsizei height);
+  static void PolygonMode( GLenum face, GLenum mode );
+  static GLenum GetError( void );
+  static void GenTextures( GLsizei n, GLuint *textures );
+  static void ActiveTexture( GLenum texture );
+  static void TexParameteri( GLenum target, GLenum pname, GLint param );
+  static void BindTexture( GLenum target, GLuint texture );
+  static void TexImage2D( GLenum target, GLint level,
+                           GLint internalFormat,
+                           GLsizei width, GLsizei height,
+                           GLint border, GLenum format, GLenum type,
+                           const GLvoid *pixels );
+
  private:
   PerfFunctions();
+  static bool m_is_initialized;
 };
 }  // namespace Grafips
 

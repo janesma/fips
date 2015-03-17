@@ -11,11 +11,12 @@
 #include "gfcpu_source.h"
 #include "gferror.h"
 #include "gfgl_source.h"
+#include "gfgpu_perf_functions.h"
 #include "gfgpu_perf_source.h"
+#include "gflog.h"
 #include "gfpublisher.h"
 #include "gfpublisher_skel.h"
 #include "glwrap.h"
-#include "gflog.h"
 
 using Grafips::ApiControl;
 using Grafips::ControlRouterTarget;
@@ -28,6 +29,7 @@ using Grafips::ErrorInterface;
 using Grafips::GlSource;
 using Grafips::GpuPerfSource;
 using Grafips::NoError;
+using Grafips::PerfFunctions;
 using Grafips::PublisherImpl;
 using Grafips::PublisherSkeleton;
 using Grafips::kSocketReadFail;
@@ -38,6 +40,8 @@ class GrafipsPublishers {
 public:
 	GrafipsPublishers() {
 		printf("publishers construct\n");
+		void *get_proc = fips_lookup("glXGetProcAddress");
+		PerfFunctions::Init(get_proc);
 		m_prov = new CpuSource;
 		m_gl_source = new GlSource(100);
 		m_gpu_source = new GpuPerfSource;
@@ -88,16 +92,13 @@ public:
 		return m_api_control->PerformDrawExperminents();
 	}
 	void PerformBindTextureExperiment(GLenum target) {
-		static void *real_bind_function = fips_lookup("glBindTexture");
-		m_api_control->OnBindTexture(target, real_bind_function);
+		m_api_control->OnBindTexture(target);
 	}
 	void OnLinkProgram(GLint program) {
-		static void *real_link_function = fips_lookup("glLinkProgram");
-		m_api_control->OnLinkProgram(program, real_link_function);
+		m_api_control->OnLinkProgram(program);
 	}
 	void OnUseProgram(GLint program) {
-		static void *real_link_function = fips_lookup("glUseProgram");
-		m_api_control->OnUseProgram(program, real_link_function);
+		m_api_control->OnUseProgram(program);
 	}
 
 	void OnContext(void *context) {

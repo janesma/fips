@@ -36,10 +36,12 @@
 #include <string>
 #include <vector>
 
+#include "sources/gfgpu_perf_functions.h"
 #include "error/gflog.h"
 
 using Grafips::ApiControl;
 using Grafips::ScopedLock;
+using Grafips::PerfFunctions;
 
 ApiControl::ApiControl() : m_scissorEnabled(false),
                            m_2x2TextureEnabled(false),
@@ -132,20 +134,18 @@ ApiControl::PerformDrawExperminents() const {
   if (m_disableDraw)
     return false;
   if (m_scissorEnabled) {
-    glEnable(GL_SCISSOR_TEST);
-    glScissor(0, 0, 1, 1);
+    PerfFunctions::Enable(GL_SCISSOR_TEST);
+    PerfFunctions::Scissor(0, 0, 1, 1);
   }
   if (m_wireframeEnabled) {
-    glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
+    PerfFunctions::PolygonMode(GL_FRONT_AND_BACK, GL_LINE);
   }
   return true;
 }
 
-typedef void (*glBindTexture_fn)( GLenum target, GLuint texture );
-
 static void
 CheckError(const char * file, int line) {
-  const int error = glGetError();
+  const int error = PerfFunctions::GetError();
   if ( error == GL_NO_ERROR)
     return;
   GFLOGF("ERROR: %x %s:%i\n", error, file, line);
@@ -153,58 +153,50 @@ CheckError(const char * file, int line) {
 #define GL_CHECK() CheckError(__FILE__, __LINE__)
 
 void
-ApiControl::OnBindTexture(int target, void *bind_texture_fn) {
+ApiControl::OnBindTexture(int target) {
   ScopedLock s(&m_protect);
   if (!m_2x2TextureEnabled)
     return;
 
-  if (!bind_texture_fn) {
-    GFLOG("ApiControl null bind texture function");
-    return;
-  }
-
-  glGetError();
+  PerfFunctions::GetError();
   auto texture = m_2x2Textures.find(m_current_context);
   if (texture == m_2x2Textures.end()) {
-    glEnable(GL_TEXTURE_2D);
+    PerfFunctions::Enable(GL_TEXTURE_2D);
     GL_CHECK();
     unsigned char data[] {255, 0, 0, 0, 0, 255, 0, 0,
           0, 0, 255, 0, 0, 0, 0, 255};
     int texture_handle;
-    glGenTextures(1, reinterpret_cast<GLuint*>(&texture_handle));
+    PerfFunctions::GenTextures(1, reinterpret_cast<GLuint*>(&texture_handle));
     GL_CHECK();
     m_2x2Textures[m_current_context] = texture_handle;
     texture = m_2x2Textures.find(m_current_context);
 
-    (*(glBindTexture_fn)bind_texture_fn)(GL_TEXTURE_2D, texture_handle);
+    PerfFunctions::BindTexture(GL_TEXTURE_2D, texture_handle);
     GL_CHECK();
-    glActiveTexture(GL_TEXTURE0);
+    PerfFunctions::ActiveTexture(GL_TEXTURE0);
     GL_CHECK();
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
+    PerfFunctions::TexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
     GL_CHECK();
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
+    PerfFunctions::TexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
     GL_CHECK();
-    glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, 2, 2, 0, GL_RGBA,
+    PerfFunctions::TexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, 2, 2, 0, GL_RGBA,
                  GL_UNSIGNED_INT, data);
     GL_CHECK();
-    (*(glBindTexture_fn)bind_texture_fn)(GL_TEXTURE_2D, 0);
+    PerfFunctions::BindTexture(GL_TEXTURE_2D, 0);
     GL_CHECK();
   }
 
-  (*(glBindTexture_fn)bind_texture_fn)(target, texture->second);
+  PerfFunctions::BindTexture(target, texture->second);
   GL_CHECK();
 }
 
-typedef void (*glLinkProgram_fn)(GLuint program);
-
-
 void
-ApiControl::OnLinkProgram(int prog, void *link_program_fn) {
+ApiControl::OnLinkProgram(int prog) {
   ScopedLock s(&m_protect);
   GFLOGF("OnLinkProgram: %d", prog);
-  glGetError();
+  PerfFunctions::GetError();
   if (m_simpleShader == 0) {
-    m_simpleShader = glCreateShader(GL_FRAGMENT_SHADER);
+    m_simpleShader = PerfFunctions::CreateShader(GL_FRAGMENT_SHADER);
     GFLOGF("OnLinkProgram created shader: %d", m_simpleShader);
     GL_CHECK();
 
@@ -214,9 +206,9 @@ ApiControl::OnLinkProgram(int prog, void *link_program_fn) {
         "}";
     const int len = strlen(fshader_simple);
 
-    glShaderSource(m_simpleShader, 1, &fshader_simple, &len);
+    PerfFunctions::ShaderSource(m_simpleShader, 1, &fshader_simple, &len);
     GL_CHECK();
-    glCompileShader(m_simpleShader);
+    PerfFunctions::CompileShader(m_simpleShader);
     GL_CHECK();
   }
 
@@ -225,45 +217,44 @@ ApiControl::OnLinkProgram(int prog, void *link_program_fn) {
   //        m_program_to_simple_shader.end());
 
   GL_CHECK();
-  const int simple_prog = glCreateProgram();
+  const int simple_prog = PerfFunctions::CreateProgram();
   GL_CHECK();
   GFLOGF("OnLinkProgram created program: %d", simple_prog);
 
   int shader_count;
-  glGetProgramiv(prog, GL_ATTACHED_SHADERS, &shader_count);
+  PerfFunctions::GetProgramiv(prog, GL_ATTACHED_SHADERS, &shader_count);
   GL_CHECK();
   GFLOGF("OnLinkProgram shader count: %d", shader_count);
   std::vector<unsigned int> shaders(shader_count);
-  glGetAttachedShaders(prog, shader_count, NULL, shaders.data());
+  PerfFunctions::GetAttachedShaders(prog, shader_count, NULL, shaders.data());
   GL_CHECK();
   for (auto shaderp = shaders.begin(); shaderp != shaders.end(); ++shaderp) {
     int shader_type;
-    glGetShaderiv(*shaderp, GL_SHADER_TYPE, &shader_type);
+    PerfFunctions::GetShaderiv(*shaderp, GL_SHADER_TYPE, &shader_type);
     GL_CHECK();
     if (shader_type == GL_FRAGMENT_SHADER) {
       GFLOGF("OnLinkProgram found fragment shader: %d", *shaderp);
       continue;
     }
     GFLOGF("OnLinkProgram found other shader: %d", *shaderp);
-    glAttachShader(simple_prog, *shaderp);
+    PerfFunctions::AttachShader(simple_prog, *shaderp);
     GL_CHECK();
     GFLOGF("OnLinkProgram attached prog:%d, shader:%d", simple_prog, *shaderp);
   }
-  glAttachShader(simple_prog, m_simpleShader);
+  PerfFunctions::AttachShader(simple_prog, m_simpleShader);
   GL_CHECK();
   GFLOGF("OnLinkProgram attached prog:%d, shader:%d",
          simple_prog,
          m_simpleShader);
 
-  (*(glLinkProgram_fn)link_program_fn)(simple_prog);
+  PerfFunctions::LinkProgram(simple_prog);
   GL_CHECK();
   m_program_to_simple_shader[ProgramKey(m_current_context, prog)] = simple_prog;
   GFLOGF("Linking %d to %d", prog, simple_prog);
 }
 
-typedef void (*glUseProgram_fn)(GLuint program);
 void
-ApiControl::OnUseProgram(int prog, void *use_program_fun) {
+ApiControl::OnUseProgram(int prog) {
   if (!prog)
     return;
 
@@ -272,12 +263,12 @@ ApiControl::OnUseProgram(int prog, void *use_program_fun) {
   if (!m_simpleShaderEnabled)
     return;
 
-  glGetError();
+  PerfFunctions::GetError();
   auto simple_prog =
       m_program_to_simple_shader.find(ProgramKey(m_current_context, prog));
   assert(simple_prog != m_program_to_simple_shader.end());
   // GFLOGF("Using %d instead of %d", simple_prog->second, prog);
-  (*(glUseProgram_fn)use_program_fun)(simple_prog->second);
+  PerfFunctions::UseProgram(simple_prog->second);
   GL_CHECK();
 }
 
