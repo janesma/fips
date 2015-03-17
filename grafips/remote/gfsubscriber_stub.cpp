@@ -134,6 +134,7 @@ SubscriberStub::OnDescriptions(const std::vector<MetricDescription> &desc) {
         pdesc->set_help_text(i->help_text);
         pdesc->set_display_name(i->display_name);
         pdesc->set_type((::GrafipsProto::MetricType)i->type);
+        pdesc->set_enabled(i->enabled);
     }
     WriteMessage(m);
     // asynchronous, no response

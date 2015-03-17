@@ -33,14 +33,17 @@ using Grafips::MetricDescription;
 
 MetricDescription::MetricDescription(const MetricDescription &o)
     : path(o.path), help_text(o.help_text),
-      display_name(o.display_name), type(o.type) {}
+      display_name(o.display_name), type(o.type),
+      enabled(o.enabled) {}
 
 MetricDescription::MetricDescription(const std::string &_path,
                                      const std::string &_help_text,
                                      const std::string &_display_name,
-                                     MetricType _type)
+                                     MetricType _type,
+                                     bool _enabled)
     : path(_path), help_text(_help_text),
-      display_name(_display_name), type(_type) {}
+      display_name(_display_name), type(_type), enabled(_enabled)
+{}
 
 int
 MetricDescription::id() const {
@@ -60,6 +63,7 @@ MetricDescription::operator=(const MetricDescription &o) {
   path = o.path;
   help_text = o.help_text;
   display_name = o.display_name;
-  type = type;
+  type = o.type;
+  enabled = o.enabled;
   return *this;
 }

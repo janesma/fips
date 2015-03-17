@@ -61,7 +61,7 @@ class PerfMetric : public NoCopy, NoAssign {
  public:
   PerfMetric(int query_id, int counter_num, MetricSinkInterface *sink);
   ~PerfMetric() { delete m_grafips_desc; }
-  void AppendDescription(MetricDescriptionSet *descriptions);
+  void AppendDescription(MetricDescriptionSet *descriptions, bool enabled);
   bool Activate(int id);
   bool Deactivate(int id);
   void Publish(const std::vector<unsigned char> &data);
@@ -79,7 +79,7 @@ class PerfMetricGroup : public NoCopy, NoAssign {
  public:
   PerfMetricGroup(int query_id, MetricSinkInterface *sink);
   ~PerfMetricGroup();
-  void AppendDescriptions(MetricDescriptionSet *descriptions);
+  void AppendDescriptions(MetricDescriptionSet *descriptions, bool enabled);
   bool Activate(int id);
   bool Deactivate(int id);
   void SwapBuffers();
@@ -110,8 +110,8 @@ class PerfMetricSet : public NoCopy, NoAssign {
   explicit PerfMetricSet(MetricSinkInterface *sink);
   ~PerfMetricSet();
   void GetDescriptions(MetricDescriptionSet *descriptions);
-  void Activate(int id);
-  void Deactivate(int id);
+  void Activate(int id, MetricSinkInterface *sink);
+  void Deactivate(int id, MetricSinkInterface *sink);
   void SwapBuffers();
  private:
   std::vector<PerfMetricGroup *> m_metric_groups;
@@ -148,14 +148,14 @@ void
 GpuPerfSource::Activate(int id) {
   ScopedLock l(&m_protect);
   if (m_metrics)
-    m_metrics->Activate(id);
+    m_metrics->Activate(id, m_sink);
 }
 
 void
 GpuPerfSource::Deactivate(int id) {
   ScopedLock l(&m_protect);
   if (m_metrics)
-    m_metrics->Deactivate(id);
+    m_metrics->Deactivate(id, m_sink);
 }
 
 void
@@ -210,7 +210,7 @@ PerfMetricSet::~PerfMetricSet() {
 }
 
 void
-PerfMetricSet::Activate(int id) {
+PerfMetricSet::Activate(int id, MetricSinkInterface *sink) {
   if (m_active_group != -1) {
     if (m_metric_groups[m_active_group]->Activate(id))
       ++m_active_count;
@@ -220,20 +220,34 @@ PerfMetricSet::Activate(int id) {
   for (unsigned int i = 0; i < m_metric_groups.size(); ++i) {
     if (!m_metric_groups[i]->Activate(id))
       continue;
+
+    // else
     m_active_group = i;
     m_active_count = 1;
+
+    assert(sink);
+    MetricDescriptionSet desc;
+    GetDescriptions(&desc);
+    sink->OnDescriptions(desc);
+
     return;
   }
 }
 
 void
-PerfMetricSet::Deactivate(int id) {
+PerfMetricSet::Deactivate(int id, MetricSinkInterface *sink) {
   if (m_active_group == -1)
     return;
   if (m_metric_groups[m_active_group]->Deactivate(id) == true) {
     --m_active_count;
-    if (0 == m_active_count)
+    if (0 == m_active_count) {
       m_active_group = -1;
+
+      assert(sink);
+      MetricDescriptionSet desc;
+      GetDescriptions(&desc);
+      sink->OnDescriptions(desc);
+    }
   }
 }
 
@@ -245,8 +259,14 @@ PerfMetricSet::SwapBuffers() {
 
 void
 PerfMetricSet::GetDescriptions(MetricDescriptionSet *desc) {
-  for (auto i = m_metric_groups.begin(); i != m_metric_groups.end(); ++i)
-    (*i)->AppendDescriptions(desc);
+  for (int i = 0; i < (int)m_metric_groups.size(); ++i) {
+    bool group_enabled = true;
+    if (m_active_group != -1) {
+      // only metrics in the active group are enabled
+      group_enabled = m_active_group == i;
+    }
+    m_metric_groups[i]->AppendDescriptions(desc, group_enabled);
+  }
 }
 
 PerfMetricGroup::PerfMetricGroup(int query_id, MetricSinkInterface *sink)
@@ -394,9 +414,10 @@ PerfMetricGroup::SwapBuffers() {
 }
 
 void
-PerfMetricGroup::AppendDescriptions(MetricDescriptionSet *descriptions) {
+PerfMetricGroup::AppendDescriptions(MetricDescriptionSet *descriptions,
+                                    bool enabled) {
   for (auto i = m_metrics.begin(); i != m_metrics.end(); ++i)
-    (*i)->AppendDescription(descriptions);
+    (*i)->AppendDescription(descriptions, enabled);
 }
 
 PerfMetric::PerfMetric(int query_id, int counter_num, MetricSinkInterface *sink)
@@ -429,7 +450,8 @@ PerfMetric::PerfMetric(int query_id, int counter_num, MetricSinkInterface *sink)
 }
 
 void
-PerfMetric::AppendDescription(MetricDescriptionSet *desc) {
+PerfMetric::AppendDescription(MetricDescriptionSet *desc,
+                              bool enabled) {
   if (strstr(m_name.c_str(), "HS") != NULL)
     return;
   if (strstr(m_name.c_str(), "DS") != NULL)
@@ -443,6 +465,7 @@ PerfMetric::AppendDescription(MetricDescriptionSet *desc) {
   if (strstr(m_name.c_str(), "SO") != NULL)
     return;
   desc->push_back(*m_grafips_desc);
+  desc->back().enabled = enabled;
   // std::cout << m_grafips_desc->path
   //           << " offset: " << m_offset
   //           << " size: " << m_data_size

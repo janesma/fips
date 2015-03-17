@@ -13,6 +13,7 @@ message MetricDescription
     required string help_text = 2;
     required string display_name = 3;
     required MetricType type = 4;
+    required bool enabled = 5;
 };
 
 message DataPoint

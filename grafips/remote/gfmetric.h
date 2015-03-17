@@ -45,7 +45,8 @@ class MetricDescription {
   MetricDescription(const std::string &_path,
                     const std::string &_help_text,
                     const std::string &_display_name,
-                    MetricType _type);
+                    MetricType _type,
+                    bool _enabled = true);
   MetricDescription();
   MetricDescription &operator=(const MetricDescription &o);
   int id() const;
@@ -53,6 +54,7 @@ class MetricDescription {
   std::string help_text;
   std::string display_name;
   MetricType type;
+  bool enabled;
 };
 
 inline unsigned int
