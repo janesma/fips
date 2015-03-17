@@ -39,7 +39,7 @@ public:
 	GrafipsPublishers() {
 		printf("publishers construct\n");
 		m_prov = new CpuSource;
-		m_gl_source = new GlSource;
+		m_gl_source = new GlSource(100);
 		m_gpu_source = new GpuPerfSource;
 		m_cpu_freq_source = new CpuFreqSource;
 

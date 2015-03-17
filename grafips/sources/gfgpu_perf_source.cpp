@@ -33,27 +33,29 @@
 #include <assert.h>
 #include <string.h>
 
+#include <map>
 #include <sstream>
 #include <string>
 #include <vector>
 
+#include "error/gflog.h"
 #include "os/gftraits.h"
 #include "remote/gfimetric_sink.h"
 #include "sources/gfgpu_perf_functions.h"
 
+using Grafips::DataPoint;
+using Grafips::DataSet;
 using Grafips::GpuPerfSource;
+using Grafips::MetricDescription;
+using Grafips::MetricDescriptionSet;
+using Grafips::MetricSinkInterface;
+using Grafips::MetricType;
+using Grafips::NoAssign;
+using Grafips::NoCopy;
 using Grafips::PerfFunctions;
 using Grafips::PerfMetricSet;
-using Grafips::NoCopy;
-using Grafips::NoAssign;
-using Grafips::MetricDescriptionSet;
-using Grafips::MetricDescription;
-using Grafips::MetricSinkInterface;
-using Grafips::DataSet;
-using Grafips::DataPoint;
-using Grafips::get_ms_time;
 using Grafips::ScopedLock;
-
+using Grafips::get_ms_time;
 
 namespace {
 
@@ -64,7 +66,7 @@ class PerfMetric : public NoCopy, NoAssign {
   void AppendDescription(MetricDescriptionSet *descriptions, bool enabled);
   bool Activate(int id);
   bool Deactivate(int id);
-  void Publish(const std::vector<unsigned char> &data);
+  void Publish(const std::vector<unsigned char> &data, int frame_count);
  private:
   const int m_query_id, m_counter_num;
   MetricSinkInterface *m_sink;
@@ -98,10 +100,17 @@ class PerfMetricGroup : public NoCopy, NoAssign {
   std::vector<int> m_active_metric_indices;
 
   // represent queries that have not produced results
-  std::vector<unsigned int> m_extant_query_handles;
+  struct ExtantQuery {
+    ExtantQuery(int _h, int _f) : handle(_h), frames(_f) {}
+    unsigned int handle;
+    int frames;
+  };
+  std::vector<ExtantQuery> m_extant_query_handles;
   // represent query handles that can be reused
   std::vector<unsigned int> m_free_query_handles;
   unsigned int m_current_query_handle;
+  int m_frame_count;
+  int m_last_publish_ms;
 };
 }  // namespace
 
@@ -140,8 +149,9 @@ GpuPerfSource::Subscribe(MetricSinkInterface *sink) {
 
 void
 GpuPerfSource::GetDescriptions(MetricDescriptionSet *descriptions) {
-  if (m_metrics)
-    m_metrics->GetDescriptions(descriptions);
+  if (!m_metrics)
+    return;
+  m_metrics->GetDescriptions(descriptions);
 }
 
 void
@@ -212,8 +222,13 @@ PerfMetricSet::~PerfMetricSet() {
 void
 PerfMetricSet::Activate(int id, MetricSinkInterface *sink) {
   if (m_active_group != -1) {
-    if (m_metric_groups[m_active_group]->Activate(id))
+    if (m_metric_groups[m_active_group]->Activate(id)) {
+      GFLOGF("Activated metric: %d in group: %d", id, m_active_group);
       ++m_active_count;
+    } else {
+      GFLOGF("Could not activate metric %d, it is not in the enabled group %d",
+             id, m_active_group);
+    }
     return;
   }
 
@@ -224,6 +239,7 @@ PerfMetricSet::Activate(int id, MetricSinkInterface *sink) {
     // else
     m_active_group = i;
     m_active_count = 1;
+    GFLOGF("Enabling group %d for metric: %d", m_active_group, id);
 
     assert(sink);
     MetricDescriptionSet desc;
@@ -259,18 +275,47 @@ PerfMetricSet::SwapBuffers() {
 
 void
 PerfMetricSet::GetDescriptions(MetricDescriptionSet *desc) {
+  MetricDescriptionSet all_descriptions;
+
   for (int i = 0; i < (int)m_metric_groups.size(); ++i) {
     bool group_enabled = true;
     if (m_active_group != -1) {
       // only metrics in the active group are enabled
       group_enabled = m_active_group == i;
     }
-    m_metric_groups[i]->AppendDescriptions(desc, group_enabled);
+    m_metric_groups[i]->AppendDescriptions(&all_descriptions,
+                                           group_enabled);
+  }
+
+  // filter out duplicates, preferring the duplicate which is enabled.
+  // Several QueryIds may provide a single metric, but only one of
+  // them may be enabled.  The metric should be enabled if it can be
+  // activated by the enabled group.
+  std::map<std::string, MetricDescription*> filter;
+  for (auto i = all_descriptions.begin(); i != all_descriptions.end(); ++i) {
+    auto duplicate = filter.find(i->path);
+    if (duplicate == filter.end()) {
+      // new description, save the description in the filter
+      filter[i->path] = &(*i);
+      continue;
+    }
+    if (duplicate->second->enabled) {
+      // this metric is already enabled
+      continue;
+    }
+    if (i->enabled) {
+      duplicate->second->enabled = true;
+    }
+  }
+
+  for (auto i = filter.begin(); i != filter.end(); ++i) {
+    desc->push_back(*(i->second));
   }
 }
 
 PerfMetricGroup::PerfMetricGroup(int query_id, MetricSinkInterface *sink)
-    : m_query_id(query_id), m_current_query_handle(GL_INVALID_VALUE) {
+    : m_query_id(query_id), m_current_query_handle(GL_INVALID_VALUE),
+      m_frame_count(0), m_last_publish_ms(0) {
 
   static GLint max_name_len = 0;
   if (max_name_len == 0)
@@ -329,11 +374,11 @@ PerfMetricGroup::Deactivate(int id) {
       for (auto extant_query = m_extant_query_handles.rbegin();
            extant_query != m_extant_query_handles.rend(); ++extant_query) {
         GLuint bytes_written = 0;
-        PerfFunctions::GetQueryData(*extant_query, GL_PERFQUERY_WAIT_INTEL,
+        PerfFunctions::GetQueryData(extant_query->handle, GL_PERFQUERY_WAIT_INTEL,
                                   m_data_size, m_data_buf.data(),
                                   &bytes_written);
         // assert(bytes_written != 0);
-        PerfFunctions::DeleteQuery(*extant_query);
+        PerfFunctions::DeleteQuery(extant_query->handle);
       }
       m_extant_query_handles.clear();
       m_current_query_handle = GL_INVALID_VALUE;
@@ -354,9 +399,24 @@ PerfMetricGroup::SwapBuffers() {
   if (m_active_metric_indices.empty())
     return;
 
+  if (!m_last_publish_ms) {
+    m_last_publish_ms = get_ms_time();
+    return;
+  }
+
+  const unsigned int ms = get_ms_time();
+  if (ms - m_last_publish_ms < 300) {
+    ++m_frame_count;
+    return;
+  }
+
+  m_last_publish_ms = ms;
+  
   if (m_current_query_handle != GL_INVALID_VALUE) {
     PerfFunctions::EndQuery(m_current_query_handle);
-    m_extant_query_handles.push_back(m_current_query_handle);
+    m_extant_query_handles.push_back(ExtantQuery(m_current_query_handle,
+                                                 m_frame_count));
+    m_frame_count = 0;
     m_current_query_handle = GL_INVALID_VALUE;
   }
 
@@ -383,7 +443,7 @@ PerfMetricGroup::SwapBuffers() {
        extant_query != m_extant_query_handles.rend(); ++extant_query) {
     uint bytes_written = 0;
     memset(m_data_buf.data(), 0, m_data_buf.size());
-    PerfFunctions::GetQueryData(*extant_query, GL_PERFQUERY_DONOT_FLUSH_INTEL,
+    PerfFunctions::GetQueryData(extant_query->handle, GL_PERFQUERY_DONOT_FLUSH_INTEL,
                               m_data_size, m_data_buf.data(),
                               &bytes_written);
     if (bytes_written == 0) {
@@ -393,10 +453,10 @@ PerfMetricGroup::SwapBuffers() {
     // TODO(majanes) pass bytes down to the metric for publication
     for (auto i = m_active_metric_indices.begin();
          i != m_active_metric_indices.end(); ++i) {
-      m_metrics[*i]->Publish(m_data_buf);
+      m_metrics[*i]->Publish(m_data_buf, extant_query->frames);
     }
 
-    m_free_query_handles.push_back(*extant_query);
+    m_free_query_handles.push_back(extant_query->handle);
     *extant_query = m_extant_query_handles.back();
     m_extant_query_handles.pop_back();
   }
@@ -442,11 +502,19 @@ PerfMetric::PerfMetric(int query_id, int counter_num, MetricSinkInterface *sink)
   m_name = counter_name.data();
   m_description = counter_description.data();
 
+  MetricType t = Grafips::GR_METRIC_COUNT;
+  if (strcasestr("average", counter_description.data()))
+    t = Grafips::GR_METRIC_AVERAGE;
+  else if (strcasestr("percent", counter_description.data()))
+    t = Grafips::GR_METRIC_PERCENT;
+
   std::stringstream path;
-  path << "gpu/intel/" << m_counter_num << "/" << m_name;
+  path << "gpu/intel/" << m_name;
   m_grafips_desc = new MetricDescription(path.str(),
                                          m_description, m_name,
-                                         Grafips::GR_METRIC_COUNT);
+                                         t);
+  GFLOGF("GPU Metric:%s Id:%d QueryId:%d CounterNum:%d", m_name.c_str(),
+         m_grafips_desc->id(), m_query_id, m_counter_num);
 }
 
 void
@@ -490,7 +558,8 @@ PerfMetric::Deactivate(int id) {
 }
 
 void
-PerfMetric::Publish(const std::vector<unsigned char> &data) {
+PerfMetric::Publish(const std::vector<unsigned char> &data,
+                    int frame_count) {
   DataSet d;
   float fval;
   const unsigned char *p_value = data.data() + m_offset;
@@ -526,6 +595,11 @@ PerfMetric::Publish(const std::vector<unsigned char> &data) {
     default:
       assert(false);
   }
+
+  if (m_grafips_desc->type == Grafips::GR_METRIC_COUNT)
+    // count metrics are per frame
+    fval = fval / frame_count;
+  
   d.push_back(DataPoint(get_ms_time(), m_grafips_desc->id(), fval));
   m_sink->OnMetric(d);
 }

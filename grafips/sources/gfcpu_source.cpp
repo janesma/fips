@@ -200,7 +200,7 @@ CpuSource::Poll() {
         return;
 
     const unsigned int ms = get_ms_time();
-    if (ms - m_last_publish_ms < 500)
+    if (ms - m_last_publish_ms < 300)
         return;
     m_last_publish_ms = ms;
 

@@ -36,7 +36,8 @@ namespace Grafips {
 enum MetricType {
   GR_METRIC_COUNT = 0,
   GR_METRIC_RATE,
-  GR_METRIC_PERCENT
+  GR_METRIC_PERCENT,
+  GR_METRIC_AVERAGE
 };
 
 class MetricDescription {

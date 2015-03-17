@@ -774,6 +774,7 @@ metrics_exit (void)
 void
 metrics_end_frame (metrics_t *metrics)
 {
+	return;
 	static int initialized = 0;
 	static struct timeval tv_start, tv_now;
 

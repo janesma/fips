@@ -38,7 +38,7 @@ class MetricSinkInterface;
 // GlSource produces metrics based on the GL API
 class GlSource : public MetricSourceInterface {
  public:
-  explicit GlSource(int ms_interval = 1000);
+  explicit GlSource(int ms_interval = 100);
   ~GlSource();
   void Subscribe(MetricSinkInterface *sink);
   void Activate(int id);

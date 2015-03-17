@@ -116,7 +116,7 @@ CpuFreqSource::Deactivate(int id) {
 void
 CpuFreqSource::Poll() {
   const unsigned int ms = get_ms_time();
-  if (ms - m_last_publish_ms < 500)
+  if (ms - m_last_publish_ms < 300)
     return;
   if (!m_sink)
     return;
