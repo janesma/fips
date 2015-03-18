@@ -34,6 +34,7 @@ usage (void)
 	       "Execute <program> and report GPU performance counters\n"
 	       "\n"
 	       "Options:\n"
+	       "	-p, --port port	provide port for grafips\n"
 	       "	-h, --help	show this help message\n"
 	       "	-v, --verbose	print verbose messages about fips activity"
 	       "\n");
@@ -54,7 +55,7 @@ main (int argc, char *argv[])
 	 * "glxgears -fullscreen" rather than trying to interpret
 	 * -fullscreen as options to fips itself.
 	 */
-	const char *short_options = "+hv";
+	const char *short_options = "+hvp:";
 	const struct option long_options[] = {
 		{"help", no_argument, 0, 'h'},
 		{"verbose", no_argument, 0, 'v'},

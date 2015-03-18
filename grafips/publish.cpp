@@ -53,7 +53,11 @@ public:
 		m_pub->RegisterSource(m_gpu_source);
 		m_pub->RegisterSource(m_cpu_freq_source);
 
-		m_skel = new PublisherSkeleton(53136, m_pub);
+		int port = 53136;  // default port
+		const char *env_port = getenv("FIPS_PORT");
+		if (env_port != NULL)
+			port = atoi(env_port);
+		m_skel = new PublisherSkeleton(port, m_pub);
 		m_skel->Start();
 
 		m_freq_control = new CpuFreqControl;
@@ -65,7 +69,7 @@ public:
 		m_target->AddControl("SimpleShaderExperiment", m_api_control);
 		m_target->AddControl("DisableDrawExperiment", m_api_control);
 		m_target->AddControl("WireframeExperiment", m_api_control);
-		m_control_skel = new ControlSkel(53136 + 1, m_target);
+		m_control_skel = new ControlSkel(port + 1, m_target);
 		m_control_skel->Start();
 	}
 	~GrafipsPublishers() {
