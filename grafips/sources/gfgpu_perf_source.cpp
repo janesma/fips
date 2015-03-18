@@ -404,9 +404,9 @@ PerfMetricGroup::SwapBuffers() {
     return;
   }
 
+  ++m_frame_count;
   const unsigned int ms = get_ms_time();
   if (ms - m_last_publish_ms < 300) {
-    ++m_frame_count;
     return;
   }
 
@@ -564,13 +564,12 @@ PerfMetric::Publish(const std::vector<unsigned char> &data,
   float fval;
   const unsigned char *p_value = data.data() + m_offset;
   switch (m_data_type) {
-    case GL_PERFQUERY_COUNTER_DATA_UINT32_INTEL:
-      {
-        assert(m_data_size == 4);
-        const uint32_t val = *reinterpret_cast<const uint32_t *>(p_value);
-        fval = static_cast<float>(val);
-        break;
-      }
+    case GL_PERFQUERY_COUNTER_DATA_UINT32_INTEL: {
+      assert(m_data_size == 4);
+      const uint32_t val = *reinterpret_cast<const uint32_t *>(p_value);
+      fval = static_cast<float>(val);
+      break;
+    }
     case GL_PERFQUERY_COUNTER_DATA_UINT64_INTEL: {
       assert(m_data_size == 8);
       const uint64_t val = *reinterpret_cast<const uint64_t *>(p_value);
