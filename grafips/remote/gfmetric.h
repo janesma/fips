@@ -61,7 +61,7 @@ class MetricDescription {
 inline unsigned int
 get_ms_time() {
   struct timespec t;
-  clock_gettime(CLOCK_REALTIME, &t);
+  clock_gettime(CLOCK_MONOTONIC_RAW, &t);
   unsigned int ms = t.tv_sec * 1000;
   ms += (t.tv_nsec / 1000000);
   return ms;
