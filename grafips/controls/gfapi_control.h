@@ -37,13 +37,15 @@
 
 namespace Grafips {
 
+class ScissorExperiment;
+class WireframeExperiment;
 class ApiControl : public ControlInterface {
  public:
   ApiControl();
   ~ApiControl();
   void Set(const std::string &key, const std::string &value);
   void Subscribe(ControlSubscriberInterface *sub);
-  bool PerformDrawExperminents() const;
+  bool PerformDrawExperiments();
   void OnContext(void *context);
   void OnBindTexture(int target);
   void OnLinkProgram(int prog);
@@ -71,6 +73,8 @@ class ApiControl : public ControlInterface {
   ControlSubscriberInterface *m_subscriber;
   std::map<ProgramKey, int> m_program_to_simple_shader;
   int m_simpleShader;
+  std::map<void *, ScissorExperiment *> m_scissor_overrides;
+  std::map<void *, WireframeExperiment *> m_wireframe_overrides;
   mutable Mutex m_protect;
 };
 

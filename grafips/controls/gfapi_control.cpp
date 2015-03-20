@@ -128,17 +128,81 @@ ApiControl::Publish() {
                                  m_simpleShaderEnabled ? "true" : "false");
 }
 
-bool
-ApiControl::PerformDrawExperminents() const {
-  ScopedLock s(&m_protect);
-  if (m_disableDraw)
-    return false;
-  if (m_scissorEnabled) {
+class Grafips::ScissorExperiment {
+ public:
+  ScissorExperiment() : m_scissor_box(4) {
+    m_enabled = PerfFunctions::IsEnabled(GL_SCISSOR_TEST);
+    if (m_enabled)
+      PerfFunctions::GetIntegerv(GL_SCISSOR_BOX, m_scissor_box.data());
+  }
+  ~ScissorExperiment() {
+    if (! m_enabled) {
+      PerfFunctions::Disable(GL_SCISSOR_TEST);
+      return;
+    }
+    PerfFunctions::Scissor(m_scissor_box[0], m_scissor_box[1],
+                           m_scissor_box[2], m_scissor_box[3]);
+  }
+  void Override() {
     PerfFunctions::Enable(GL_SCISSOR_TEST);
     PerfFunctions::Scissor(0, 0, 1, 1);
   }
-  if (m_wireframeEnabled) {
+ private:
+  bool m_enabled;
+  std::vector<int> m_scissor_box;
+};
+
+class Grafips::WireframeExperiment {
+ public:
+  WireframeExperiment() {
+    PerfFunctions::GetIntegerv(GL_POLYGON_MODE, m_front_and_back);
+    assert(m_front_and_back[0] == m_front_and_back[1]);
+  }
+  ~WireframeExperiment() {
+    PerfFunctions::PolygonMode(GL_FRONT_AND_BACK, m_front_and_back[0]);
+  }
+  void Override() {
     PerfFunctions::PolygonMode(GL_FRONT_AND_BACK, GL_LINE);
+  }
+
+ private:
+  GLint m_front_and_back[2];
+};
+
+bool
+ApiControl::PerformDrawExperiments() {
+  ScopedLock s(&m_protect);
+  if (m_disableDraw)
+    return false;
+    
+  if (m_scissorEnabled) {
+    ScissorExperiment *scissor = m_scissor_overrides[m_current_context];
+    if (scissor == NULL) {
+      scissor = new ScissorExperiment;
+      m_scissor_overrides[m_current_context] = scissor;
+    }
+    scissor->Override();
+  } else {
+    ScissorExperiment *scissor = m_scissor_overrides[m_current_context];
+    if (scissor != NULL) {
+      delete scissor;
+      m_scissor_overrides[m_current_context] = NULL;
+    }
+  }
+
+  if (m_wireframeEnabled) {
+    WireframeExperiment *wf = m_wireframe_overrides[m_current_context];
+    if (wf == NULL) {
+      wf = new WireframeExperiment;
+      m_wireframe_overrides[m_current_context] = wf;
+    }
+    wf->Override();
+  } else {
+    WireframeExperiment *wf = m_wireframe_overrides[m_current_context];
+    if (wf != NULL) {
+      delete wf;
+      m_wireframe_overrides[m_current_context] = NULL;
+    }
   }
   return true;
 }
@@ -274,8 +338,13 @@ ApiControl::OnUseProgram(int prog) {
 
 void
 ApiControl::OnContext(void* context) {
+  ScopedLock s(&m_protect);
   GFLOGF("OnContext %d", context);
   m_current_context = context;
+  if (m_scissor_overrides.find(context) == m_scissor_overrides.end())
+    m_scissor_overrides[context] = NULL;
+  if (m_wireframe_overrides.find(context) == m_wireframe_overrides.end())
+    m_wireframe_overrides[context] = NULL;
 }
 
 bool
@@ -286,3 +355,5 @@ ApiControl::ProgramKey::operator<(const ProgramKey&o) const {
     return false;
   return program < o.program;
 }
+
+

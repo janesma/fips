@@ -92,6 +92,9 @@ class PerfFunctions {
                            GLsizei width, GLsizei height,
                            GLint border, GLenum format, GLenum type,
                            const GLvoid *pixels );
+  static GLboolean IsEnabled( GLenum cap );
+  static void GetIntegerv( GLenum pname, GLint *params );
+  static void Disable( GLenum cap );
 
  private:
   PerfFunctions();

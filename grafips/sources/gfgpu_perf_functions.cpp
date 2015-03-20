@@ -129,6 +129,15 @@ typedef void (PFNGLTEXIMAGE2D)( GLenum target, GLint level,
                            const GLvoid *pixels );
 static const PFNGLTEXIMAGE2D *p_glTexImage2D = NULL;
 
+typedef GLboolean (PFNGLISENABLED)( GLenum cap);
+static const PFNGLISENABLED *p_glIsEnabled = NULL;
+
+typedef void (PFNGLGETINTEGERV)( GLenum pname, GLint *params );
+static const PFNGLGETINTEGERV *p_glGetIntegerv = NULL;
+
+typedef void (PFNGLDISABLE)( GLenum pname );
+static const PFNGLDISABLE *p_glDisable = NULL;
+
 }  // namespace
 
 void
@@ -246,7 +255,7 @@ PerfFunctions::Init(void *lookup_fn) {
 
   name = reinterpret_cast<const GLubyte*>("glUseProgram");
   p_glUseProgram =
-      reinterpret_cast<PFNGLENABLE*>(get_proc(name));
+      reinterpret_cast<PFNGLUSEPROGRAM*>(get_proc(name));
   assert(p_glUseProgram);
 
   name = reinterpret_cast<const GLubyte*>("glScissor");
@@ -289,6 +298,17 @@ PerfFunctions::Init(void *lookup_fn) {
       reinterpret_cast<PFNGLTEXIMAGE2D*>(get_proc(name));
   assert(p_glTexImage2D);
 
+  name = reinterpret_cast<const GLubyte*>("glIsEnabled");
+  p_glIsEnabled = reinterpret_cast<PFNGLISENABLED*>(get_proc(name));
+  assert(p_glIsEnabled);
+
+  name = reinterpret_cast<const GLubyte*>("glGetIntegerv");
+  p_glGetIntegerv = reinterpret_cast<PFNGLGETINTEGERV*>(get_proc(name));
+  assert(p_glGetIntegerv);
+
+  name = reinterpret_cast<const GLubyte*>("glDisable");
+  p_glDisable = reinterpret_cast<PFNGLDISABLE*>(get_proc(name));
+  assert(p_glDisable);
 }
 
 void
@@ -415,30 +435,37 @@ void
 PerfFunctions::UseProgram (GLuint program) {
   p_glUseProgram (program);
 }
+
 void
 PerfFunctions::Scissor( GLint x, GLint y, GLsizei width, GLsizei height) {
   p_glScissor( x, y, width, height);
 }
+
 void
 PerfFunctions::PolygonMode( GLenum face, GLenum mode ) {
   p_glPolygonMode( face, mode);
 }
+
 GLenum
 PerfFunctions::GetError( void ) {
   return p_glGetError();
 }
+
 void
 PerfFunctions::GenTextures( GLsizei n, GLuint *textures ) {
   p_glGenTextures( n, textures);
 }
+
 void
 PerfFunctions::ActiveTexture( GLenum texture ) {
   p_glActiveTexture( texture);
 }
+
 void
 PerfFunctions::TexParameteri( GLenum target, GLenum pname, GLint param ) {
   p_glTexParameteri( target, pname, param);
 }
+
 void
 PerfFunctions::TexImage2D( GLenum target, GLint level,
                            GLint internalFormat,
@@ -451,8 +478,22 @@ PerfFunctions::TexImage2D( GLenum target, GLint level,
                   border, format, type,
                   pixels );
 }
+
 void
 PerfFunctions::BindTexture( GLenum target, GLuint texture ) {
   p_glBindTexture( target, texture);
 }
 
+GLboolean PerfFunctions::IsEnabled( GLenum cap ) {
+  return p_glIsEnabled(cap);
+}
+
+void
+PerfFunctions::GetIntegerv( GLenum pname, GLint *params ) {
+  p_glGetIntegerv(pname, params);
+}
+
+void
+PerfFunctions::Disable( GLenum cap ){
+  p_glDisable(cap);
+}

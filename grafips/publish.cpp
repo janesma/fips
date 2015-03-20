@@ -93,7 +93,7 @@ public:
 		m_gpu_source->MakeContextCurrent();
 	}
 	bool PerformExperiments() {
-		return m_api_control->PerformDrawExperminents();
+		return m_api_control->PerformDrawExperiments();
 	}
 	void PerformBindTextureExperiment(GLenum target) {
 		m_api_control->OnBindTexture(target);
