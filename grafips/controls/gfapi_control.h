@@ -39,6 +39,7 @@ namespace Grafips {
 
 class ScissorExperiment;
 class WireframeExperiment;
+class TextureExperiment;
 class ApiControl : public ControlInterface {
  public:
   ApiControl();
@@ -47,7 +48,6 @@ class ApiControl : public ControlInterface {
   void Subscribe(ControlSubscriberInterface *sub);
   bool PerformDrawExperiments();
   void OnContext(void *context);
-  void OnBindTexture(int target);
   void OnLinkProgram(int prog);
   void OnUseProgram(int prog);
   void PerformSimpleShaderExperiment();
@@ -65,7 +65,7 @@ class ApiControl : public ControlInterface {
 
   bool m_scissorEnabled;
   bool m_2x2TextureEnabled;
-  std::map<void *, int> m_2x2Textures;
+  std::map<void *, TextureExperiment *> m_2x2Textures;
   bool m_simpleShaderEnabled;
   bool m_disableDraw;
   bool m_wireframeEnabled;

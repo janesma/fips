@@ -169,6 +169,75 @@ class Grafips::WireframeExperiment {
   GLint m_front_and_back[2];
 };
 
+static void
+CheckError(const char * file, int line) {
+  const int error = PerfFunctions::GetError();
+  if ( error == GL_NO_ERROR)
+    return;
+  GFLOGF("ERROR: %x %s:%i\n", error, file, line);
+}
+#define GL_CHECK() CheckError(__FILE__, __LINE__)
+
+class Grafips::TextureExperiment {
+ public:
+  TextureExperiment() {
+    PerfFunctions::GetError();
+    PerfFunctions::GetIntegerv(GL_MAX_TEXTURE_IMAGE_UNITS, &m_texture_units);
+
+    int prev_active_texture_unit;
+    PerfFunctions::GetIntegerv(GL_ACTIVE_TEXTURE, &prev_active_texture_unit);
+    GL_CHECK();
+
+    PerfFunctions::Enable(GL_TEXTURE_2D);
+    GL_CHECK();
+    unsigned char data[] {255, 0, 0, 0, 0, 255, 0, 0,
+          0, 0, 255, 0, 0, 0, 0, 255};
+
+    PerfFunctions::ActiveTexture(GL_TEXTURE0);
+    GL_CHECK();
+
+    int prev_bound_texture;
+    PerfFunctions::GetIntegerv(GL_TEXTURE_BINDING_2D, &prev_bound_texture);
+    GL_CHECK();
+
+    PerfFunctions::GenTextures(1, reinterpret_cast<GLuint*>(&m_texture_handle));
+    GL_CHECK();
+
+    PerfFunctions::BindTexture(GL_TEXTURE_2D, m_texture_handle);
+    GL_CHECK();
+    PerfFunctions::TexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
+    GL_CHECK();
+    PerfFunctions::TexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
+    GL_CHECK();
+    PerfFunctions::TexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, 2, 2, 0, GL_RGBA,
+                              GL_UNSIGNED_INT, data);
+    GL_CHECK();
+    PerfFunctions::BindTexture(GL_TEXTURE_2D, prev_bound_texture);
+    GL_CHECK();
+
+    PerfFunctions::ActiveTexture(prev_active_texture_unit);
+    GL_CHECK();
+  }
+  void Override() {
+    // simply bind the 2x2 texture to every unit
+    // TODO: needs to happen for cube maps also
+    PerfFunctions::GetError();
+    int prev_active_texture_unit;
+    PerfFunctions::GetIntegerv(GL_ACTIVE_TEXTURE, &prev_active_texture_unit);
+    GL_CHECK();
+    for (int i = GL_TEXTURE0; i < GL_TEXTURE0 + m_texture_units; ++i) {
+      PerfFunctions::ActiveTexture(i);
+      GL_CHECK();
+      PerfFunctions::BindTexture(GL_TEXTURE_2D, m_texture_handle);
+      GL_CHECK();
+    }
+    PerfFunctions::ActiveTexture(prev_active_texture_unit);
+    GL_CHECK();
+  }
+ private:
+  int m_texture_handle, m_texture_units;
+};
+
 bool
 ApiControl::PerformDrawExperiments() {
   ScopedLock s(&m_protect);
@@ -204,54 +273,14 @@ ApiControl::PerformDrawExperiments() {
       m_wireframe_overrides[m_current_context] = NULL;
     }
   }
-  return true;
-}
 
-static void
-CheckError(const char * file, int line) {
-  const int error = PerfFunctions::GetError();
-  if ( error == GL_NO_ERROR)
-    return;
-  GFLOGF("ERROR: %x %s:%i\n", error, file, line);
-}
-#define GL_CHECK() CheckError(__FILE__, __LINE__)
-
-void
-ApiControl::OnBindTexture(int target) {
-  ScopedLock s(&m_protect);
-  if (!m_2x2TextureEnabled)
-    return;
-
-  PerfFunctions::GetError();
-  auto texture = m_2x2Textures.find(m_current_context);
-  if (texture == m_2x2Textures.end()) {
-    PerfFunctions::Enable(GL_TEXTURE_2D);
-    GL_CHECK();
-    unsigned char data[] {255, 0, 0, 0, 0, 255, 0, 0,
-          0, 0, 255, 0, 0, 0, 0, 255};
-    int texture_handle;
-    PerfFunctions::GenTextures(1, reinterpret_cast<GLuint*>(&texture_handle));
-    GL_CHECK();
-    m_2x2Textures[m_current_context] = texture_handle;
-    texture = m_2x2Textures.find(m_current_context);
-
-    PerfFunctions::BindTexture(GL_TEXTURE_2D, texture_handle);
-    GL_CHECK();
-    PerfFunctions::ActiveTexture(GL_TEXTURE0);
-    GL_CHECK();
-    PerfFunctions::TexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
-    GL_CHECK();
-    PerfFunctions::TexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
-    GL_CHECK();
-    PerfFunctions::TexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, 2, 2, 0, GL_RGBA,
-                 GL_UNSIGNED_INT, data);
-    GL_CHECK();
-    PerfFunctions::BindTexture(GL_TEXTURE_2D, 0);
-    GL_CHECK();
+  if (m_2x2TextureEnabled) {
+    if (m_2x2Textures[m_current_context] == NULL)
+      m_2x2Textures[m_current_context] = new TextureExperiment;
+    m_2x2Textures[m_current_context]->Override();
   }
 
-  PerfFunctions::BindTexture(target, texture->second);
-  GL_CHECK();
+  return true;
 }
 
 void
@@ -341,10 +370,13 @@ ApiControl::OnContext(void* context) {
   ScopedLock s(&m_protect);
   GFLOGF("OnContext %d", context);
   m_current_context = context;
+
   if (m_scissor_overrides.find(context) == m_scissor_overrides.end())
     m_scissor_overrides[context] = NULL;
   if (m_wireframe_overrides.find(context) == m_wireframe_overrides.end())
     m_wireframe_overrides[context] = NULL;
+  if (m_2x2Textures.find(m_current_context) == m_2x2Textures.end())
+    m_2x2Textures[m_current_context] = NULL;
 }
 
 bool

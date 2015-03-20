@@ -95,9 +95,6 @@ public:
 	bool PerformExperiments() {
 		return m_api_control->PerformDrawExperiments();
 	}
-	void PerformBindTextureExperiment(GLenum target) {
-		m_api_control->OnBindTexture(target);
-	}
 	void OnLinkProgram(GLint program) {
 		m_api_control->OnLinkProgram(program);
 	}
@@ -177,14 +174,6 @@ bool perform_draw_experiments()
 	if (publishers)
 		return publishers->PerformExperiments();
 	return true;
-}
-
-void perform_bind_texture_experiment(GLenum target)
-{
-	if (publishers)
-	{
-		publishers->PerformBindTextureExperiment(target);
-	}
 }
 
 void on_link_program(GLint program)

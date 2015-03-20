@@ -1765,12 +1765,6 @@ void glDrawTransformFeedbackStreamInstanced (GLenum mode, GLuint id, GLuint stre
 		FIPS_DEFER(glDrawTransformFeedbackStreamInstanced, mode, id, stream, instancecount);
 }
 
-void glBindTexture( GLenum target, GLuint texture )
-{
-	FIPS_DEFER(glBindTexture, target, texture);
-	perform_bind_texture_experiment(target);
-}
-
 void glLinkProgram (GLuint program)
 {
 	FIPS_DEFER(glLinkProgram, program);
