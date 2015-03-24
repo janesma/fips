@@ -15,6 +15,7 @@ grafips_srcs = \
 	gfgpu_perf_source.cpp \
 	gfmetric.cpp \
 	gfmutex.cpp \
+	gfproc_self_source.cpp \
 	gfpublisher.cpp \
 	gfpublisher_skel.cpp \
 	gfsocket.cpp \

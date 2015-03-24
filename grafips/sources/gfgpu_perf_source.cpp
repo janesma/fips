@@ -277,7 +277,7 @@ void
 PerfMetricSet::GetDescriptions(MetricDescriptionSet *desc) {
   MetricDescriptionSet all_descriptions;
 
-  for (int i = 0; i < (int)m_metric_groups.size(); ++i) {
+  for (int i = 0; i < static_cast<int>(m_metric_groups.size()); ++i) {
     bool group_enabled = true;
     if (m_active_group != -1) {
       // only metrics in the active group are enabled
@@ -324,9 +324,9 @@ PerfMetricGroup::PerfMetricGroup(int query_id, MetricSinkInterface *sink)
   std::vector<GLchar> query_name(max_name_len);
   unsigned int number_instances;
   PerfFunctions::GetQueryInfo(m_query_id,
-                            query_name.size(), query_name.data(),
-                            &m_data_size, &m_number_counters,
-                            &number_instances, &m_capabilities_mask);
+                              query_name.size(), query_name.data(),
+                              &m_data_size, &m_number_counters,
+                              &number_instances, &m_capabilities_mask);
   m_data_buf.resize(m_data_size);
   for (unsigned int counter_num = 1; counter_num <= m_number_counters;
        ++counter_num) {
@@ -374,9 +374,10 @@ PerfMetricGroup::Deactivate(int id) {
       for (auto extant_query = m_extant_query_handles.rbegin();
            extant_query != m_extant_query_handles.rend(); ++extant_query) {
         GLuint bytes_written = 0;
-        PerfFunctions::GetQueryData(extant_query->handle, GL_PERFQUERY_WAIT_INTEL,
-                                  m_data_size, m_data_buf.data(),
-                                  &bytes_written);
+        PerfFunctions::GetQueryData(extant_query->handle,
+                                    GL_PERFQUERY_WAIT_INTEL,
+                                    m_data_size, m_data_buf.data(),
+                                    &bytes_written);
         // assert(bytes_written != 0);
         PerfFunctions::DeleteQuery(extant_query->handle);
       }
@@ -411,7 +412,7 @@ PerfMetricGroup::SwapBuffers() {
   }
 
   m_last_publish_ms = ms;
-  
+
   if (m_current_query_handle != GL_INVALID_VALUE) {
     PerfFunctions::EndQuery(m_current_query_handle);
     m_extant_query_handles.push_back(ExtantQuery(m_current_query_handle,
@@ -443,9 +444,10 @@ PerfMetricGroup::SwapBuffers() {
        extant_query != m_extant_query_handles.rend(); ++extant_query) {
     uint bytes_written = 0;
     memset(m_data_buf.data(), 0, m_data_buf.size());
-    PerfFunctions::GetQueryData(extant_query->handle, GL_PERFQUERY_DONOT_FLUSH_INTEL,
-                              m_data_size, m_data_buf.data(),
-                              &bytes_written);
+    PerfFunctions::GetQueryData(extant_query->handle,
+                                GL_PERFQUERY_DONOT_FLUSH_INTEL,
+                                m_data_size, m_data_buf.data(),
+                                &bytes_written);
     if (bytes_written == 0) {
       continue;
     }
@@ -494,11 +496,11 @@ PerfMetric::PerfMetric(int query_id, int counter_num, MetricSinkInterface *sink)
   std::vector<GLchar> counter_description(max_desc_len);
 
   PerfFunctions::GetCounterInfo(m_query_id, m_counter_num,
-                              counter_name.size(), counter_name.data(),
-                              counter_description.size(),
-                              counter_description.data(),
-                              &m_offset, &m_data_size, &m_type,
-                              &m_data_type, &m_max_value);
+                                counter_name.size(), counter_name.data(),
+                                counter_description.size(),
+                                counter_description.data(),
+                                &m_offset, &m_data_size, &m_type,
+                                &m_data_type, &m_max_value);
   m_name = counter_name.data();
   m_description = counter_description.data();
 
@@ -515,7 +517,7 @@ PerfMetric::PerfMetric(int query_id, int counter_num, MetricSinkInterface *sink)
                                          t);
   GFLOGF("GPU Metric:%s Id:%d QueryId:%d CounterNum:%d", m_name.c_str(),
          m_grafips_desc->id(), m_query_id, m_counter_num);
-}
+      }
 
 void
 PerfMetric::AppendDescription(MetricDescriptionSet *desc,
@@ -598,7 +600,7 @@ PerfMetric::Publish(const std::vector<unsigned char> &data,
   if (m_grafips_desc->type == Grafips::GR_METRIC_COUNT)
     // count metrics are per frame
     fval = fval / frame_count;
-  
+
   d.push_back(DataPoint(get_ms_time(), m_grafips_desc->id(), fval));
   m_sink->OnMetric(d);
 }

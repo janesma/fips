@@ -136,7 +136,7 @@ class Grafips::ScissorExperiment {
       PerfFunctions::GetIntegerv(GL_SCISSOR_BOX, m_scissor_box.data());
   }
   ~ScissorExperiment() {
-    if (! m_enabled) {
+    if (!m_enabled) {
       PerfFunctions::Disable(GL_SCISSOR_TEST);
       return;
     }
@@ -205,9 +205,13 @@ class Grafips::TextureExperiment {
 
     PerfFunctions::BindTexture(GL_TEXTURE_2D, m_texture_handle);
     GL_CHECK();
-    PerfFunctions::TexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
+    PerfFunctions::TexParameteri(GL_TEXTURE_2D,
+                                 GL_TEXTURE_MIN_FILTER,
+                                 GL_NEAREST);
     GL_CHECK();
-    PerfFunctions::TexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
+    PerfFunctions::TexParameteri(GL_TEXTURE_2D,
+                                 GL_TEXTURE_MAG_FILTER,
+                                 GL_NEAREST);
     GL_CHECK();
     PerfFunctions::TexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, 2, 2, 0, GL_RGBA,
                               GL_UNSIGNED_INT, data);
@@ -220,7 +224,7 @@ class Grafips::TextureExperiment {
   }
   void Override() {
     // simply bind the 2x2 texture to every unit
-    // TODO: needs to happen for cube maps also
+    // TODO(majanes): needs to happen for cube maps also
     PerfFunctions::GetError();
     int prev_active_texture_unit;
     PerfFunctions::GetIntegerv(GL_ACTIVE_TEXTURE, &prev_active_texture_unit);
@@ -234,6 +238,7 @@ class Grafips::TextureExperiment {
     PerfFunctions::ActiveTexture(prev_active_texture_unit);
     GL_CHECK();
   }
+
  private:
   int m_texture_handle, m_texture_units;
 };
@@ -243,7 +248,7 @@ ApiControl::PerformDrawExperiments() {
   ScopedLock s(&m_protect);
   if (m_disableDraw)
     return false;
-    
+
   if (m_scissorEnabled) {
     ScissorExperiment *scissor = m_scissor_overrides[m_current_context];
     if (scissor == NULL) {

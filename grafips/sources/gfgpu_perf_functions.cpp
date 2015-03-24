@@ -67,15 +67,16 @@ typedef void (PFNGLGETQUERYDATA) (GLuint queryHandle, GLuint flags,
 typedef GLuint (PFNGLCREATEPROGRAM) (void);
 typedef GLuint (PFNGLCREATESHADER) (GLenum type);
 typedef void (PFNGLSHADERSOURCE) (GLuint shader, GLsizei count,
-                                  const GLchar *const*string,
+                                  const GLchar *const*str,
                                   const GLint *length);
 typedef void (PFNGLCOMPILESHADER) (GLuint shader);
 typedef void  (PFNGLGETPROGRAMIV) (GLuint program, GLenum pname, GLint *params);
-typedef void (PFNGLGETATTACHEDSHADERS) (GLuint program, GLsizei maxCount, GLsizei *count, GLuint *shaders);
+typedef void (PFNGLGETATTACHEDSHADERS) (GLuint program, GLsizei maxCount,
+                                        GLsizei *count, GLuint *shaders);
 typedef void (PFNGLGETSHADERIV) (GLuint shader, GLenum pname, GLint *params);
 typedef void (PFNGLATTACHSHADER) (GLuint program, GLuint shader);
 typedef void (PFNGLLINKPROGRAM) (GLuint program);
-typedef void (PFNGLENABLE)( GLenum cap );
+typedef void (PFNGLENABLE)(GLenum cap);
 
 static const PFNGLCREATEQUERY *p_glCreatePerfQueryINTEL = NULL;
 static const PFNGLDELETEQUERY *p_glDeletePerfQueryINTEL = NULL;
@@ -101,41 +102,41 @@ static const PFNGLENABLE *p_glEnable = NULL;
 typedef void (PFNGLUSEPROGRAM) (GLuint program);
 static const PFNGLUSEPROGRAM *p_glUseProgram = NULL;
 
-typedef void (PFNGLSCISSOR)( GLint x, GLint y, GLsizei width, GLsizei height);
+typedef void (PFNGLSCISSOR)(GLint x, GLint y, GLsizei width, GLsizei height);
 static const PFNGLSCISSOR *p_glScissor = NULL;
 
-typedef void (PFNGLPOLYGONMODE)( GLenum face, GLenum mode );
+typedef void (PFNGLPOLYGONMODE)(GLenum face, GLenum mode);
 static const PFNGLPOLYGONMODE *p_glPolygonMode = NULL;
 
-typedef GLenum (PFNGLGETERROR)( void );
+typedef GLenum (PFNGLGETERROR)(void);
 static const PFNGLGETERROR *p_glGetError = NULL;
 
-typedef void (PFNGLGENTEXTURES)( GLsizei n, GLuint *textures );
+typedef void (PFNGLGENTEXTURES)(GLsizei n, GLuint *textures);
 static const PFNGLGENTEXTURES *p_glGenTextures = NULL;
 
-typedef void (PFNGLACTIVETEXTURE)( GLenum texture );
+typedef void (PFNGLACTIVETEXTURE)(GLenum texture);
 static const PFNGLACTIVETEXTURE *p_glActiveTexture = NULL;
 
-typedef void (PFNGLTEXPARAMETERI)( GLenum target, GLenum pname, GLint param );
+typedef void (PFNGLTEXPARAMETERI)(GLenum target, GLenum pname, GLint param);
 static const PFNGLTEXPARAMETERI *p_glTexParameteri = NULL;
 
-typedef void (PFNGLBINDTEXTURE)( GLenum target, GLuint texture );
+typedef void (PFNGLBINDTEXTURE)(GLenum target, GLuint texture);
 static const PFNGLBINDTEXTURE *p_glBindTexture = NULL;
 
-typedef void (PFNGLTEXIMAGE2D)( GLenum target, GLint level,
+typedef void (PFNGLTEXIMAGE2D)(GLenum target, GLint level,
                            GLint internalFormat,
                            GLsizei width, GLsizei height,
                            GLint border, GLenum format, GLenum type,
-                           const GLvoid *pixels );
+                           const GLvoid *pixels);
 static const PFNGLTEXIMAGE2D *p_glTexImage2D = NULL;
 
-typedef GLboolean (PFNGLISENABLED)( GLenum cap);
+typedef GLboolean (PFNGLISENABLED)(GLenum cap);
 static const PFNGLISENABLED *p_glIsEnabled = NULL;
 
-typedef void (PFNGLGETINTEGERV)( GLenum pname, GLint *params );
+typedef void (PFNGLGETINTEGERV)(GLenum pname, GLint *params);
 static const PFNGLGETINTEGERV *p_glGetIntegerv = NULL;
 
-typedef void (PFNGLDISABLE)( GLenum pname );
+typedef void (PFNGLDISABLE)(GLenum pname);
 static const PFNGLDISABLE *p_glDisable = NULL;
 
 }  // namespace
@@ -145,7 +146,7 @@ PerfFunctions::Init(void *lookup_fn) {
   if (m_is_initialized)
     return;
   m_is_initialized = true;
-    
+
   if (!lookup_fn) {
     void *lib_handle = NULL;
     lib_handle = dlopen("libGL.so", RTLD_LAZY | RTLD_GLOBAL);
@@ -380,120 +381,121 @@ PerfFunctions::GetQueryData(GLuint queryHandle, GLuint flags,
 }
 
 GLuint
-PerfFunctions::CreateProgram (void) {
+PerfFunctions::CreateProgram(void) {
   return p_glCreateProgram();
 }
 
 GLuint
-PerfFunctions::CreateShader (GLenum type) {
+PerfFunctions::CreateShader(GLenum type) {
   return p_glCreateShader(type);
 }
 
 void
-PerfFunctions::ShaderSource (GLuint shader, GLsizei count,
-                            const GLchar *const*string,
+PerfFunctions::ShaderSource(GLuint shader, GLsizei count,
+                            const GLchar *const*str,
                              const GLint *length) {
-  return p_glShaderSource(shader, count, string, length);
+  return p_glShaderSource(shader, count, str, length);
 }
 
 void
-PerfFunctions::CompileShader (GLuint shader) {
+PerfFunctions::CompileShader(GLuint shader) {
   return p_glCompileShader(shader);
 }
 
 void
-PerfFunctions::GetProgramiv (GLuint program, GLenum pname, GLint *params) {
+PerfFunctions::GetProgramiv(GLuint program, GLenum pname, GLint *params) {
   return p_glGetProgramiv(program, pname, params);
 }
 
 void
-PerfFunctions::GetAttachedShaders (GLuint program, GLsizei maxCount, GLsizei *count, GLuint *shaders) {
+PerfFunctions::GetAttachedShaders(GLuint program, GLsizei maxCount,
+                                  GLsizei *count, GLuint *shaders) {
   p_glGetAttachedShaders(program, maxCount, count, shaders);
 }
 
 void
-PerfFunctions::GetShaderiv (GLuint shader, GLenum pname, GLint *params) {
+PerfFunctions::GetShaderiv(GLuint shader, GLenum pname, GLint *params) {
   p_glGetShaderiv(shader, pname, params);
 }
 
 void
-PerfFunctions::AttachShader (GLuint program, GLuint shader) {
+PerfFunctions::AttachShader(GLuint program, GLuint shader) {
   p_glAttachShader(program, shader);
 }
 
 void
-PerfFunctions::LinkProgram (GLuint program) {
+PerfFunctions::LinkProgram(GLuint program) {
   p_glLinkProgram(program);
 }
 
 void
-PerfFunctions::Enable( GLenum cap ) {
+PerfFunctions::Enable(GLenum cap) {
   p_glEnable(cap);
 }
 
 void
-PerfFunctions::UseProgram (GLuint program) {
-  p_glUseProgram (program);
+PerfFunctions::UseProgram(GLuint program) {
+  p_glUseProgram(program);
 }
 
 void
-PerfFunctions::Scissor( GLint x, GLint y, GLsizei width, GLsizei height) {
-  p_glScissor( x, y, width, height);
+PerfFunctions::Scissor(GLint x, GLint y, GLsizei width, GLsizei height) {
+  p_glScissor(x, y, width, height);
 }
 
 void
-PerfFunctions::PolygonMode( GLenum face, GLenum mode ) {
-  p_glPolygonMode( face, mode);
+PerfFunctions::PolygonMode(GLenum face, GLenum mode) {
+  p_glPolygonMode(face, mode);
 }
 
 GLenum
-PerfFunctions::GetError( void ) {
+PerfFunctions::GetError(void) {
   return p_glGetError();
 }
 
 void
-PerfFunctions::GenTextures( GLsizei n, GLuint *textures ) {
-  p_glGenTextures( n, textures);
+PerfFunctions::GenTextures(GLsizei n, GLuint *textures) {
+  p_glGenTextures(n, textures);
 }
 
 void
-PerfFunctions::ActiveTexture( GLenum texture ) {
-  p_glActiveTexture( texture);
+PerfFunctions::ActiveTexture(GLenum texture) {
+  p_glActiveTexture(texture);
 }
 
 void
-PerfFunctions::TexParameteri( GLenum target, GLenum pname, GLint param ) {
-  p_glTexParameteri( target, pname, param);
+PerfFunctions::TexParameteri(GLenum target, GLenum pname, GLint param) {
+  p_glTexParameteri(target, pname, param);
 }
 
 void
-PerfFunctions::TexImage2D( GLenum target, GLint level,
+PerfFunctions::TexImage2D(GLenum target, GLint level,
                            GLint internalFormat,
                            GLsizei width, GLsizei height,
                            GLint border, GLenum format, GLenum type,
-                           const GLvoid *pixels ) {
-  p_glTexImage2D( target, level,
+                           const GLvoid *pixels) {
+  p_glTexImage2D(target, level,
                   internalFormat,
                   width, height,
                   border, format, type,
-                  pixels );
+                  pixels);
 }
 
 void
-PerfFunctions::BindTexture( GLenum target, GLuint texture ) {
-  p_glBindTexture( target, texture);
+PerfFunctions::BindTexture(GLenum target, GLuint texture) {
+  p_glBindTexture(target, texture);
 }
 
-GLboolean PerfFunctions::IsEnabled( GLenum cap ) {
+GLboolean PerfFunctions::IsEnabled(GLenum cap) {
   return p_glIsEnabled(cap);
 }
 
 void
-PerfFunctions::GetIntegerv( GLenum pname, GLint *params ) {
+PerfFunctions::GetIntegerv(GLenum pname, GLint *params) {
   p_glGetIntegerv(pname, params);
 }
 
 void
-PerfFunctions::Disable( GLenum cap ){
+PerfFunctions::Disable(GLenum cap) {
   p_glDisable(cap);
 }

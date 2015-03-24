@@ -36,14 +36,20 @@
 #include <string>
 #include <vector>
 
+#include "error/gflog.h"
+
 using Grafips::CpuFreqControl;
 using Grafips::FreqSysParser;
 
 CpuFreqControl::CpuFreqControl() : m_subscriber(NULL) {
   m_orig_scaling_governor = m_parser.Governor();
+  // GFLOGF("CpuFreqControl m_orig_scaling_governor %s",
+  // m_orig_scaling_governor.c_str());
   m_current_setting = m_orig_scaling_governor;
   m_orig_max_freq = m_parser.MaxFreq();
+  // GFLOGF("CpuFreqControl m_orig_max_freq %s", m_orig_max_freq.c_str());
   m_orig_min_freq = m_parser.MinFreq();
+  // GFLOGF("CpuFreqControl m_orig_min_freq %s", m_orig_min_freq.c_str());
 }
 
 CpuFreqControl::~CpuFreqControl() {
@@ -60,6 +66,8 @@ CpuFreqControl::Set(const std::string &key, const std::string &value) {
     return;
   if (!IsValid())
     return;
+
+  // GFLOGF("CpuFreqControl::Set %s", value.c_str());
 
   if ((value == "performance") || (value == "powersave")) {
     m_parser.SetMinFreq(m_orig_min_freq);
@@ -90,6 +98,7 @@ CpuFreqControl::Set(const std::string &key, const std::string &value) {
     return;
   }
 
+  GFLOGF("CpuFreqControl::Set invalid %s", value.c_str());
   // else value is not one of the supported options
   return;
 }

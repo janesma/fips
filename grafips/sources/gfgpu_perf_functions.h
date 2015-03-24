@@ -33,6 +33,7 @@
 #include <GL/glext.h>
 #endif
 
+
 namespace Grafips {
 
 class PerfFunctions {
@@ -67,34 +68,35 @@ class PerfFunctions {
                            GLsizei dataSize, GLvoid *data,
                            GLuint *bytesWritten);
 
-  static GLuint CreateProgram (void);
-  static GLuint CreateShader (GLenum type);
-  static void ShaderSource (GLuint shader, GLsizei count,
-                            const GLchar *const*string,
+  static GLuint CreateProgram(void);
+  static GLuint CreateShader(GLenum type);
+  static void ShaderSource(GLuint shader, GLsizei count,
+                            const GLchar *const*str,
                             const GLint *length);
-  static void CompileShader (GLuint shader);
-  static void GetProgramiv (GLuint program, GLenum pname, GLint *params);
-  static void GetAttachedShaders (GLuint program, GLsizei maxCount, GLsizei *count, GLuint *shaders);
-  static void GetShaderiv (GLuint shader, GLenum pname, GLint *params);
-  static void AttachShader (GLuint program, GLuint shader);
-  static void LinkProgram (GLuint program);
-  static void Enable( GLenum cap );
-  static void UseProgram (GLuint program);
-  static void Scissor( GLint x, GLint y, GLsizei width, GLsizei height);
-  static void PolygonMode( GLenum face, GLenum mode );
-  static GLenum GetError( void );
-  static void GenTextures( GLsizei n, GLuint *textures );
-  static void ActiveTexture( GLenum texture );
-  static void TexParameteri( GLenum target, GLenum pname, GLint param );
-  static void BindTexture( GLenum target, GLuint texture );
-  static void TexImage2D( GLenum target, GLint level,
+  static void CompileShader(GLuint shader);
+  static void GetProgramiv(GLuint program, GLenum pname, GLint *params);
+  static void GetAttachedShaders(GLuint program, GLsizei maxCount,
+                                 GLsizei *count, GLuint *shaders);
+  static void GetShaderiv(GLuint shader, GLenum pname, GLint *params);
+  static void AttachShader(GLuint program, GLuint shader);
+  static void LinkProgram(GLuint program);
+  static void Enable(GLenum cap);
+  static void UseProgram(GLuint program);
+  static void Scissor(GLint x, GLint y, GLsizei width, GLsizei height);
+  static void PolygonMode(GLenum face, GLenum mode);
+  static GLenum GetError(void);
+  static void GenTextures(GLsizei n, GLuint *textures);
+  static void ActiveTexture(GLenum texture);
+  static void TexParameteri(GLenum target, GLenum pname, GLint param);
+  static void BindTexture(GLenum target, GLuint texture);
+  static void TexImage2D(GLenum target, GLint level,
                            GLint internalFormat,
                            GLsizei width, GLsizei height,
                            GLint border, GLenum format, GLenum type,
-                           const GLvoid *pixels );
-  static GLboolean IsEnabled( GLenum cap );
-  static void GetIntegerv( GLenum pname, GLint *params );
-  static void Disable( GLenum cap );
+                           const GLvoid *pixels);
+  static GLboolean IsEnabled(GLenum cap);
+  static void GetIntegerv(GLenum pname, GLint *params);
+  static void Disable(GLenum cap);
 
  private:
   PerfFunctions();

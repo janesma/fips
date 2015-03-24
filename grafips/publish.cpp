@@ -14,6 +14,7 @@
 #include "gfgpu_perf_functions.h"
 #include "gfgpu_perf_source.h"
 #include "gflog.h"
+#include "gfproc_self_source.h"
 #include "gfpublisher.h"
 #include "gfpublisher_skel.h"
 #include "glwrap.h"
@@ -30,6 +31,7 @@ using Grafips::GlSource;
 using Grafips::GpuPerfSource;
 using Grafips::NoError;
 using Grafips::PerfFunctions;
+using Grafips::ProcSelfSource;
 using Grafips::PublisherImpl;
 using Grafips::PublisherSkeleton;
 using Grafips::kSocketReadFail;
@@ -46,12 +48,14 @@ public:
 		m_gl_source = new GlSource(100);
 		m_gpu_source = new GpuPerfSource;
 		m_cpu_freq_source = new CpuFreqSource;
+		m_proc_self_source = new ProcSelfSource;
 
 		m_pub = new PublisherImpl;
 		m_pub->RegisterSource(m_prov);
 		m_pub->RegisterSource(m_gl_source);
 		m_pub->RegisterSource(m_gpu_source);
 		m_pub->RegisterSource(m_cpu_freq_source);
+		m_pub->RegisterSource(m_proc_self_source);
 
 		int port = 53136;  // default port
 		const char *env_port = getenv("FIPS_PORT");
@@ -115,6 +119,8 @@ public:
 			m_gpu_source->glSwapBuffers();
 		if (NoError())
 			m_cpu_freq_source->Poll();
+		if (NoError())
+			m_proc_self_source->Poll();
 	}
 private:
 	PublisherImpl *m_pub;
@@ -122,6 +128,7 @@ private:
 	GlSource *m_gl_source;
 	GpuPerfSource *m_gpu_source;
 	CpuFreqSource *m_cpu_freq_source;
+	ProcSelfSource *m_proc_self_source;
 	PublisherSkeleton *m_skel;
 	CpuFreqControl *m_freq_control;
 	ApiControl *m_api_control;

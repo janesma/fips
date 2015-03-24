@@ -70,6 +70,11 @@ CpuFreqSource::CpuFreqSource()
       if (core_freq_handle == -1)
         break;
       m_core_freq_handles.push_back(core_freq_handle);
+
+      // all cores move together on haswell.  Break here to limit core
+      // frequency metric to a single value.  Uncomment if bdw/skl and
+      // later allow cores to scale individually.
+      break;
     }
 
     current_cpu_dir = readdir(base_dir_h);
