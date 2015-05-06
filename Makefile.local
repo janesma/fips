@@ -128,10 +128,10 @@ libfips-64.so: $(libfips_64_modules) libfips.sym $(GRAFIPS_64_LIB)
 	$(call quiet,$(FIPS_LINKER) $(CFLAGS) -m64) -o $@ $(LIBFIPS_CFLAGS) -m64 $(libfips_64_modules) $(LIBRARY_LINK_FLAGS) $(GRAFIPS_64_LDFLAGS) $(LIBFIPS_LDFLAGS)
 
 fips-find-lib-32: fips-find-lib.c
-	$(CC) $(FIPS_CFLAGS) -m32 -fPIC -ldl -o $@ $<
+	$(CC) $(FIPS_CFLAGS) -m32 -fPIC -o $@ $< -ldl
 
 fips-find-lib-64: fips-find-lib.c
-	$(CC) $(FIPS_CFLAGS) -m64 -fPIC -ldl -o $@ $<
+	$(CC) $(FIPS_CFLAGS) -m64 -fPIC -o $@ $< -ldl
 
 $(LIB64_DIR)/libGL.so.1: fips-gl.c $(SPECS)
 	mkdir -p $(LIB64_DIR)
