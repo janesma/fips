@@ -5,6 +5,7 @@ enum MetricType
     GR_METRIC_COUNT = 0;
     GR_METRIC_RATE = 1;
     GR_METRIC_PERCENT = 2;
+    GR_METRIC_AVERAGE = 3;
 };
 
 message MetricDescription

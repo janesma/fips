@@ -505,9 +505,9 @@ PerfMetric::PerfMetric(int query_id, int counter_num, MetricSinkInterface *sink)
   m_description = counter_description.data();
 
   MetricType t = Grafips::GR_METRIC_COUNT;
-  if (strcasestr("average", counter_description.data()))
+  if (strcasestr(counter_description.data(), "average"))
     t = Grafips::GR_METRIC_AVERAGE;
-  else if (strcasestr("percent", counter_description.data()))
+  else if (strcasestr(counter_description.data(), "percent"))
     t = Grafips::GR_METRIC_PERCENT;
 
   std::stringstream path;
