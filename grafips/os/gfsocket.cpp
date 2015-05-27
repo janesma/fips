@@ -136,6 +136,7 @@ ServerSocket::ServerSocket(int port) {
   address.sin_addr.s_addr = htonl(INADDR_ANY);
   const int flag = 1;
   setsockopt( m_server_fd, IPPROTO_TCP, TCP_NODELAY, &flag, sizeof(flag) );
+  setsockopt( m_server_fd, SOL_SOCKET, SO_REUSEADDR, &flag, sizeof(flag) );
 
   int bind_result;
   for (int retry = 0; retry < 5; ++retry) {

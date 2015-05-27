@@ -29,6 +29,7 @@
 
 #include <assert.h>
 #include <unistd.h>
+#include <inttypes.h>
 
 #include "remote/gfimetric_sink.h"
 
@@ -49,9 +50,10 @@ class StatLine {
 void
 StatLine::Parse() {
   FILE *fh = fopen("/proc/self/stat", "r");
-  fscanf(fh, "%*d (%*s %*c %*d %*d %*d %*d %*d %*u %*u %*u %*u %*u %lu %lu "
-         "%ld %ld %*d %*d %*d %*d %*u %*u %ld %*u %*u %*u %*u %*u %*u %*u "
-         "%*u %*u %*u %*u %*u %*u %*d %*d %*u %*u %*u %*u %*d %*u %*u %*u "
+  fscanf(fh, "%*d (%*s %*c %*d %*d %*d %*d %*d %*u %*u %*u %*u %*u %"
+         SCNu64 " %" SCNu64 " %" SCNd64 " %" SCNd64 " %*d %*d %*d "
+         "%*d %*u %*u %" SCNd64 " %*u %*u %*u %*u %*u %*u %*u %*u "
+         "%*u %*u %*u %*u %*u %*d %*d %*u %*u %*u %*u %*d %*u %*u %*u "
          "%*u %*u %*u %*u %*d",
          &utime, &stime, &cutime, &cstime, &rss);
   fclose(fh);
@@ -63,7 +65,7 @@ ProcSelfSource::GetUptime() const {
   FILE* fh = fopen("/proc/uptime", "r");
   fseek(fh, 0, SEEK_SET);
   uint64_t seconds, centiseconds;
-  fscanf(fh, "%lu.%lu", &seconds, &centiseconds);
+  fscanf(fh, "%" SCNu64 ".%" SCNu64, &seconds, &centiseconds);
   fclose(fh);
   return (seconds * m_hz) + (centiseconds * m_hz / 100);
 }
